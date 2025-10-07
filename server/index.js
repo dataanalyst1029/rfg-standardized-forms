@@ -147,6 +147,82 @@ app.delete("/api/users/:id", async (req, res) => {
   }
 });
 
+/* ------------------------
+   USER ACCESS ROUTES
+------------------------ */
+
+// ✅ Get all user access records
+app.get("/api/user_access", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM user_access ORDER BY id ASC");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching user access data:", err);
+    res.status(500).json({ message: "Server error fetching user access data" });
+  }
+});
+
+// ✅ Add a new user access record
+app.post("/api/user_access", async (req, res) => {
+  const { user_id, employee_id, name, email, access_forms, role } = req.body;
+
+  if (!employee_id || !name || !email) {
+    return res.status(400).json({ message: "Employee ID, name, and email are required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO user_access (user_id, employee_id, name, email, access_forms, role)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [user_id, employee_id, name, email, access_forms, role]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error adding user access record:", err);
+    res.status(500).json({ message: "Server error adding user access record" });
+  }
+});
+
+// ✅ Update a user access record
+app.put("/api/user_access/:id", async (req, res) => {
+  const { id } = req.params;
+  const { access_forms, role } = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE user_access 
+       SET access_forms = $1, role = $2
+       WHERE id = $3
+       RETURNING *`,
+      [access_forms, role, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "User access record not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error updating user access record:", err);
+    res.status(500).json({ message: "Server error updating user access record" });
+  }
+});
+
+// ✅ Delete a user access record
+app.delete("/api/user_access/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM user_access WHERE id = $1", [id]);
+    res.json({ message: "User access record deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting user access record:", err);
+    res.status(500).json({ message: "Server error deleting user access record" });
+  }
+});
+
+
 
 /* ------------------------
    START SERVER
