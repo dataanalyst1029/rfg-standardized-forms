@@ -57,7 +57,7 @@ function Dashboard({ role, onLogout }) {
                     className={`flex items-center justify-between w-full px-4 py-2 rounded-lg transition ${
                       openDropdown === "Users"
                         ? "bg-gray-700 text-white font-semibold"
-                        : "text-gray-400 hover:bg-gray-700 hover:text-white"
+                        : "text-gray-800 hover:bg-gray-700 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center">
@@ -78,7 +78,7 @@ function Dashboard({ role, onLogout }) {
                         className={`block w-full text-left px-4 py-2 rounded transition ${
                           activeSubmenu === "Manage Users"
                             ? "bg-gray-600 text-white font-medium"
-                            : "text-gray-400 hover:bg-gray-600 hover:text-white"
+                            : "text-gray-800 hover:bg-gray-600 hover:text-white"
                         }`}
                       >
                         Manage Users
@@ -92,7 +92,7 @@ function Dashboard({ role, onLogout }) {
                         className={`block w-full text-left px-4 py-2 rounded transition ${
                           activeSubmenu === "Manage Users Access"
                             ? "bg-gray-600 text-white font-medium"
-                            : "text-gray-400 hover:bg-gray-600 hover:text-white"
+                            : "text-gray-800 hover:bg-gray-600 hover:text-white"
                         }`}
                       >
                         Manage Users Access
@@ -115,7 +115,7 @@ function Dashboard({ role, onLogout }) {
                 className={`flex items-center w-full px-4 py-2 text-left rounded-lg transition ${
                   active === item.name
                     ? "bg-gray-700 text-white font-semibold"
-                    : "text-gray-400 hover:bg-gray-700 hover:text-white"
+                    : "text-gray-800 hover:bg-gray-700 hover:text-white"
                 }`}
               >
                 <span className="mr-3">{item.icon}</span>

@@ -223,6 +223,98 @@ app.delete("/api/user_access/:id", async (req, res) => {
 });
 
 
+/* ------------------------
+   PURCHASE REQUESTS
+------------------------ */
+
+// ✅ Generate next purchase request code
+app.get("/api/purchase_request/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+
+    // Fetch latest PR code for this year
+    const result = await pool.query(
+      `SELECT purchase_request_code 
+       FROM purchase_request 
+       WHERE purchase_request_code LIKE $1 
+       ORDER BY purchase_request_code DESC 
+       LIMIT 1`,
+      [`PR-${year}-%`]
+    );
+
+    let nextCode;
+
+    if (result.rows.length > 0) {
+      const lastCode = result.rows[0].purchase_request_code;
+      const lastNum = parseInt(lastCode.split("-")[2]); // get the ### part
+      const nextNum = String(lastNum + 1).padStart(3, "0");
+      nextCode = `PR-${year}-${nextNum}`;
+    } else {
+      nextCode = `PR-${year}-001`;
+    }
+
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("Error generating next purchase request code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+// ✅ Save new purchase request
+app.post("/api/purchase_request", async (req, res) => {
+  const {
+    purchase_request_code,
+    request_date,
+    requested_by,
+    contact_number,
+    branch,
+    department,
+    address,
+    purpose,
+    items,
+  } = req.body;
+
+  try {
+    // Insert into purchase_request table
+    const result = await pool.query(
+      `INSERT INTO purchase_request 
+       (purchase_request_code, request_date, requested_by, contact_number, branch, department, address, purpose)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       RETURNING *`,
+      [
+        purchase_request_code,
+        request_date,
+        requested_by,
+        contact_number,
+        branch,
+        department,
+        address,
+        purpose,
+      ]
+    );
+
+    // Optionally: Save items to a separate table
+    // (if you have purchase_item table)
+    for (const item of items) {
+      await pool.query(
+        `INSERT INTO purchase_item (purchase_request_id, quantity, purchase_item)
+         VALUES ($1, $2, $3)`,
+        [purchase_request_id, purchase_item.quantity, purchase_item.purchase_item]
+      );
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Purchase Request saved successfully!",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("Error saving purchase request:", err);
+    res.status(500).json({ message: "Server error saving purchase request" });
+  }
+});
+
+
 
 /* ------------------------
    START SERVER

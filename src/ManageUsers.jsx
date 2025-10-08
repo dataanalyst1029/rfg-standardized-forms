@@ -23,7 +23,7 @@ function ManageUsers() {
   const [userToDelete, setUserToDelete] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   /* ------------------------ FETCH USERS ------------------------ */
   const fetchUsers = async () => {
@@ -209,6 +209,8 @@ function ManageUsers() {
                 }}
                 className="border border-gray-300 rounded px-2 py-1 text-sm"
               >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
                 <option value={15}>15</option>
                 <option value={20}>20</option>
                 <option value={25}>25</option>

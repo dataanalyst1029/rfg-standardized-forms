@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./LoginPage.css";
 
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -21,7 +23,15 @@ function LoginPage({ onLogin }) {
 
       if (data.success) {
         setMessage("✅ Login successful!");
-        setTimeout(() => onLogin({ role: data.role }), 1000);
+        onLogin({ role: data.role });
+
+        setTimeout(() => {
+          if (data.role === "user") {
+            navigate("/forms-list");
+          } else {
+            navigate("/dashboard");
+          }
+        }, 1000);
       } else {
         setMessage("❌ Invalid email or password");
       }
@@ -30,7 +40,6 @@ function LoginPage({ onLogin }) {
       setMessage("⚠️ Server error. Please try again.");
     }
   };
-
 
   return (
     <div className="login-container">
