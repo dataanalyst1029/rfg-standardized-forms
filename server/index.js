@@ -11,12 +11,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// PostgreSQL connection setup
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// Verify connection
 pool.connect()
   .then(() => console.log("✅ Connected to PostgreSQL: request_system"))
   .catch(err => console.error("❌ Database connection error:", err));
@@ -48,7 +46,14 @@ app.post("/api/login", async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    res.json({ success: true, message: "Login successful!", role: user.role });
+    res.json({
+  success: true,
+  message: "Login successful!",
+  role: user.role,
+  name: user.name, 
+  email: user.email,
+  employee_id: user.employee_id
+});
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ success: false, message: "Server error" });
@@ -59,7 +64,6 @@ app.post("/api/login", async (req, res) => {
    USERS CRUD API
 ------------------------ */
 
-// ✅ Get all users
 app.get("/api/users", async (req, res) => {
   try {
     const result = await pool.query("SELECT id, employee_id, name, email, role FROM users ORDER BY id ASC");
@@ -70,7 +74,6 @@ app.get("/api/users", async (req, res) => {
   }
 });
 
-// ✅ Add new user (with employee_id)
 app.post("/api/users", async (req, res) => {
   const { employee_id, name, email, role, password } = req.body;
 
@@ -79,22 +82,18 @@ app.post("/api/users", async (req, res) => {
   }
 
   try {
-    // 🔍 Check for duplicate email
     const existingEmail = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
     if (existingEmail.rows.length > 0) {
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    // 🔍 Check for duplicate employee_id
     const existingEmp = await pool.query("SELECT * FROM users WHERE employee_id = $1", [employee_id]);
     if (existingEmp.rows.length > 0) {
       return res.status(400).json({ message: "Employee ID already exists" });
     }
 
-    // 🔐 Hash password (default if blank)
     const hashedPassword = await bcrypt.hash(password || "123456", 10);
 
-    // 💾 Insert new user
     const result = await pool.query(
       `INSERT INTO users (employee_id, name, email, role, password)
        VALUES ($1, $2, $3, $4, $5)
@@ -109,7 +108,6 @@ app.post("/api/users", async (req, res) => {
   }
 });
 
-// ✅ Update user
 app.put("/api/users/:id", async (req, res) => {
   const { id } = req.params;
   const { employee_id, name, email, role } = req.body;
@@ -134,7 +132,6 @@ app.put("/api/users/:id", async (req, res) => {
   }
 });
 
-// ✅ Delete user
 app.delete("/api/users/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -151,7 +148,6 @@ app.delete("/api/users/:id", async (req, res) => {
    USER ACCESS ROUTES
 ------------------------ */
 
-// ✅ Get all user access records
 app.get("/api/user_access", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM user_access ORDER BY id ASC");
@@ -162,7 +158,6 @@ app.get("/api/user_access", async (req, res) => {
   }
 });
 
-// ✅ Add a new user access record
 app.post("/api/user_access", async (req, res) => {
   const { user_id, employee_id, name, email, access_forms, role } = req.body;
 
@@ -184,7 +179,6 @@ app.post("/api/user_access", async (req, res) => {
   }
 });
 
-// ✅ Update a user access record
 app.put("/api/user_access/:id", async (req, res) => {
   const { id } = req.params;
   const { access_forms, role } = req.body;
@@ -209,7 +203,6 @@ app.put("/api/user_access/:id", async (req, res) => {
   }
 });
 
-// ✅ Delete a user access record
 app.delete("/api/user_access/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -222,17 +215,14 @@ app.delete("/api/user_access/:id", async (req, res) => {
   }
 });
 
-
 /* ------------------------
    PURCHASE REQUESTS
 ------------------------ */
 
-// ✅ Generate next purchase request code
 app.get("/api/purchase_request/next-code", async (req, res) => {
   try {
     const year = new Date().getFullYear();
 
-    // Fetch latest PR code for this year
     const result = await pool.query(
       `SELECT purchase_request_code 
        FROM purchase_request 
@@ -246,7 +236,7 @@ app.get("/api/purchase_request/next-code", async (req, res) => {
 
     if (result.rows.length > 0) {
       const lastCode = result.rows[0].purchase_request_code;
-      const lastNum = parseInt(lastCode.split("-")[2]); // get the ### part
+      const lastNum = parseInt(lastCode.split("-")[2]); 
       const nextNum = String(lastNum + 1).padStart(3, "0");
       nextCode = `PR-${year}-${nextNum}`;
     } else {
@@ -260,7 +250,6 @@ app.get("/api/purchase_request/next-code", async (req, res) => {
   }
 });
 
-// ✅ Save new purchase request
 app.post("/api/purchase_request", async (req, res) => {
   const {
     purchase_request_code,
@@ -275,7 +264,6 @@ app.post("/api/purchase_request", async (req, res) => {
   } = req.body;
 
   try {
-    // Insert into purchase_request table
     const result = await pool.query(
       `INSERT INTO purchase_request 
        (purchase_request_code, request_date, requested_by, contact_number, branch, department, address, purpose)
@@ -293,8 +281,6 @@ app.post("/api/purchase_request", async (req, res) => {
       ]
     );
 
-    // Optionally: Save items to a separate table
-    // (if you have purchase_item table)
     for (const item of items) {
       await pool.query(
         `INSERT INTO purchase_item (purchase_request_id, quantity, purchase_item)
@@ -313,8 +299,6 @@ app.post("/api/purchase_request", async (req, res) => {
     res.status(500).json({ message: "Server error saving purchase request" });
   }
 });
-
-
 
 /* ------------------------
    START SERVER

@@ -22,16 +22,26 @@ function LoginPage({ onLogin }) {
       const data = await res.json();
 
       if (data.success) {
-        setMessage("✅ Login successful!");
-        onLogin({ role: data.role });
+  setMessage("✅ Login successful!");
 
-        setTimeout(() => {
-          if (data.role === "user") {
-            navigate("/forms-list");
-          } else {
-            navigate("/dashboard");
-          }
-        }, 1000);
+  // ✅ Store user info in localStorage
+  localStorage.setItem("userName", data.name);
+  localStorage.setItem("userRole", data.role);
+
+  // ✅ Pass to App state (if using onLogin)
+  onLogin({
+    role: data.role,
+    name: data.name
+  });
+
+  // ✅ Redirect after login
+  setTimeout(() => {
+    if (data.role === "user") {
+      navigate("/forms-list");
+    } else {
+      navigate("/dashboard");
+    }
+  }, 1000);
       } else {
         setMessage("❌ Invalid email or password");
       }

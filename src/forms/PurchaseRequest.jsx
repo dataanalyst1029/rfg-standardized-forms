@@ -18,7 +18,7 @@ function PurchaseRequest({ onLogout }) {
   useEffect(() => {
     const fetchNextCode = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/purchase_request/next-code"); 
+        const res = await fetch("http://localhost:5000/api/purchase_request/next-code");
         const data = await res.json();
         if (data.nextCode) {
           setFormData((prev) => ({
@@ -39,31 +39,36 @@ function PurchaseRequest({ onLogout }) {
     fetchNextCode();
   }, []);
 
-  // ✅ Handle text input change
+  useEffect(() => {
+    const storedName = localStorage.getItem("userName");
+    if (storedName) {
+      setFormData((prev) => ({
+        ...prev,
+        requested_by: storedName,
+      }));
+    }
+  }, []);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ✅ Handle purchase_item field change
   const handleItemChange = (index, e) => {
     const newItems = [...items];
     newItems[index][e.target.name] = e.target.value;
     setItems(newItems);
   };
 
-  // ✅ Add new purchase_item row
   const addItemRow = () => {
     setItems([...items, { quantity: "", purchase_item: "" }]);
   };
 
-  // ✅ Remove purchase_item row
   const removeItemRow = (index) => {
     if (items.length > 1) {
       setItems(items.filter((_, i) => i !== index));
     }
   };
 
-  // ✅ Submit to backend
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -105,7 +110,6 @@ function PurchaseRequest({ onLogout }) {
     }
   };
 
-  // ✅ Loading screen while fetching PR code
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-600">
@@ -115,14 +119,47 @@ function PurchaseRequest({ onLogout }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gray-100">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+    <div className="min-h-screen flex flex-col items-center p-6 bg-gray-100">
+      {/* 🔹 Fixed Top Navigation Bar */}
+      <div className="fixed top-0 left-0 w-full bg-white shadow-md z-50">
+        <div className="max-w-3xl mx-auto flex justify-between items-center p-4 space-x-2">
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg"
+            >
+              ← Form List
+            </button>
+
+            {/* 🆕 New Button for Your Upcoming Feature */}
+            <button
+              type="button"
+              onClick={() => window.location.href = "/approved-requests"} // redirect to its page
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+            >
+              Check Approved Requests
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+
+
+    <div className="min-h-screen flex items-start justify-center p-6 bg-gray-100">
+      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-3xl max-h-[90vh] overflow-x-auto">
         <h1 className="text-2xl font-semibold mb-6 text-gray-800 text-center">
           🧾 Purchase Request Form
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* --- Basic Info --- */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="text-left">
               <label className="block text-sm font-medium text-gray-700">
@@ -151,7 +188,6 @@ function PurchaseRequest({ onLogout }) {
             </div>
           </div>
 
-          {/* --- Other Fields --- */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="text-left">
               <label className="block text-sm font-medium text-gray-700">
@@ -161,8 +197,8 @@ function PurchaseRequest({ onLogout }) {
                 type="text"
                 name="requested_by"
                 value={formData.requested_by}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
+                readOnly
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 bg-gray-100 cursor-not-allowed"
                 required
               />
             </div>
@@ -234,14 +270,15 @@ function PurchaseRequest({ onLogout }) {
             ></textarea>
           </div>
 
-          {/* --- Items Section --- */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 mt-6 mb-2">
+            <h2 className="text-lg font-semibold text-gray-800 mt-4 mb-2">
               🛒 Items
             </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full border border-gray-300 rounded-lg mb-4">
-                <thead className="bg-gray-100">
+
+            {/* ✅ Scroll only inside the table container */}
+            <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100 sticky top-0">
                   <tr>
                     <th className="border px-3 py-2 text-left">Quantity</th>
                     <th className="border px-3 py-2 text-left">Purchase Item</th>
@@ -287,40 +324,29 @@ function PurchaseRequest({ onLogout }) {
               </table>
             </div>
 
-            <button
-              type="button"
-              onClick={addItemRow}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
-            >
-              ➕ Add Item
-            </button>
+            {/* ✅ Add Item button stays visible below the scrollable table */}
+            <div className="flex justify-end mt-2">
+              <button
+                type="button"
+                onClick={addItemRow}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+              >
+                ➕ Add Item
+              </button>
+            </div>
           </div>
 
-          {/* --- Submit Buttons --- */}
-          <div className="flex justify-between mt-6 sticky bottom-0 bg-white py-2">
-            <button
-              type="button"
-              onClick={() => window.history.back()}
-              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg"
-            >
-              ← Back
-            </button>
+          <div className="flex justify-between bg-white">
             <button
               type="submit"
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
             >
               Submit
             </button>
-            <button
-              type="button"
-              onClick={onLogout}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-            >
-              Logout
-            </button>
           </div>
         </form>
       </div>
+    </div>
     </div>
   );
 }

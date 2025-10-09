@@ -64,7 +64,7 @@ function App() {
           path="/dashboard"
           element={
             user && user.role !== "user" ? (
-              <Dashboard role={user.role} onLogout={handleLogout} />
+              <Dashboard role={user.role} name={user.name} onLogout={handleLogout} />
             ) : (
               <Navigate to="/" replace />
             )
