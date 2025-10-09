@@ -26,7 +26,6 @@ function FormsList({ onLogout }) {
       return;
     }
 
-    // Convert to URL-friendly format (e.g. "Purchase Request" → "purchase-request")
     const route = selectedForm
       .toLowerCase()
       .replace(/[\s/]+/g, "-")

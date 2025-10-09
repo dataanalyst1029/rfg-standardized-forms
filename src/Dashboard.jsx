@@ -11,7 +11,7 @@ function Dashboard({ role, name, onLogout }) {
     { name: "Dashboard", icon: "🏠" },
     { name: "Requests", icon: "📋" },
     { name: "Users", icon: "👥" },
-    { name: "Organization", icon: "🏢" }, // ✅ New dropdown section
+    { name: "Organization", icon: "🏢" }, 
     { name: "Settings", icon: "⚙️" },
   ];
 
@@ -41,7 +41,6 @@ function Dashboard({ role, name, onLogout }) {
 
   return (
     <div className="flex bg-gray-100 min-h-screen">
-      {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-64 bg-gray-800 text-white flex flex-col shadow-lg">
         <div className="p-6 border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">{storedName}</h2>
@@ -50,10 +49,8 @@ function Dashboard({ role, name, onLogout }) {
           </p>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
-            // 🔹 USERS DROPDOWN
             if (item.name === "Users") {
               return (
                 <div key={item.name}>
@@ -111,7 +108,6 @@ function Dashboard({ role, name, onLogout }) {
               );
             }
 
-            // 🔹 ORGANIZATION DROPDOWN (NEW)
             if (item.name === "Organization") {
               return (
                 <div key={item.name}>
@@ -169,7 +165,6 @@ function Dashboard({ role, name, onLogout }) {
               );
             }
 
-            // 🔹 DEFAULT SINGLE MENU ITEMS
             return (
               <button
                 key={item.name}
@@ -191,7 +186,6 @@ function Dashboard({ role, name, onLogout }) {
           })}
         </nav>
 
-        {/* Logout */}
         <div className="p-4 border-t border-gray-700">
           <button
             onClick={onLogout}
@@ -202,13 +196,11 @@ function Dashboard({ role, name, onLogout }) {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 ml-64 p-10 fixed inset-0 bg-gray-100 pt-5 overflow-y-auto">
         <h1 className="text-3xl font-bold mb-6 text-left">
           {active} – <span className="capitalize">{role}</span>
         </h1>
 
-        {/* Example Dashboard Content */}
         {active === "Dashboard" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -194,7 +194,6 @@ function ManageUsers() {
         <p className="text-gray-500 italic">No users found.</p>
       ) : (
         <div className="overflow-x-auto">
-          {/* Pagination Controls */}
           <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
             <div className="flex items-center space-x-2">
               <label htmlFor="rowsPerPage" className="text-sm text-gray-600">
@@ -218,7 +217,6 @@ function ManageUsers() {
               </select>
             </div>
 
-            {/* ✅ Row Count Display */}
             <span className="text-sm text-gray-600">
               Showing{" "}
               <strong>
@@ -228,7 +226,6 @@ function ManageUsers() {
               of <strong>{filteredUsers.length}</strong> users
             </span>
 
-            {/* Pagination Buttons */}
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
@@ -251,7 +248,6 @@ function ManageUsers() {
           </div>
 
 
-          {/* User Table */}
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-200 text-left">
@@ -290,7 +286,6 @@ function ManageUsers() {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
       {isModalOpen && (
         <div
           className={`fixed inset-0 flex justify-center items-start z-50 pt-20 transition-all duration-300 ${
@@ -381,7 +376,6 @@ function ManageUsers() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div
           className={`fixed inset-0 flex justify-center items-center z-50 transition-all duration-300 ${

@@ -24,17 +24,14 @@ function LoginPage({ onLogin }) {
       if (data.success) {
   setMessage("✅ Login successful!");
 
-  // ✅ Store user info in localStorage
   localStorage.setItem("userName", data.name);
   localStorage.setItem("userRole", data.role);
 
-  // ✅ Pass to App state (if using onLogin)
   onLogin({
     role: data.role,
     name: data.name
   });
 
-  // ✅ Redirect after login
   setTimeout(() => {
     if (data.role === "user") {
       navigate("/forms-list");

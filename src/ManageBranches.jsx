@@ -144,7 +144,6 @@ function ManageBranches() {
         <p className="text-gray-500 italic">No branches found.</p>
       ) : (
         <div className="overflow-x-auto">
-          {/* Pagination Controls */}
         <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
             <div className="flex items-center space-x-2">
                 <label htmlFor="rowsPerPage" className="text-sm text-gray-600">
@@ -166,7 +165,6 @@ function ManageBranches() {
                 </select>
             </div>
 
-            {/* ✅ Row Count Info */}
             <span className="text-sm text-gray-600">
                 Showing{" "}
                 <strong>
@@ -199,7 +197,6 @@ function ManageBranches() {
         </div>
 
 
-          {/* Branch Table */}
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-200 text-left">
@@ -236,7 +233,6 @@ function ManageBranches() {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
       {isModalOpen && (
         <div
           className={`fixed inset-0 flex justify-center items-start z-50 pt-20 transition-all duration-300 ${

@@ -120,7 +120,6 @@ function PurchaseRequest({ onLogout }) {
 
   return (
     <div className="min-h-screen flex flex-col items-center p-6 bg-gray-100">
-      {/* 🔹 Fixed Top Navigation Bar */}
       <div className="fixed top-0 left-0 w-full bg-white shadow-md z-50">
         <div className="max-w-3xl mx-auto flex justify-between items-center p-4 space-x-2">
           <div className="flex items-center space-x-2">
@@ -132,10 +131,9 @@ function PurchaseRequest({ onLogout }) {
               ← Form List
             </button>
 
-            {/* 🆕 New Button for Your Upcoming Feature */}
             <button
               type="button"
-              onClick={() => window.location.href = "/approved-requests"} // redirect to its page
+              onClick={() => window.location.href = "/approved-requests"} 
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
             >
               Check Approved Requests
@@ -275,7 +273,6 @@ function PurchaseRequest({ onLogout }) {
               🛒 Items
             </h2>
 
-            {/* ✅ Scroll only inside the table container */}
             <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
               <table className="w-full">
                 <thead className="bg-gray-100 sticky top-0">
@@ -324,7 +321,6 @@ function PurchaseRequest({ onLogout }) {
               </table>
             </div>
 
-            {/* ✅ Add Item button stays visible below the scrollable table */}
             <div className="flex justify-end mt-2">
               <button
                 type="button"

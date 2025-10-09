@@ -15,13 +15,11 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Load user session when the page reloads (only during this browser session)
   useEffect(() => {
     const sessionUser = sessionStorage.getItem("user");
     if (sessionUser) {
       setUser(JSON.parse(sessionUser));
     }
-    // ✅ Fix: stop showing the loading screen
     setLoading(false);
   }, []);
 
@@ -35,7 +33,6 @@ function App() {
     setUser(null);
   };
 
-  // ✅ Loading screen
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen text-gray-600 text-lg">
