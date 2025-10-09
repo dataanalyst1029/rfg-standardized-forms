@@ -248,27 +248,8 @@ function Dashboard({ role, name, onLogout }) {
         {/* Example pages */}
         {activeSubmenu === "Manage Users" && <ManageUsers />}
         {activeSubmenu === "Manage Users Access" && <ManageUsersAccess />}
-        {activeSubmenu === "Manage Branches" && <ManageBranches />}
-        {activeSubmenu === "Manage Departments" && <ManageDepartments />}
-
-        {/* ✅ Placeholder for Organization pages */}
-        {activeSubmenu === "Branches" && (
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold">Branch Management</h2>
-            <p className="text-gray-600 mt-2">
-              This is where branch management features will go.
-            </p>
-          </div>
-        )}
-
-        {activeSubmenu === "Departments" && (
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold">Department Management</h2>
-            <p className="text-gray-600 mt-2">
-              This is where department management features will go.
-            </p>
-          </div>
-        )}
+        {activeSubmenu === "Branches" && <ManageBranches />}
+        {activeSubmenu === "Departments" && <ManageDepartments />}
       </main>
     </div>
   );

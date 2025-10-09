@@ -301,6 +301,76 @@ app.post("/api/purchase_request", async (req, res) => {
 });
 
 /* ------------------------
+   BRANCHES CRUD API
+------------------------ */
+app.get("/api/branches", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM branches ORDER BY id ASC");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching branches:", err);
+    res.status(500).json({ message: "Server error fetching branches" });
+  }
+});
+
+app.post("/api/branches", async (req, res) => {
+  const { branch_name, branch_code, location } = req.body;
+
+  if (!branch_name || !branch_code) {
+    return res.status(400).json({ message: "Branch name and code are required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO branches (branch_name, branch_code, location)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [branch_name, branch_code, location || null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error adding branch:", err);
+    res.status(500).json({ message: "Server error adding branch" });
+  }
+});
+
+app.put("/api/branches/:id", async (req, res) => {
+  const { id } = req.params;
+  const { branch_name, branch_code, location } = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE branches 
+       SET branch_name = $1, branch_code = $2, location = $3, updated_at = NOW()
+       WHERE id = $4
+       RETURNING *`,
+      [branch_name, branch_code, location || null, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Branch not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error updating branch:", err);
+    res.status(500).json({ message: "Server error updating branch" });
+  }
+});
+
+app.delete("/api/branches/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM branches WHERE id = $1", [id]);
+    res.json({ message: "Branch deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting branch:", err);
+    res.status(500).json({ message: "Server error deleting branch" });
+  }
+});
+
+/* ------------------------
    START SERVER
 ------------------------ */
 const PORT = process.env.PORT || 5000;

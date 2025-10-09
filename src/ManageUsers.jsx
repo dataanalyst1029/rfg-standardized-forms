@@ -195,7 +195,7 @@ function ManageUsers() {
       ) : (
         <div className="overflow-x-auto">
           {/* Pagination Controls */}
-          <div className="flex justify-between items-center mb-3">
+          <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
             <div className="flex items-center space-x-2">
               <label htmlFor="rowsPerPage" className="text-sm text-gray-600">
                 Rows per page:
@@ -218,6 +218,16 @@ function ManageUsers() {
               </select>
             </div>
 
+            {/* ✅ Row Count Display */}
+            <span className="text-sm text-gray-600">
+              Showing{" "}
+              <strong>
+                {filteredUsers.length === 0 ? 0 : startIndex + 1}–
+                {Math.min(endIndex, filteredUsers.length)}
+              </strong>{" "}
+              of <strong>{filteredUsers.length}</strong> users
+            </span>
+
             {/* Pagination Buttons */}
             <div className="flex items-center space-x-2">
               <button
@@ -239,6 +249,7 @@ function ManageUsers() {
               </button>
             </div>
           </div>
+
 
           {/* User Table */}
           <table className="w-full border-collapse">

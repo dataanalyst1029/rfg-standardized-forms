@@ -207,49 +207,62 @@ function ManageUsersAccess() {
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center space-x-2">
-          <label htmlFor="rowsPerPage" className="text-sm text-gray-600">
-            Rows per page:
-          </label>
-          <select
-            id="rowsPerPage"
-            value={rowsPerPage}
-            onChange={(e) => {
-              setRowsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-            className="border border-gray-300 rounded px-2 py-1 text-sm"
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={15}>15</option>
-            <option value={20}>20</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-          </select>
-        </div>
+      <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
+  {/* Rows Per Page Selector */}
+  <div className="flex items-center space-x-2">
+    <label htmlFor="rowsPerPage" className="text-sm text-gray-600">
+      Rows per page:
+    </label>
+    <select
+      id="rowsPerPage"
+      value={rowsPerPage}
+      onChange={(e) => {
+        setRowsPerPage(Number(e.target.value));
+        setCurrentPage(1);
+      }}
+      className="border border-gray-300 rounded px-2 py-1 text-sm"
+    >
+      <option value={5}>5</option>
+      <option value={10}>10</option>
+      <option value={15}>15</option>
+      <option value={20}>20</option>
+      <option value={25}>25</option>
+      <option value={50}>50</option>
+    </select>
+  </div>
 
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-          >
-            Prev
-          </button>
-          <span className="text-sm text-gray-600">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+  {/* ✅ Row Count Display */}
+  <span className="text-sm text-gray-600">
+    Showing{" "}
+    <strong>
+      {filteredAccessList.length === 0 ? 0 : startIndex + 1}–
+      {Math.min(endIndex, filteredAccessList.length)}
+    </strong>{" "}
+    of <strong>{filteredAccessList.length}</strong> users
+  </span>
+
+  {/* Pagination Buttons */}
+  <div className="flex items-center space-x-2">
+    <button
+      onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+      disabled={currentPage === 1}
+      className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+    >
+      Prev
+    </button>
+    <span className="text-sm text-gray-600">
+      Page {currentPage} of {totalPages}
+    </span>
+    <button
+      onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+      disabled={currentPage === totalPages}
+      className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+</div>
+
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
