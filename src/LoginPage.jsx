@@ -36,7 +36,7 @@ function LoginPage({ onLogin }) {
     if (data.role === "user") {
       navigate("/forms-list");
     } else {
-      navigate("/dashboard");
+      navigate("/");
     }
   }, 1000);
       } else {

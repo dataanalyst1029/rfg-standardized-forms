@@ -52,10 +52,11 @@ function App() {
             ) : user.role === "user" ? (
               <Navigate to="/forms-list" replace />
             ) : (
-              <Navigate to="/dashboard" replace />
+              <Dashboard role={user.role} name={user.name} onLogout={handleLogout} />
             )
           }
         />
+
 
         <Route
           path="/dashboard"
