@@ -13,7 +13,7 @@ function LoginPage({ onLogin }) {
     setMessage("🔄 Logging in...");
 
     try {
-      const res = await fetch("https://rfg-standardized-forms.onrender.com/api/login", {
+      const res = await fetch("http://localhost:5000/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -22,32 +22,31 @@ function LoginPage({ onLogin }) {
       const data = await res.json();
 
       if (data.success) {
-        setMessage("✅ Login successful!");
+  setMessage("✅ Login successful!");
 
-        localStorage.setItem("userName", data.name);
-        localStorage.setItem("userRole", data.role);
+  localStorage.setItem("userName", data.name);
+  localStorage.setItem("userRole", data.role);
 
-        onLogin({
-          role: data.role,
-          name: data.name,
-        });
+  onLogin({
+    role: data.role,
+    name: data.name
+  });
 
-        setTimeout(() => {
-          if (data.role === "user") {
-            navigate("/forms-list");
-          } else {
-            navigate("/");
-          }
-        }, 1000);
+  setTimeout(() => {
+    if (data.role === "user") {
+      navigate("/forms-list");
+    } else {
+      navigate("/");
+    }
+  }, 1000);
       } else {
         setMessage("❌ Invalid email or password");
       }
     } catch (err) {
-      console.error("Login fetch error:", err);
+      console.error(err);
       setMessage("⚠️ Server error. Please try again.");
     }
   };
-
 
   return (
     <div className="login-container">

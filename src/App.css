@@ -112,3 +112,20 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-in-out;
 }
+
+
+@media (prefers-color-scheme: dark) {
+  #root {
+    background-color: transparent;
+    color: #f1f1f1;
+  }
+
+  .card {
+    background: transparent;
+    color: #f1f1f1;
+  }
+
+  .read-the-docs {
+    color: #aaa;
+  }
+}
