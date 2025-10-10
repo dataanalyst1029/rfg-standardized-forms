@@ -80,6 +80,7 @@ function App() {
           }
         />
 
+        {/* For users */}
         <Route
           path="/forms/purchase-request"
           element={
@@ -90,6 +91,19 @@ function App() {
             )
           }
         />
+
+        {/* For staff/admin */}
+        <Route
+          path="/forms/purchase-request"
+          element={
+            user && (user.role === "staff" || user.role === "admin") ? (
+              <PurchaseRequest onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
       </Routes>
     </Router>
   );

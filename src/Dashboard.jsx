@@ -3,6 +3,7 @@ import ManageUsers from "./ManageUsers";
 import ManageUsersAccess from "./ManageUsersAccess";
 import ManageBranches from "./ManageBranches";
 import ManageDepartments from "./ManageDepartments";
+import FormsStaff from "./FormsStaff"; 
 
 function Dashboard({ role, name, onLogout }) {
   const storedName = name || localStorage.getItem("name");
@@ -11,7 +12,8 @@ function Dashboard({ role, name, onLogout }) {
     { name: "Dashboard", icon: "🏠" },
     { name: "Requests", icon: "📋" },
     { name: "Users", icon: "👥" },
-    { name: "Organization", icon: "🏢" }, 
+    { name: "Forms", icon: "📝" },
+    { name: "Organization", icon: "🏢" },
     { name: "Settings", icon: "⚙️" },
   ];
 
@@ -41,6 +43,7 @@ function Dashboard({ role, name, onLogout }) {
 
   return (
     <div className="flex bg-gray-100 min-h-screen">
+      {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-64 bg-gray-800 text-white flex flex-col shadow-lg">
         <div className="p-6 border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">{storedName}</h2>
@@ -165,6 +168,28 @@ function Dashboard({ role, name, onLogout }) {
               );
             }
 
+            // ✅ Forms button handler — now loads FormsStaff
+            if (item.name === "Forms") {
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => {
+                    setActive("Forms");
+                    setActiveSubmenu("FormsStaff");
+                    setOpenDropdown("");
+                  }}
+                  className={`flex items-center w-full px-4 py-2 text-left rounded-lg transition ${
+                    active === "Forms"
+                      ? "bg-gray-700 text-white font-semibold"
+                      : "text-gray-700 hover:bg-gray-700 hover:text-white"
+                  }`}
+                >
+                  <span className="mr-3">{item.icon}</span>
+                  {item.name}
+                </button>
+              );
+            }
+
             return (
               <button
                 key={item.name}
@@ -196,35 +221,39 @@ function Dashboard({ role, name, onLogout }) {
         </div>
       </aside>
 
+      {/* Main Content */}
       <main className="flex-1 ml-64 p-10 fixed inset-0 bg-gray-100 pt-5 overflow-y-auto">
-        <h1 className="text-3xl font-bold mb-6 text-left">
-          {active} – <span className="capitalize">{role}</span>
-        </h1>
+        {/* Hide the header when Forms is active */}
+        {active !== "Forms" && (
+          <h1 className="text-3xl font-bold mb-6 text-left">
+            {active} – <span className="capitalize">{role}</span>
+          </h1>
+        )}
+
 
         {active === "Dashboard" && (
           <div className="space-y-6">
+            {/* Dashboard Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-white p-5 rounded-lg shadow hover:shadow-md transition">
                 <h3 className="text-gray-500 text-sm">Total Users</h3>
                 <p className="text-2xl font-bold text-gray-800 mt-2">145</p>
               </div>
-
               <div className="bg-white p-5 rounded-lg shadow hover:shadow-md transition">
                 <h3 className="text-gray-500 text-sm">Active Requests</h3>
                 <p className="text-2xl font-bold text-gray-800 mt-2">32</p>
               </div>
-
               <div className="bg-white p-5 rounded-lg shadow hover:shadow-md transition">
                 <h3 className="text-gray-500 text-sm">Pending Approvals</h3>
                 <p className="text-2xl font-bold text-gray-800 mt-2">8</p>
               </div>
-
               <div className="bg-white p-5 rounded-lg shadow hover:shadow-md transition">
                 <h3 className="text-gray-500 text-sm">System Alerts</h3>
                 <p className="text-2xl font-bold text-gray-800 mt-2">3</p>
               </div>
             </div>
 
+            {/* Recent Activity */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
               <ul className="space-y-3 text-gray-700">
@@ -237,11 +266,12 @@ function Dashboard({ role, name, onLogout }) {
           </div>
         )}
 
-        {/* Example pages */}
+        {/* Render Components */}
         {activeSubmenu === "Manage Users" && <ManageUsers />}
         {activeSubmenu === "Manage Users Access" && <ManageUsersAccess />}
         {activeSubmenu === "Branches" && <ManageBranches />}
         {activeSubmenu === "Departments" && <ManageDepartments />}
+        {activeSubmenu === "FormsStaff" && <FormsStaff onLogout={onLogout} />}
       </main>
     </div>
   );

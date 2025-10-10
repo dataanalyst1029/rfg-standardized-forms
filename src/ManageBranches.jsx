@@ -208,7 +208,7 @@ function ManageBranches() {
             </thead>
             <tbody>
               {paginatedBranches.map((b) => (
-                <tr key={b.id} className="hover:bg-gray-100">
+                <tr key={b.id} className="hover:bg-gray-100 text-left">
                   <td className="p-2 border">{b.branch_name}</td>
                   <td className="p-2 border">{b.branch_code}</td>
                   <td className="p-2 border">{b.location || "—"}</td>

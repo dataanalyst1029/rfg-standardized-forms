@@ -143,74 +143,97 @@ app.delete("/api/users/:id", async (req, res) => {
     res.status(500).json({ message: "Server error deleting user" });
   }
 });
-
 /* ------------------------
    USER ACCESS ROUTES
 ------------------------ */
 
+// ✅ Get all user access records
 app.get("/api/user_access", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM user_access ORDER BY id ASC");
     res.json(result.rows);
   } catch (err) {
-    console.error("Error fetching user access data:", err);
+    console.error("❌ Error fetching user access data:", err);
     res.status(500).json({ message: "Server error fetching user access data" });
   }
 });
 
+// ✅ Add a new user access record
 app.post("/api/user_access", async (req, res) => {
-  const { user_id, employee_id, name, email, access_forms, role } = req.body;
+  const { user_id, access_forms, role } = req.body;
+  console.log("📥 Incoming POST /api/user_access:", req.body);
 
-  if (!employee_id || !name || !email) {
-    return res.status(400).json({ message: "Employee ID, name, and email are required" });
+  if (!user_id) {
+    return res.status(400).json({ message: "user_id is required" });
   }
 
   try {
     const result = await pool.query(
-      `INSERT INTO user_access (user_id, employee_id, name, email, access_forms, role)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO user_access (user_id, access_forms, role)
+       VALUES ($1::int, $2::text, $3::text)
        RETURNING *`,
-      [user_id, employee_id, name, email, access_forms, role]
+      [user_id, access_forms, role]
     );
+
+    console.log("✅ User access record added:", result.rows[0]);
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error("Error adding user access record:", err);
+    console.error("❌ Error adding user access record:", err.message);
     res.status(500).json({ message: "Server error adding user access record" });
   }
 });
 
+// ✅ Update an existing user access record
 app.put("/api/user_access/:id", async (req, res) => {
   const { id } = req.params;
-  const { access_forms, role } = req.body;
+  const { user_id, access_forms, role } = req.body;
+
+  console.log("✏️ Incoming PUT /api/user_access:", { id, ...req.body });
 
   try {
     const result = await pool.query(
-      `UPDATE user_access 
-       SET access_forms = $1, role = $2
-       WHERE id = $3
+      `UPDATE user_access
+       SET user_id = $1::int,
+           access_forms = $2::text,
+           role = $3::text
+       WHERE id = $4
        RETURNING *`,
-      [access_forms, role, id]
+      [user_id, access_forms, role, id]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "User access record not found" });
     }
 
+    console.log("✅ User access record updated:", result.rows[0]);
     res.json(result.rows[0]);
   } catch (err) {
-    console.error("Error updating user access record:", err);
+    console.error("❌ Error updating user access record:", err.message);
     res.status(500).json({ message: "Server error updating user access record" });
   }
 });
 
+
+// ✅ Delete a user access record
 app.delete("/api/user_access/:id", async (req, res) => {
   const { id } = req.params;
 
+  console.log("🗑️ Incoming DELETE /api/user_access:", id);
+
   try {
-    await pool.query("DELETE FROM user_access WHERE id = $1", [id]);
+    const result = await pool.query(
+      "DELETE FROM user_access WHERE id = $1 RETURNING *",
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "User access record not found" });
+    }
+
+    console.log("✅ User access record deleted:", id);
     res.json({ message: "User access record deleted successfully" });
   } catch (err) {
-    console.error("Error deleting user access record:", err);
+    console.error("❌ Error deleting user access record:", err.message);
     res.status(500).json({ message: "Server error deleting user access record" });
   }
 });
@@ -369,6 +392,87 @@ app.delete("/api/branches/:id", async (req, res) => {
     res.status(500).json({ message: "Server error deleting branch" });
   }
 });
+
+/* ------------------------
+   DEPARTMENTS CRUD API
+------------------------ */
+
+// ✅ GET all departments with branch name
+app.get("/api/departments", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT d.id, d.department_name, d.branch_id, b.branch_name
+      FROM departments d
+      LEFT JOIN branches b ON d.branch_id = b.id
+      ORDER BY d.department_name ASC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching departments:", err);
+    res.status(500).json({ message: "Server error fetching departments" });
+  }
+});
+
+// ✅ CREATE a new department
+app.post("/api/departments", async (req, res) => {
+  const { department_name, branch_id } = req.body;
+
+  if (!department_name || !branch_id) {
+    return res.status(400).json({ message: "Department name and branch ID are required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO departments (department_name, branch_id)
+       VALUES ($1, $2)
+       RETURNING *`,
+      [department_name, branch_id]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error adding department:", err);
+    res.status(500).json({ message: "Server error adding department" });
+  }
+});
+
+// ✅ UPDATE an existing department
+app.put("/api/departments/:id", async (req, res) => {
+  const { id } = req.params;
+  const { department_name, branch_id } = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE departments
+       SET department_name = $1, branch_id = $2, updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [department_name, branch_id, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Department not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error updating department:", err);
+    res.status(500).json({ message: "Server error updating department" });
+  }
+});
+
+// ✅ DELETE a department
+app.delete("/api/departments/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM departments WHERE id = $1", [id]);
+    res.json({ message: "Department deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting department:", err);
+    res.status(500).json({ message: "Server error deleting department" });
+  }
+});
+
 
 /* ------------------------
    START SERVER

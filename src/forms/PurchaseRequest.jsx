@@ -119,230 +119,240 @@ function PurchaseRequest({ onLogout }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-6 bg-gray-100">
-      <div className="fixed top-0 left-0 w-full bg-white shadow-md z-50">
-        <div className="max-w-3xl mx-auto flex justify-between items-center p-4 space-x-2">
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={() => window.history.back()}
-              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg"
-            >
-              ← Form List
-            </button>
-
-            <button
-              type="button"
-              onClick={() => window.location.href = "/approved-requests"} 
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-            >
-              Check Approved Requests
-            </button>
-          </div>
+    <div className="flex min-h-screen">
+      {/* ✅ Sidebar */}
+      <aside className="w-64 bg-gray-800 shadow-md fixed top-0 left-0 h-full flex flex-col justify-between">
+        <div className="p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-white mb-6">
+            🧾 Purchase Request
+          </h2>
 
           <button
             type="button"
+            onClick={() => window.history.back()}
+            className="w-full bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg text-left"
+          >
+            ← Back to Forms
+          </button>
+
+          <button
+            type="button"
+            onClick={() => (window.location.href = "/approved-requests")}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-left"
+          >
+            ✅ Approved Requests
+          </button>
+        </div>
+
+        <div className="p-6 border-t">
+          <button
+            type="button"
             onClick={onLogout}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+            className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
           >
             Logout
           </button>
         </div>
-      </div>
+      </aside>
 
+      {/* ✅ Main Content (Form) */}
+      <main className="flex-1 ml-64 p-8">
+        <div className="bg-white p-8 rounded-xl shadow-md max-w-4xl mx-auto">
+          <h1 className="text-2xl font-semibold mb-6 text-gray-800 text-center">
+            🧾 Purchase Request Form
+          </h1>
 
-    <div className="min-h-screen flex items-start justify-center p-6 bg-gray-100">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-3xl max-h-[90vh] overflow-x-auto">
-        <h1 className="text-2xl font-semibold mb-6 text-gray-800 text-center">
-          🧾 Purchase Request Form
-        </h1>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Reference & Date */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Reference Number
+                </label>
+                <input
+                  type="text"
+                  name="purchase_request_code"
+                  value={formData.purchase_request_code}
+                  readOnly
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 bg-gray-100 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Date Applied
+                </label>
+                <input
+                  type="date"
+                  name="request_date"
+                  value={formData.request_date}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
+                  required
+                />
+              </div>
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="text-left">
+            {/* Requested By & Contact */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Requested By
+                </label>
+                <input
+                  type="text"
+                  name="requested_by"
+                  value={formData.requested_by}
+                  readOnly
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 bg-gray-100 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Contact Number
+                </label>
+                <input
+                  type="text"
+                  name="contact_number"
+                  value={formData.contact_number}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Branch & Department */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Branch
+                </label>
+                <input
+                  type="text"
+                  name="branch"
+                  value={formData.branch}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Department
+                </label>
+                <input
+                  type="text"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Address & Purpose */}
+            <div>
               <label className="block text-sm font-medium text-gray-700">
-                Reference Number
+                Address
               </label>
               <input
                 type="text"
-                name="purchase_request_code"
-                value={formData.purchase_request_code}
-                readOnly
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 bg-gray-100 cursor-not-allowed"
-              />
-            </div>
-            <div className="text-left">
-              <label className="block text-sm font-medium text-gray-700">
-                Date Applied
-              </label>
-              <input
-                type="date"
-                name="request_date"
-                value={formData.request_date}
+                name="address"
+                value={formData.address}
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
-                required
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="text-left">
+            <div>
               <label className="block text-sm font-medium text-gray-700">
-                Requested By
+                Purpose
               </label>
-              <input
-                type="text"
-                name="requested_by"
-                value={formData.requested_by}
-                readOnly
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 bg-gray-100 cursor-not-allowed"
-                required
-              />
-            </div>
-            <div className="text-left">
-              <label className="block text-sm font-medium text-gray-700">
-                Contact Number
-              </label>
-              <input
-                type="text"
-                name="contact_number"
-                value={formData.contact_number}
+              <textarea
+                name="purpose"
+                value={formData.purpose}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="text-left">
-              <label className="block text-sm font-medium text-gray-700">
-                Branch
-              </label>
-              <input
-                type="text"
-                name="branch"
-                value={formData.branch}
-                onChange={handleChange}
+                rows="3"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
               />
             </div>
-            <div className="text-left">
-              <label className="block text-sm font-medium text-gray-700">
-                Department
-              </label>
-              <input
-                type="text"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
-              />
-            </div>
-          </div>
 
-          <div className="text-left">
-            <label className="block text-sm font-medium text-gray-700">
-              Address
-            </label>
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
-            />
-          </div>
+            {/* Items Table */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800 mt-4 mb-2">
+                🛒 Items
+              </h2>
 
-          <div className="text-left">
-            <label className="block text-sm font-medium text-gray-700">
-              Purpose
-            </label>
-            <textarea
-              name="purpose"
-              value={formData.purpose}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
-              rows="3"
-            ></textarea>
-          </div>
-
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 mt-4 mb-2">
-              🛒 Items
-            </h2>
-
-            <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
-              <table className="w-full">
-                <thead className="bg-gray-100 sticky top-0">
-                  <tr>
-                    <th className="border px-3 py-2 text-left">Quantity</th>
-                    <th className="border px-3 py-2 text-left">Purchase Item</th>
-                    <th className="border px-3 py-2 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((purchase_item, index) => (
-                    <tr key={index}>
-                      <td className="border px-3 py-2">
-                        <input
-                          type="number"
-                          name="quantity"
-                          min="1"
-                          value={purchase_item.quantity}
-                          onChange={(e) => handleItemChange(index, e)}
-                          className="w-full border border-gray-300 rounded-lg px-2 py-1"
-                          required
-                        />
-                      </td>
-                      <td className="border px-3 py-2">
-                        <input
-                          type="text"
-                          name="purchase_item"
-                          value={purchase_item.purchase_item}
-                          onChange={(e) => handleItemChange(index, e)}
-                          className="w-full border border-gray-300 rounded-lg px-2 py-1"
-                          required
-                        />
-                      </td>
-                      <td className="border px-3 py-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => removeItemRow(index)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
-                        >
-                          ✖
-                        </button>
-                      </td>
+              <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-100 sticky top-0">
+                    <tr>
+                      <th className="border px-3 py-2 text-left">Quantity</th>
+                      <th className="border px-3 py-2 text-left">Purchase Item</th>
+                      <th className="border px-3 py-2 text-center">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {items.map((purchase_item, index) => (
+                      <tr key={index}>
+                        <td className="border px-3 py-2">
+                          <input
+                            type="number"
+                            name="quantity"
+                            min="1"
+                            value={purchase_item.quantity}
+                            onChange={(e) => handleItemChange(index, e)}
+                            className="w-full border border-gray-300 rounded-lg px-2 py-1"
+                            required
+                          />
+                        </td>
+                        <td className="border px-3 py-2">
+                          <input
+                            type="text"
+                            name="purchase_item"
+                            value={purchase_item.purchase_item}
+                            onChange={(e) => handleItemChange(index, e)}
+                            className="w-full border border-gray-300 rounded-lg px-2 py-1"
+                            required
+                          />
+                        </td>
+                        <td className="border px-3 py-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => removeItemRow(index)}
+                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
+                          >
+                            ✖
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={addItemRow}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+                >
+                  ➕ Add Item
+                </button>
+              </div>
             </div>
 
-            <div className="flex justify-end mt-2">
+            {/* Submit Button */}
+            <div className="flex justify-between">
               <button
-                type="button"
-                onClick={addItemRow}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
               >
-                ➕ Add Item
+                Submit
               </button>
             </div>
-          </div>
-
-          <div className="flex justify-between bg-white">
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
-            >
-              Submit
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          </form>
+        </div>
+      </main>
     </div>
   );
 }

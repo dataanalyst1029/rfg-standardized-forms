@@ -1,116 +1,310 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function ManageDepartments() {
-  const [departments, setDepartments] = useState([
-    { id: 1, name: "Human Resources", branch: "Head Office" },
-    { id: 2, name: "IT Department", branch: "Cebu Branch" },
-  ]);
+  const [departments, setDepartments] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [form, setForm] = useState({
+    department_name: "",
+    branch_id: "",
+  });
+  const [editingId, setEditingId] = useState(null);
 
-  const [newDept, setNewDept] = useState({ name: "", branch: "" });
-  const [editing, setEditing] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
-  const handleAdd = () => {
-    if (!newDept.name || !newDept.branch) return;
-    setDepartments([
-      ...departments,
-      { id: Date.now(), name: newDept.name, branch: newDept.branch },
-    ]);
-    setNewDept({ name: "", branch: "" });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  /* -------------------- FETCH DATA -------------------- */
+  const fetchDepartments = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:5000/api/departments");
+      const data = await res.json();
+      setDepartments(data);
+    } catch (err) {
+      console.error("Error fetching departments:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (id) => {
-    setDepartments(departments.filter((d) => d.id !== id));
+  const fetchBranches = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/branches");
+      const data = await res.json();
+      setBranches(data);
+    } catch (err) {
+      console.error("Error fetching branches:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDepartments();
+    fetchBranches();
+  }, []);
+
+  /* -------------------- HANDLERS -------------------- */
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.department_name || !form.branch_id) return;
+
+    const method = editingId ? "PUT" : "POST";
+    const url = editingId
+      ? `http://localhost:5000/api/departments/${editingId}`
+      : "http://localhost:5000/api/departments";
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (res.ok) {
+        await fetchDepartments();
+        closeModalAnimated();
+      } else {
+        alert("Failed to save department");
+      }
+    } catch (err) {
+      console.error("Error saving department:", err);
+    }
   };
 
   const handleEdit = (dept) => {
-    setEditing(dept);
-    setNewDept({ name: dept.name, branch: dept.branch });
+    setForm({
+      department_name: dept.department_name,
+      branch_id: dept.branch_id || "",
+    });
+    setEditingId(dept.id);
+    setIsModalOpen(true);
   };
 
-  const handleUpdate = () => {
-    setDepartments(
-      departments.map((d) =>
-        d.id === editing.id ? { ...d, ...newDept } : d
-      )
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this department?")) return;
+    try {
+      await fetch(`http://localhost:5000/api/departments/${id}`, { method: "DELETE" });
+      fetchDepartments();
+    } catch (err) {
+      console.error("Error deleting department:", err);
+    }
+  };
+
+  const closeModalAnimated = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsModalOpen(false);
+      setIsClosing(false);
+      setForm({ department_name: "", branch_id: "" });
+      setEditingId(null);
+    }, 300);
+  };
+
+  /* -------------------- SEARCH + PAGINATION -------------------- */
+  const filteredDepartments = departments.filter((d) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      d.department_name?.toLowerCase().includes(term) ||
+      d.branch_name?.toLowerCase().includes(term)
     );
-    setEditing(null);
-    setNewDept({ name: "", branch: "" });
-  };
+  });
 
+  const totalPages = Math.ceil(filteredDepartments.length / rowsPerPage) || 1;
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const paginatedDepartments = filteredDepartments.slice(startIndex, endIndex);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, rowsPerPage]);
+
+  /* -------------------- RENDER -------------------- */
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-semibold mb-4">🏬 Manage Departments</h2>
+    <div className="bg-white p-6 rounded-lg shadow-md w-full">
+      <h2 className="text-xl font-semibold mb-3 text-left">Manage Departments</h2>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex justify-between items-center mb-4">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+        >
+          + Add Department
+        </button>
+
         <input
-          type="text"
-          placeholder="Department Name"
-          value={newDept.name}
-          onChange={(e) => setNewDept({ ...newDept, name: e.target.value })}
-          className="border p-2 rounded w-full"
+          type="search"
+          placeholder="Search department name or branch..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
-        <input
-          type="text"
-          placeholder="Branch"
-          value={newDept.branch}
-          onChange={(e) => setNewDept({ ...newDept, branch: e.target.value })}
-          className="border p-2 rounded w-full"
-        />
-        {editing ? (
-          <button
-            onClick={handleUpdate}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-          >
-            Update
-          </button>
-        ) : (
-          <button
-            onClick={handleAdd}
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
-          >
-            Add
-          </button>
-        )}
       </div>
 
-      <table className="min-w-full border border-gray-300 rounded-lg">
-        <thead className="bg-gray-100 text-gray-700">
-          <tr>
-            <th className="px-4 py-2 text-left border-b">Department Name</th>
-            <th className="px-4 py-2 text-left border-b">Branch</th>
-            <th className="px-4 py-2 border-b text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {departments.map((dept) => (
-            <tr key={dept.id} className="hover:bg-gray-50">
-              <td className="px-4 py-2 border-b">{dept.name}</td>
-              <td className="px-4 py-2 border-b">{dept.branch}</td>
-              <td className="px-4 py-2 border-b text-center space-x-2">
+      {loading ? (
+        <p>Loading departments...</p>
+      ) : filteredDepartments.length === 0 ? (
+        <p className="text-gray-500 italic">No departments found.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
+            <div className="flex items-center space-x-2">
+              <label htmlFor="rowsPerPage" className="text-sm text-gray-600">
+                Rows per page:
+              </label>
+              <select
+                id="rowsPerPage"
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="border border-gray-300 rounded px-2 py-1 text-sm"
+              >
+                {[5, 10, 15, 20].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+
+            <span className="text-sm text-gray-600">
+              Showing{" "}
+              <strong>
+                {filteredDepartments.length === 0
+                  ? 0
+                  : startIndex + 1}–{Math.min(endIndex, filteredDepartments.length)}
+              </strong>{" "}
+              of <strong>{filteredDepartments.length}</strong> departments
+            </span>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-200 text-left">
+                <th className="p-2 border">Department Name</th>
+                <th className="p-2 border">Branch</th>
+                <th className="p-2 border text-center w-40">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedDepartments.map((d) => (
+                <tr key={d.id} className="hover:bg-gray-100 text-left">
+                  <td className="p-2 border">{d.department_name}</td>
+                  <td className="p-2 border">
+                    {d.branch_name || "—"}
+                  </td>
+                  <td className="p-2 border text-center space-x-2">
+                    <button
+                      onClick={() => handleEdit(d)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(d.id)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* -------------------- MODAL -------------------- */}
+      {isModalOpen && (
+        <div
+          className={`fixed inset-0 flex justify-center items-start z-50 pt-20 transition-all duration-300 ${
+            isClosing
+              ? "animate-fadeOut bg-opacity-0"
+              : "animate-fadeIn bg-black bg-opacity-50"
+          }`}
+        >
+          <div
+            className={`bg-white w-full max-w-md p-6 rounded-lg shadow-lg transform transition-all duration-300 ease-out ${
+              isClosing ? "animate-slideUp" : "animate-slideDown"
+            }`}
+          >
+            <h2 className="text-xl font-semibold mb-4">
+              {editingId ? "Edit Department" : "Add Department"}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <input
+                type="text"
+                name="department_name"
+                placeholder="Department Name"
+                value={form.department_name}
+                onChange={handleChange}
+                className="w-full border p-2 rounded"
+                required
+              />
+              <select
+                name="branch_id"
+                value={form.branch_id}
+                onChange={handleChange}
+                className="w-full border p-2 rounded"
+                required
+              >
+                <option value="">Select Branch</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.branch_name}
+                  </option>
+                ))}
+              </select>
+
+              <div className="flex justify-end space-x-2 mt-4">
                 <button
-                  onClick={() => handleEdit(dept)}
-                  className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded"
+                  type="button"
+                  onClick={closeModalAnimated}
+                  className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded"
                 >
-                  Edit
+                  Cancel
                 </button>
                 <button
-                  onClick={() => handleDelete(dept.id)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                  type="submit"
+                  className={`px-4 py-2 text-white rounded ${
+                    editingId
+                      ? "bg-blue-500 hover:bg-blue-600"
+                      : "bg-green-500 hover:bg-green-600"
+                  }`}
                 >
-                  Delete
+                  {editingId ? "Update" : "Add"}
                 </button>
-              </td>
-            </tr>
-          ))}
-          {departments.length === 0 && (
-            <tr>
-              <td colSpan="3" className="text-center py-4 text-gray-500">
-                No departments found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -21,9 +21,6 @@ function ManageUsersAccess() {
   const [form, setForm] = useState({
     id: "",
     user_id: "",
-    employee_id: "",
-    name: "",
-    email: "",
     access_forms: "",
     role: "",
   });
@@ -64,40 +61,40 @@ function ManageUsersAccess() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleUserSelect = (e) => {
-    const selectedUserId = e.target.value;
-    const selectedUser = users.find((u) => String(u.id) === selectedUserId);
-    if (selectedUser) {
-      setForm({
-        ...form,
-        user_id: selectedUser.id,
-        employee_id: selectedUser.employee_id,
-        name: selectedUser.name,
-        email: selectedUser.email,
-      });
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Basic validation
+    if (!form.user_id || !form.access_forms || !form.role) return;
+
+    const method = isEditing ? "PUT" : "POST";
+    const url = isEditing
+      ? `http://localhost:5000/api/user_access/${form.id}`
+      : "http://localhost:5000/api/user_access";
+
     try {
-      const url = isEditing
-        ? `http://localhost:5000/api/user_access/${form.id}`
-        : "http://localhost:5000/api/user_access";
-      const method = isEditing ? "PUT" : "POST";
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          user_id: form.user_id,
+          access_forms: form.access_forms,
+          role: form.role,
+        }),
       });
-      if (!res.ok) throw new Error("Failed to save user access");
-      await fetchAccessData();
-      closeModalAnimated();
+
+      if (res.ok) {
+        await fetchAccessData();
+        closeModalAnimated();
+      } else {
+        alert("Failed to save user access");
+      }
     } catch (err) {
       console.error("Error saving user access:", err);
       alert("Error saving user access record");
     }
   };
+
 
   /* ------------------------ DELETE HANDLERS ------------------------ */
   const openDeleteModal = (record) => {
@@ -140,9 +137,6 @@ function ManageUsersAccess() {
     setForm({
       id: "",
       user_id: "",
-      employee_id: "",
-      name: "",
-      email: "",
       access_forms: "",
       role: "",
     });
@@ -163,12 +157,12 @@ function ManageUsersAccess() {
   };
 
   /* ------------------------ FILTERED & PAGINATED DATA ------------------------ */
-  const filteredAccessList = accessList.filter((user) => {
+  const filteredAccessList = accessList.filter((item) => {
     const search = searchTerm.toLowerCase();
     return (
-      user.employee_id?.toLowerCase().includes(search) ||
-      user.name?.toLowerCase().includes(search) ||
-      user.email?.toLowerCase().includes(search)
+      item.user_id?.toString().includes(search) ||
+      item.access_forms?.toLowerCase().includes(search) ||
+      item.role?.toLowerCase().includes(search)
     );
   });
 
@@ -182,9 +176,6 @@ function ManageUsersAccess() {
   }, [searchTerm, rowsPerPage]);
 
   /* ------------------------ RENDER ------------------------ */
-  if (loading) return <p>Loading user access data...</p>;
-  if (error) return <p className="text-red-600">{error}</p>;
-
   return (
     <div className="bg-white p-6 rounded-lg shadow-md w-full">
       <h2 className="text-xl text-left mb-3 font-semibold">Manage Users Access</h2>
@@ -199,116 +190,61 @@ function ManageUsersAccess() {
 
         <input
           type="search"
-          placeholder="Search by ID, name, or email..."
+          placeholder="Search by user ID, form, or role..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="border border-gray-300 rounded-lg px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
       </div>
 
-      <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
-        <div className="flex items-center space-x-2">
-          <label htmlFor="rowsPerPage" className="text-sm text-gray-600">
-            Rows per page:
-          </label>
-          <select
-            id="rowsPerPage"
-            value={rowsPerPage}
-            onChange={(e) => {
-              setRowsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-            className="border border-gray-300 rounded px-2 py-1 text-sm"
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={15}>15</option>
-            <option value={20}>20</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-          </select>
-        </div>
-
-        <span className="text-sm text-gray-600">
-          Showing{" "}
-          <strong>
-            {filteredAccessList.length === 0 ? 0 : startIndex + 1}–
-            {Math.min(endIndex, filteredAccessList.length)}
-          </strong>{" "}
-          of <strong>{filteredAccessList.length}</strong> users
-        </span>
-
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-          >
-            Prev
-          </button>
-          <span className="text-sm text-gray-600">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-gray-200 text-left">
-              <th className="p-2 border text-center">Employee ID</th>
-              <th className="p-2 border">Name</th>
-              <th className="p-2 border">Email</th>
-              <th className="p-2 border">Access Forms</th>
-              <th className="p-2 border text-center">Role</th>
-              <th className="p-2 border text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedAccessList.length > 0 ? (
-              paginatedAccessList.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-100">
-                  <td className="p-2 border">{user.employee_id}</td>
-                  <td className="p-2 border text-left">{user.name}</td>
-                  <td className="p-2 border text-left">{user.email}</td>
-                  <td className="p-2 border text-left">{user.access_forms}</td>
-                  <td className="p-2 border text-center capitalize">
-                    {user.role}
+      {loading ? (
+        <p>Loading user access data...</p>
+      ) : filteredAccessList.length === 0 ? (
+        <p className="text-gray-500 italic">No access records found.</p>
+      ) : (
+        <>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-200 text-left">
+                <th className="p-2 border">Name</th>
+                <th className="p-2 border">Access Forms</th>
+                <th className="p-2 border text-center">Role</th>
+                <th className="p-2 border text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedAccessList.map((record) => (
+                <tr key={record.id} className="hover:bg-gray-100">
+                  <td className="p-2 border text-left">
+                    {
+                      users.find((u) => u.id === record.user_id)?.name || 
+                      `User #${record.user_id}`
+                    }
                   </td>
+                  <td className="p-2 border text-left">{record.access_forms}</td>
+                  <td className="p-2 border text-center">{record.role}</td>
                   <td className="p-2 border text-center space-x-2">
                     <button
-                      onClick={() => openEditModal(user)}
+                      onClick={() => openEditModal(record)}
                       className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => openDeleteModal(user)}
+                      onClick={() => openDeleteModal(record)}
                       className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
                     >
                       Delete
                     </button>
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="6" className="text-center text-gray-500 p-4 italic">
-                  No users found matching "{searchTerm}"
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
 
+      {/* Add/Edit Modal */}
       {isModalOpen && (
         <div
           className={`fixed inset-0 flex justify-center items-start z-50 pt-20 transition-all duration-300 ${
@@ -323,41 +259,28 @@ function ManageUsersAccess() {
             }`}
           >
             <h2 className="text-xl font-semibold mb-4">
-              {isEditing ? "Edit User Access" : "Add User Access"}
+              {isEditing ? "Edit Access" : "Add Access"}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-3">
               <select
-                name="name"
+                name="user_id"
                 value={form.user_id}
-                onChange={handleUserSelect}
+                onChange={handleChange}
                 className="w-full border p-2 rounded"
                 required
                 disabled={isEditing}
               >
                 <option value="">Select User</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
+                {users
+                  .filter((user) => user.role === "staff") 
+                  .map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
               </select>
 
-              <input
-                name="employee_id"
-                value={form.employee_id}
-                readOnly
-                placeholder="Employee ID"
-                className="w-full border p-2 rounded bg-gray-100 cursor-not-allowed"
-              />
-              <input
-                type="email"
-                name="email"
-                value={form.email}
-                readOnly
-                placeholder="Email"
-                className="w-full border p-2 rounded bg-gray-100 cursor-not-allowed"
-              />
 
               <input
                 name="access_forms"
@@ -365,6 +288,7 @@ function ManageUsersAccess() {
                 onChange={handleChange}
                 placeholder="Access Forms (e.g., Form A, Form B)"
                 className="w-full border p-2 rounded"
+                required
               />
 
               <select
@@ -374,9 +298,7 @@ function ManageUsersAccess() {
                 className="w-full border p-2 rounded"
                 required
               >
-                <option value="" disabled>
-                  Select Role
-                </option>
+                <option value="">Select Role</option>
                 <option>Approve</option>
                 <option>Receive</option>
                 <option>Prepare</option>
@@ -395,7 +317,7 @@ function ManageUsersAccess() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
+                  className="px-4 py-2 text-white rounded bg-blue-500 hover:bg-blue-600"
                 >
                   {isEditing ? "Update" : "Save"}
                 </button>
@@ -405,6 +327,7 @@ function ManageUsersAccess() {
         </div>
       )}
 
+      {/* Delete Modal */}
       {isDeleteModalOpen && (
         <div
           className={`fixed inset-0 flex justify-center items-center z-50 transition-all duration-300 ${
@@ -422,11 +345,11 @@ function ManageUsersAccess() {
               Confirm Delete
             </h2>
             <p className="text-center text-gray-600 mb-4">
-              Are you sure you want to delete{" "}
+              Are you sure you want to delete access for{" "}
               <span className="font-semibold text-red-600">
-                {accessToDelete?.name}
+                User ID {accessToDelete?.user_id}
               </span>
-              's access?
+              ?
             </p>
             <div className="flex justify-center space-x-3">
               <button
