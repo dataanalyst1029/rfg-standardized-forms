@@ -1,157 +1,120 @@
-/* 🌟 Updated Login Container (RFG Style - Static Background) */
-body {
+.login-container {
+  min-height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 100vh;
-  background: linear-gradient(135deg, #ffefef, #ffffff, #faebeb);
-  font-family: "Inter", system-ui, sans-serif;
-  transition: background 0.3s ease;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  background: radial-gradient(
+    circle at top right,
+    rgba(36, 207, 142, 0.18),
+    transparent 45%
+  ),
+  radial-gradient(
+    circle at bottom left,
+    rgba(36, 207, 142, 0.14),
+    transparent 50%
+  ),
+  var(--color-app-bg);
+  position: relative;
 }
 
-/* 💳 Keep the rest of your existing styles */
 .login-card {
-  background: #ffffff;
-  width: 400px;
-  padding: 2.5rem;
-  border-radius: 20px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1.4rem;
+  padding: 2.4rem 2.8rem;
+  width: min(420px, 95vw);
   text-align: center;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-elevation);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .logo-container {
   display: flex;
   justify-content: center;
-  align-items: center;
-  margin-bottom: 1rem;
 }
 
 .rfg-logo {
-  width: 80px;
-  height: 80px;
-  object-fit: contain;
-  user-select: none;
+  width: 82px;
+  height: auto;
 }
 
 .app-title {
-  font-size: 1.4rem;
+  margin: 0;
+  font-size: 1.6rem;
   font-weight: 600;
-  color: #b71c1c; /* 🔴 Matches RFG brand */
-  margin-top: 0.5rem;
+  color: var(--color-text-primary);
 }
 
 .subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
   font-size: 0.95rem;
-  color: #6b7280;
-  margin-bottom: 1.5rem;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
 }
 
 .login-card input {
   width: 100%;
-  padding: 0.85rem 1rem;
-  margin-bottom: 1rem;
-  border: 1px solid #d0d4e4;
-  border-radius: 10px;
-  background: #f9faff;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-app-bg);
+  padding: 0.75rem 0.9rem;
+  color: var(--color-text-primary);
   font-size: 0.95rem;
-  color: #1a1a1a;
-  transition: border 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .login-card input:focus {
   outline: none;
-  border-color: #b71c1c;
-  box-shadow: 0 0 0 3px rgba(183, 28, 28, 0.2);
-  background: #fff;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(36, 207, 142, 0.2);
 }
 
 .login-card button {
-  width: 100%;
-  background: linear-gradient(90deg, #b71c1c, #d32f2f);
-  color: white;
-  font-weight: 600;
+  border-radius: 0.85rem;
   border: none;
-  border-radius: 10px;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
+  color: #06131f;
   padding: 0.9rem;
+  font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .login-card button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(183, 28, 28, 0.3);
+  box-shadow: 0 12px 28px rgba(36, 207, 142, 0.28);
 }
 
 .message {
-  margin-top: 1rem;
-  font-size: 0.9rem;
-  color: #b71c1c;
-  animation: fadeIn 0.3s ease;
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--color-accent);
 }
 
-.rfg-logo {
-  width: 150px;
-  height: auto;
-  object-fit: contain;
-  user-select: none;
+.message.message-error {
+  color: var(--color-danger);
 }
 
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* 🌙 Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  body {
-    background: linear-gradient(135deg, #ffefef, #ffffff, #ffefef);
-  }
-
+@media (max-width: 640px) {
   .login-card {
-    background: #ffffff;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
-  }
-
-  .app-title {
-    color: #ff5a5a;
-  }
-
-  .subtitle {
-    color: #888888;
-  }
-
-  .login-card input {
-    background: #ffffff;
-    border-color: #3d3d3d;
-    color: #1a1a1a;
-  }
-
-  .login-card input:focus {
-    border-color: #d32f2f;
-    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.3);
-  }
-
-  .login-card button {
-    background: linear-gradient(90deg, #b71c1c, #d32f2f);
-  }
-
-  .message {
-    color: #3d3d3d;
-  }
-}
-
-/* 📱 Responsive */
-@media (max-width: 480px) {
-  .login-card {
-    width: 90%;
     padding: 2rem;
   }
 
-  .rfg-logo {
-    width: 60px;
-    height: 60px;
+  .app-title {
+    font-size: 1.35rem;
   }
 }

@@ -1,39 +1,44 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import "./styles/AdminView.css";
+import "./ManageUsers.css";
+
+const PAGE_SIZES = [5, 10, 20];
+
+const emptyForm = {
+  id: null,
+  employee_id: "",
+  name: "",
+  email: "",
+  role: "",
+  password: "",
+};
 
 function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [status, setStatus] = useState(null);
 
-  const [form, setForm] = useState({
-    id: null,
-    employee_id: "",
-    name: "",
-    email: "",
-    role: "",
-    password: "",
-  });
+  const [form, setForm] = useState(emptyForm);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("create"); // or "edit"
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleteClosing, setIsDeleteClosing] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-
-  /* ------------------------ FETCH USERS ------------------------ */
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/users");
-      const data = await res.json();
+      const response = await fetch("http://localhost:5000/api/users");
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+      const data = await response.json();
       setUsers(data);
-    } catch (err) {
-      console.error("Error fetching users:", err);
+    } catch (error) {
+      console.error("Error fetching users", error);
+      setStatus({ type: "error", message: "Failed to load users." });
     } finally {
       setLoading(false);
     }
@@ -43,332 +48,364 @@ function ManageUsers() {
     fetchUsers();
   }, []);
 
-  /* ------------------------ HANDLERS ------------------------ */
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
-
-  const filteredUsers = users.filter((user) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      user.employee_id?.toLowerCase().includes(term) ||
-      user.name?.toLowerCase().includes(term) ||
-      user.email?.toLowerCase().includes(term) ||
-      user.role?.toLowerCase().includes(term)
-    );
-  });
-
-  const totalPages = Math.ceil(filteredUsers.length / rowsPerPage) || 1;
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+  useEffect(() => {
+    if (!status) return undefined;
+    const timeout = setTimeout(() => setStatus(null), 4000);
+    return () => clearTimeout(timeout);
+  }, [status]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, rowsPerPage]);
+    setPage(1);
+  }, [search, rowsPerPage]);
 
-  const handleAddUser = async (e) => {
-    e.preventDefault();
-    if (!form.employee_id || !form.name || !form.email || !form.password || !form.role)
-      return;
+  const filteredUsers = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return users;
+    return users.filter((user) =>
+      ["employee_id", "name", "email", "role"].some((key) =>
+        user[key]?.toLowerCase().includes(term),
+      ),
+    );
+  }, [users, search]);
 
-    try {
-      const res = await fetch("http://localhost:5000/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const newUser = await res.json();
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredUsers.length / rowsPerPage) || 1,
+  );
 
-      if (res.ok) {
-        setUsers([...users, newUser]);
-        closeModalAnimated();
-      } else {
-        alert(newUser.message || "Failed to add user");
-      }
-    } catch (err) {
-      console.error("Error adding user:", err);
-    }
+  const visibleUsers = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    return filteredUsers.slice(start, start + rowsPerPage);
+  }, [filteredUsers, page, rowsPerPage]);
+
+  const openCreateModal = () => {
+    setForm(emptyForm);
+    setModalMode("create");
+    setModalOpen(true);
   };
 
-  const handleEditUser = (user) => {
+  const openEditModal = (user) => {
     setForm({ ...user, password: "" });
-    setIsEditing(true);
-    setIsModalOpen(true);
+    setModalMode("edit");
+    setModalOpen(true);
   };
 
-  const handleUpdateUser = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(`http://localhost:5000/api/users/${form.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const updated = await res.json();
+  const closeModal = () => {
+    setModalOpen(false);
+    setForm(emptyForm);
+  };
 
-      if (res.ok) {
-        setUsers(users.map((u) => (u.id === updated.id ? updated : u)));
-        closeModalAnimated();
+  const handleFormChange = (event) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (
+      !form.employee_id ||
+      !form.name ||
+      !form.email ||
+      !form.role ||
+      (modalMode === "create" && !form.password)
+    ) {
+      setStatus({ type: "error", message: "Please fill in all required fields." });
+      return;
+    }
+
+    try {
+      if (modalMode === "create") {
+        const response = await fetch("http://localhost:5000/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.message || "Failed to add user");
+        }
+
+        setUsers((prev) => [...prev, payload]);
+        setStatus({ type: "success", message: "User created successfully." });
       } else {
-        alert(updated.message || "Failed to update user");
+        const payload = { ...form };
+        if (!payload.password) {
+          delete payload.password;
+        }
+
+        const response = await fetch(
+          `http://localhost:5000/api/users/${form.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+
+        const updated = await response.json();
+        if (!response.ok) {
+          throw new Error(updated.message || "Failed to update user");
+        }
+
+        setUsers((prev) =>
+          prev.map((user) => (user.id === updated.id ? updated : user)),
+        );
+        setStatus({ type: "success", message: "User updated successfully." });
       }
-    } catch (err) {
-      console.error("Error updating user:", err);
+
+      closeModal();
+    } catch (error) {
+      console.error("Error saving user", error);
+      setStatus({
+        type: "error",
+        message: error.message || "Unable to save user.",
+      });
     }
   };
 
-  const openDeleteModal = (user) => {
-    setUserToDelete(user);
-    setIsDeleteModalOpen(true);
+  const confirmDelete = (user) => {
+    setDeleteTarget(user);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!userToDelete) return;
-    try {
-      const res = await fetch(`http://localhost:5000/api/users/${userToDelete.id}`, {
-        method: "DELETE",
-      });
+  const cancelDelete = () => {
+    setDeleteTarget(null);
+  };
 
-      if (res.ok) {
-        setUsers(users.filter((u) => u.id !== userToDelete.id));
-        closeDeleteModalAnimated();
-      } else {
-        alert("Failed to delete user");
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/users/${deleteTarget.id}`,
+        { method: "DELETE" },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete user");
       }
-    } catch (err) {
-      console.error("Error deleting user:", err);
+
+      setUsers((prev) =>
+        prev.filter((user) => user.id !== deleteTarget.id),
+      );
+      setStatus({ type: "success", message: "User deleted successfully." });
+    } catch (error) {
+      console.error("Error deleting user", error);
+      setStatus({ type: "error", message: "Failed to delete user." });
+    } finally {
+      cancelDelete();
     }
   };
 
-  const closeModalAnimated = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsModalOpen(false);
-      setIsClosing(false);
-      setForm({
-        id: null,
-        employee_id: "",
-        name: "",
-        email: "",
-        role: "",
-        password: "",
-      });
-      setIsEditing(false);
-    }, 300);
-  };
-
-  const closeDeleteModalAnimated = () => {
-    setIsDeleteClosing(true);
-    setTimeout(() => {
-      setIsDeleteModalOpen(false);
-      setIsDeleteClosing(false);
-      setUserToDelete(null);
-    }, 300);
-  };
-
-  /* ------------------------ RENDER ------------------------ */
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md w-full">
-      <h2 className="text-xl text-left mb-3 font-semibold">Manage Users</h2>
+    <div className="admin-view">
+      <div className="admin-toolbar">
+        <div className="admin-toolbar-title">
+          <h2>Directory</h2>
+          <p>Manage the people who can access standardized forms.</p>
+        </div>
 
-      <div className="flex justify-between items-center mb-4">
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-        >
-          + Add User
-        </button>
-
-        <input
-          type="search"
-          placeholder="Search by ID, name, or email..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
+        <div className="admin-toolbar-actions">
+          <input
+            type="search"
+            className="admin-search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search users"
+          />
+          <button type="button" className="admin-primary-action" onClick={openCreateModal}>
+            + Invite user
+          </button>
+        </div>
       </div>
 
-      {loading ? (
-        <p>Loading users...</p>
-      ) : filteredUsers.length === 0 ? (
-        <p className="text-gray-500 italic">No users found.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
-            <div className="flex items-center space-x-2">
-              <label htmlFor="rowsPerPage" className="text-sm text-gray-600">
-                Rows per page:
-              </label>
-              <select
-                id="rowsPerPage"
-                value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="border border-gray-300 rounded px-2 py-1 text-sm"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
-
-            <span className="text-sm text-gray-600">
-              Showing{" "}
-              <strong>
-                {filteredUsers.length === 0 ? 0 : startIndex + 1}–
-                {Math.min(endIndex, filteredUsers.length)}
-              </strong>{" "}
-              of <strong>{filteredUsers.length}</strong> users
-            </span>
-
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <span className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-
-
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-200 text-left">
-                <th className="p-2 border text-center">Employee ID</th>
-                <th className="p-2 border">Name</th>
-                <th className="p-2 border">Email</th>
-                <th className="p-2 border text-center">Role</th>
-                <th className="p-2 border text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-100">
-                  <td className="p-2 border text-center">{user.employee_id}</td>
-                  <td className="p-2 border text-left">{user.name}</td>
-                  <td className="p-2 border text-left">{user.email}</td>
-                  <td className="p-2 border text-center">{user.role}</td>
-                  <td className="p-2 border text-center space-x-2">
-                    <button
-                      onClick={() => handleEditUser(user)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => openDeleteModal(user)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {status && (
+        <div
+          className={`admin-status-banner${
+            status.type === "error"
+              ? " admin-status-banner--error"
+              : status.type === "info"
+                ? " admin-status-banner--info"
+                : ""
+          }`}
+        >
+          {status.message}
         </div>
       )}
 
-      {isModalOpen && (
-        <div
-          className={`fixed inset-0 flex justify-center items-start z-50 pt-20 transition-all duration-300 ${
-            isClosing ? "animate-fadeOut bg-opacity-0" : "animate-fadeIn bg-black bg-opacity-50"
-          }`}
-        >
-          <div
-            className={`bg-white w-full max-w-md p-6 rounded-lg shadow-lg transform transition-all duration-300 ease-out ${
-              isClosing ? "animate-slideUp" : "animate-slideDown"
-            }`}
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Employee ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="admin-empty-state">
+                  Loading users...
+                </td>
+              </tr>
+            ) : visibleUsers.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="admin-empty-state">
+                  {search
+                    ? "No users match your search."
+                    : "No users yet. Invite someone from your team."}
+                </td>
+              </tr>
+            ) : (
+              visibleUsers.map((user) => (
+                <tr key={user.id}>
+                  <td data-label="Employee ID">{user.employee_id}</td>
+                  <td data-label="Name">{user.name}</td>
+                  <td data-label="Email">{user.email}</td>
+                  <td data-label="Role">
+                    <span className="admin-badge user-role-badge">
+                      {user.role ? user.role.toUpperCase() : "N/A"}
+                    </span>
+                  </td>
+                  <td data-label="Actions">
+                    <div className="admin-row-actions">
+                      <button
+                        type="button"
+                        className="admin-row-btn"
+                        onClick={() => openEditModal(user)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-row-btn admin-row-btn--danger"
+                        onClick={() => confirmDelete(user)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="admin-pagination">
+        <span className="admin-pagination-info">
+          Showing {visibleUsers.length} of {filteredUsers.length} users
+        </span>
+
+        <div className="admin-pagination-controls">
+          <button
+            type="button"
+            className="admin-pagination-btn"
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            disabled={page === 1}
           >
-            <h2 className="text-xl font-semibold mb-4">
-              {isEditing ? "Edit User" : "Add User"}
-            </h2>
-            <form onSubmit={isEditing ? handleUpdateUser : handleAddUser} className="space-y-3">
+            Prev
+          </button>
+          <span className="admin-pagination-info">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            type="button"
+            className="admin-pagination-btn"
+            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={page === totalPages}
+          >
+            Next
+          </button>
+        </div>
+
+        <label className="admin-pagination-info" htmlFor="rowsPerPage">
+          Rows per page
+          <select
+            id="rowsPerPage"
+            className="admin-rows-select"
+            value={rowsPerPage}
+            onChange={(event) => setRowsPerPage(Number(event.target.value))}
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {modalOpen && (
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="admin-modal-panel">
+            <div>
+              <h2>{modalMode === "create" ? "Invite user" : "Edit user"}</h2>
+              <p className="admin-modal-subtext">
+                {modalMode === "create"
+                  ? "New teammates receive access immediately. You can update their role anytime."
+                  : "Adjust details and roles. Leave the password blank to keep the current value."}
+              </p>
+            </div>
+
+            <form className="admin-modal-form" onSubmit={handleSubmit}>
               <input
-                type="text"
                 name="employee_id"
                 placeholder="Employee ID"
                 value={form.employee_id}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
+                onChange={handleFormChange}
                 required
               />
               <input
-                type="text"
                 name="name"
-                placeholder="Name"
+                placeholder="Full name"
                 value={form.name}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
+                onChange={handleFormChange}
                 required
               />
               <input
                 type="email"
                 name="email"
-                placeholder="Email"
+                placeholder="Work email"
                 value={form.email}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
+                onChange={handleFormChange}
                 required
               />
               <input
                 type="password"
                 name="password"
-                placeholder="Password"
+                placeholder={
+                  modalMode === "create"
+                    ? "Temporary password"
+                    : "New password (leave blank to keep)"
+                }
                 value={form.password}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
-                required={!isEditing}
+                onChange={handleFormChange}
+                required={modalMode === "create"}
               />
               <select
                 name="role"
                 value={form.role}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
+                onChange={handleFormChange}
                 required
               >
                 <option value="" disabled>
-                  Select Role
+                  Select role
                 </option>
-                <option>admin</option>
-                <option>staff</option>
-                <option>user</option>
+                <option value="admin">Admin</option>
+                <option value="staff">Staff</option>
+                <option value="user">User</option>
               </select>
 
-              <div className="flex justify-end space-x-2 mt-4">
-                <button
-                  type="button"
-                  onClick={closeModalAnimated}
-                  className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded"
-                >
+              <div className="admin-modal-footer">
+                <button type="button" className="admin-ghost-btn" onClick={closeModal}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className={`px-4 py-2 text-white rounded ${
-                    isEditing
-                      ? "bg-blue-500 hover:bg-blue-600"
-                      : "bg-green-500 hover:bg-green-600"
-                  }`}
-                >
-                  {isEditing ? "Update" : "Add"}
+                <button type="submit" className="admin-primary-btn">
+                  {modalMode === "create" ? "Invite user" : "Save changes"}
                 </button>
               </div>
             </form>
@@ -376,38 +413,21 @@ function ManageUsers() {
         </div>
       )}
 
-      {isDeleteModalOpen && (
-        <div
-          className={`fixed inset-0 flex justify-center items-center z-50 transition-all duration-300 ${
-            isDeleteClosing
-              ? "animate-fadeOut bg-opacity-0"
-              : "animate-fadeIn bg-black bg-opacity-50"
-          }`}
-        >
-          <div
-            className={`bg-white w-full max-w-sm p-6 rounded-lg shadow-lg transform transition-all duration-300 ease-out ${
-              isDeleteClosing ? "animate-slideUp" : "animate-slideDown"
-            }`}
-          >
-            <h2 className="text-xl font-semibold mb-3 text-center text-gray-800">
-              Confirm Delete
-            </h2>
-            <p className="text-center text-gray-600 mb-4">
-              Are you sure you want to delete{" "}
-              <span className="font-semibold text-red-600">{userToDelete?.name}</span>?
+      {deleteTarget && (
+        <div className="admin-modal-backdrop" role="alertdialog" aria-modal="true">
+          <div className="admin-modal-panel">
+            <h2>Remove user</h2>
+            <p className="admin-modal-subtext">
+              You&apos;re about to remove{" "}
+              <strong>{deleteTarget.name}</strong> from the workspace. This
+              action cannot be undone.
             </p>
-            <div className="flex justify-center space-x-3">
-              <button
-                onClick={closeDeleteModalAnimated}
-                className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded"
-              >
+            <div className="admin-modal-footer">
+              <button type="button" className="admin-ghost-btn" onClick={cancelDelete}>
                 Cancel
               </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
-              >
-                Delete
+              <button type="button" className="admin-danger-btn" onClick={handleDelete}>
+                Delete user
               </button>
             </div>
           </div>

@@ -1,36 +1,44 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import "./PurchaseRequest.css";
+
+const initialFormData = {
+  purchase_request_code: "",
+  request_date: new Date().toISOString().split("T")[0],
+  requested_by: "",
+  contact_number: "",
+  branch: "",
+  department: "",
+  address: "",
+  purpose: "",
+};
+
+const emptyItem = { quantity: "", purchase_item: "" };
+
+const NAV_SECTIONS = [
+  { id: "details", label: "Request details" },
+  { id: "contact", label: "Contact & routing" },
+  { id: "purpose", label: "Purpose" },
+  { id: "items", label: "Line items" },
+];
 
 function PurchaseRequest({ onLogout }) {
-  const [formData, setFormData] = useState({
-    purchase_request_code: "",
-    request_date: new Date().toISOString().split("T")[0],
-    requested_by: "",
-    contact_number: "",
-    branch: "",
-    department: "",
-    address: "",
-    purpose: "",
-  });
-
-  const [items, setItems] = useState([{ quantity: "", purchase_item: "" }]);
+  const [formData, setFormData] = useState(initialFormData);
+  const [items, setItems] = useState([emptyItem]);
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState("details");
 
   useEffect(() => {
     const fetchNextCode = async () => {
       try {
         const res = await fetch("http://localhost:5000/api/purchase_request/next-code");
+        if (!res.ok) throw new Error("Failed to retrieve next reference number");
         const data = await res.json();
         if (data.nextCode) {
-          setFormData((prev) => ({
-            ...prev,
-            purchase_request_code: data.nextCode,
-          }));
-        } else {
-          alert("⚠️ Could not get next purchase request code!");
+          setFormData((prev) => ({ ...prev, purchase_request_code: data.nextCode }));
         }
-      } catch (err) {
-        console.error("Error fetching next code:", err);
-        alert("❌ Failed to load next reference number");
+      } catch (error) {
+        console.error("Error fetching next code", error);
+        window.alert("Unable to load the next purchase request reference. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -40,40 +48,58 @@ function PurchaseRequest({ onLogout }) {
   }, []);
 
   useEffect(() => {
-    const storedName = localStorage.getItem("userName");
+    const storedName = localStorage.getItem("name") || localStorage.getItem("userName");
     if (storedName) {
-      setFormData((prev) => ({
-        ...prev,
-        requested_by: storedName,
-      }));
+      setFormData((prev) => ({ ...prev, requested_by: storedName }));
     }
   }, []);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleItemChange = (index, e) => {
-    const newItems = [...items];
-    newItems[index][e.target.name] = e.target.value;
-    setItems(newItems);
+  const handleItemChange = (index, event) => {
+    const { name, value } = event.target;
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [name]: value };
+      return next;
+    });
   };
 
-  const addItemRow = () => {
-    setItems([...items, { quantity: "", purchase_item: "" }]);
-  };
+  const addItemRow = () => setItems((prev) => [...prev, emptyItem]);
 
   const removeItemRow = (index) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
-    }
+    setItems((prev) => {
+      if (prev.length === 1) {
+        return [emptyItem];
+      }
+      return prev.filter((_, itemIndex) => itemIndex !== index);
+    });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const sanitizedItems = useMemo(
+    () =>
+      items
+        .map((item) => ({
+          quantity: item.quantity,
+          purchase_item: item.purchase_item.trim(),
+        }))
+        .filter((item) => item.quantity && item.purchase_item),
+    [items],
+  );
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
     if (!formData.purchase_request_code) {
-      alert("⚠️ Reference number not loaded yet!");
+      window.alert("Reference number not ready yet. Please wait a moment and try again.");
+      return;
+    }
+
+    if (sanitizedItems.length === 0) {
+      window.alert("Add at least one line item before submitting.");
       return;
     }
 
@@ -86,7 +112,7 @@ function PurchaseRequest({ onLogout }) {
       department: formData.department,
       address: formData.address,
       purpose: formData.purpose,
-      items,
+      items: sanitizedItems,
     };
 
     try {
@@ -98,260 +124,268 @@ function PurchaseRequest({ onLogout }) {
 
       const data = await res.json();
 
-      if (res.ok) {
-        alert(`✅ Purchase Request (${formData.purchase_request_code}) submitted successfully!`);
-        window.history.back();
-      } else {
-        alert(`❌ Failed to submit: ${data.message || "Unknown error"}`);
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to submit purchase request");
       }
-    } catch (err) {
-      console.error("Error submitting purchase request:", err);
-      alert("❌ Error submitting purchase request");
+
+      window.alert(`Purchase Request ${formData.purchase_request_code} submitted successfully.`);
+      window.history.back();
+    } catch (error) {
+      console.error("Error submitting purchase request", error);
+      window.alert(error.message || "Unable to submit purchase request. Please try again.");
+    }
+  };
+
+  const handleNavigate = (sectionId) => {
+    setActiveSection(sectionId);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-600">
-        Loading Purchase Request Form...
-      </div>
-    );
+    return <div className="pr-loading">Loading purchase request form…</div>;
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* ✅ Sidebar */}
-      <aside className="w-64 bg-gray-800 shadow-md fixed top-0 left-0 h-full flex flex-col justify-between">
-        <div className="p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-white mb-6">
-            🧾 Purchase Request
-          </h2>
-
-          <button
-            type="button"
-            onClick={() => window.history.back()}
-            className="w-full bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg text-left"
-          >
-            ← Back to Forms
-          </button>
-
-          <button
-            type="button"
-            onClick={() => (window.location.href = "/approved-requests")}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-left"
-          >
-            ✅ Approved Requests
-          </button>
+    <div className="pr-layout">
+      <aside className="pr-sidebar">
+        <div className="pr-sidebar-header">
+          <h2>Purchase Request</h2>
+          <span>Standardized form</span>
         </div>
 
-        <div className="p-6 border-t">
-          <button
-            type="button"
-            onClick={onLogout}
-            className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-          >
-            Logout
+        <nav className="pr-sidebar-nav">
+          {NAV_SECTIONS.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={section.id === activeSection ? "is-active" : ""}
+              onClick={() => handleNavigate(section.id)}
+            >
+              {section.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="pr-sidebar-footer">
+          <span className="pr-sidebar-meta">Remember to review line items before submitting.</span>
+          <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
+            Sign out
           </button>
         </div>
       </aside>
 
-      {/* ✅ Main Content (Form) */}
-      <main className="flex-1 ml-64 p-8">
-        <div className="bg-white p-8 rounded-xl shadow-md max-w-4xl mx-auto">
-          <h1 className="text-2xl font-semibold mb-6 text-gray-800 text-center">
-            🧾 Purchase Request Form
-          </h1>
+      <main className="pr-main">
+        <header className="pr-topbar">
+          <div>
+            <h1>New purchase request</h1>
+            <p className="pr-topbar-meta">
+              Capture purchasing details, routing information, and line items in one place.
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Reference & Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Reference Number
+          <div className="pr-reference-card">
+            <span className="pr-reference-label">Reference code</span>
+            <span className="pr-reference-value">{formData.purchase_request_code || "—"}</span>
+            <span className="pr-reference-label">Request date</span>
+            <span>{formData.request_date}</span>
+          </div>
+        </header>
+
+        <form onSubmit={handleSubmit}>
+          <section className="pr-form-section" id="details">
+            <div>
+              <h2 className="pr-section-title">Request details</h2>
+              <p className="pr-section-subtitle">
+                Who is requesting and how we can keep in touch.
+              </p>
+            </div>
+
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="requestedBy">
+                  Requested by
                 </label>
                 <input
-                  type="text"
-                  name="purchase_request_code"
-                  value={formData.purchase_request_code}
-                  readOnly
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 bg-gray-100 cursor-not-allowed"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Date Applied
-                </label>
-                <input
-                  type="date"
-                  name="request_date"
-                  value={formData.request_date}
+                  id="requestedBy"
+                  name="requested_by"
+                  value={formData.requested_by}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
+                  className="pr-input"
+                  placeholder="Full name"
                   required
                 />
               </div>
-            </div>
 
-            {/* Requested By & Contact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Requested By
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="contactNumber">
+                  Contact number
                 </label>
                 <input
-                  type="text"
-                  name="requested_by"
-                  value={formData.requested_by}
-                  readOnly
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 bg-gray-100 cursor-not-allowed"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Contact Number
-                </label>
-                <input
-                  type="text"
+                  id="contactNumber"
                   name="contact_number"
                   value={formData.contact_number}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
-                  required
+                  className="pr-input"
+                  placeholder="09XX XXX XXXX"
                 />
               </div>
             </div>
+          </section>
 
-            {/* Branch & Department */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
+          <section className="pr-form-section" id="contact">
+            <div>
+              <h2 className="pr-section-title">Routing information</h2>
+              <p className="pr-section-subtitle">
+                Identify the branch and department that owns this request.
+              </p>
+            </div>
+
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="branch">
                   Branch
                 </label>
                 <input
-                  type="text"
+                  id="branch"
                   name="branch"
                   value={formData.branch}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
+                  className="pr-input"
+                  placeholder="Branch name"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="department">
                   Department
                 </label>
                 <input
-                  type="text"
+                  id="department"
                   name="department"
                   value={formData.department}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
+                  className="pr-input"
+                  placeholder="Department name"
                 />
               </div>
             </div>
 
-            {/* Address & Purpose */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
+            <div className="pr-field">
+              <label className="pr-label" htmlFor="address">
                 Address
               </label>
               <input
-                type="text"
+                id="address"
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
+                className="pr-input"
+                placeholder="Delivery or branch address"
               />
             </div>
+          </section>
 
+          <section className="pr-form-section" id="purpose">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <h2 className="pr-section-title">Purpose</h2>
+              <p className="pr-section-subtitle">
+                Provide context for the purchasing team and approvers.
+              </p>
+            </div>
+
+            <div className="pr-field">
+              <label className="pr-label" htmlFor="purposeText">
                 Purpose
               </label>
               <textarea
+                id="purposeText"
                 name="purpose"
                 value={formData.purpose}
                 onChange={handleChange}
-                rows="3"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
+                className="pr-textarea"
+                placeholder="Describe why this purchase is needed"
+                rows={4}
               />
             </div>
+          </section>
 
-            {/* Items Table */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-800 mt-4 mb-2">
-                🛒 Items
-              </h2>
-
-              <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-100 sticky top-0">
-                    <tr>
-                      <th className="border px-3 py-2 text-left">Quantity</th>
-                      <th className="border px-3 py-2 text-left">Purchase Item</th>
-                      <th className="border px-3 py-2 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((purchase_item, index) => (
-                      <tr key={index}>
-                        <td className="border px-3 py-2">
-                          <input
-                            type="number"
-                            name="quantity"
-                            min="1"
-                            value={purchase_item.quantity}
-                            onChange={(e) => handleItemChange(index, e)}
-                            className="w-full border border-gray-300 rounded-lg px-2 py-1"
-                            required
-                          />
-                        </td>
-                        <td className="border px-3 py-2">
-                          <input
-                            type="text"
-                            name="purchase_item"
-                            value={purchase_item.purchase_item}
-                            onChange={(e) => handleItemChange(index, e)}
-                            className="w-full border border-gray-300 rounded-lg px-2 py-1"
-                            required
-                          />
-                        </td>
-                        <td className="border px-3 py-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => removeItemRow(index)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
-                          >
-                            ✖
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <section className="pr-items-card" id="items">
+            <div className="pr-items-header">
+              <div>
+                <h2 className="pr-items-title">Line items</h2>
+                <p className="pr-section-subtitle">
+                  List each item you need to procure with the quantity required.
+                </p>
               </div>
-
-              <div className="flex justify-end mt-2">
-                <button
-                  type="button"
-                  onClick={addItemRow}
-                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
-                >
-                  ➕ Add Item
-                </button>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-between">
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
-              >
-                Submit
+              <button type="button" className="pr-items-add" onClick={addItemRow}>
+                Add item
               </button>
             </div>
-          </form>
-        </div>
+
+            <table className="pr-items-table">
+              <thead>
+                <tr>
+                  <th>Quantity</th>
+                  <th>Item description</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="pr-items-empty">
+                      No items yet. Add an item to get started.
+                    </td>
+                  </tr>
+                ) : (
+                  items.map((item, index) => (
+                    <tr key={index}>
+                      <td>
+                        <input
+                          type="number"
+                          min="1"
+                          name="quantity"
+                          value={item.quantity}
+                          onChange={(event) => handleItemChange(index, event)}
+                          className="pr-input"
+                          required
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          name="purchase_item"
+                          value={item.purchase_item}
+                          onChange={(event) => handleItemChange(index, event)}
+                          className="pr-input"
+                          placeholder="Item name or description"
+                          required
+                        />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="pr-table-action"
+                          onClick={() => removeItemRow(index)}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </section>
+
+          <div className="pr-form-actions">
+            <button type="submit" className="pr-submit">
+              Submit purchase request
+            </button>
+          </div>
+        </form>
       </main>
     </div>
   );

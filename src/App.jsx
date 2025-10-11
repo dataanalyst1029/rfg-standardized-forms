@@ -35,7 +35,16 @@ function App() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen text-gray-600 text-lg">
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--color-text-muted)",
+          fontSize: "1.05rem",
+        }}
+      >
         Loading...
       </div>
     );
@@ -80,23 +89,13 @@ function App() {
           }
         />
 
-        {/* For users */}
         <Route
           path="/forms/purchase-request"
           element={
-            user && user.role === "user" ? (
-              <PurchaseRequest onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
-
-        {/* For staff/admin */}
-        <Route
-          path="/forms/purchase-request"
-          element={
-            user && (user.role === "staff" || user.role === "admin") ? (
+            user &&
+            (user.role === "user" ||
+              user.role === "staff" ||
+              user.role === "admin") ? (
               <PurchaseRequest onLogout={handleLogout} />
             ) : (
               <Navigate to="/" replace />

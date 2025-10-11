@@ -1,17 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LoginPage.css";
-import rfgLogo from "./assets/rfg_logo.png"; // ✅ import your logo properly
+import rfgLogo from "./assets/rfg_logo.png";
+import ThemeToggle from "./components/ThemeToggle.jsx";
 
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!message || message.type === "error") {
+      return undefined;
+    }
+    const timeout = setTimeout(() => setMessage(null), 3500);
+    return () => clearTimeout(timeout);
+  }, [message]);
+
+  const showMessage = (type, text) => setMessage({ type, text });
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setMessage("🔄 Logging in...");
+    showMessage("info", "Logging in...");
 
     try {
       const res = await fetch("http://localhost:5000/api/login", {
@@ -23,25 +34,26 @@ function LoginPage({ onLogin }) {
       const data = await res.json();
 
       if (data.success) {
-        setMessage("✅ Login successful!");
-        localStorage.setItem("userName", data.name);
-        localStorage.setItem("userRole", data.role);
+        showMessage("success", "Login successful!");
+        localStorage.setItem("name", data.name);
+        localStorage.setItem("role", data.role);
         onLogin({ role: data.role, name: data.name });
 
         setTimeout(() => {
-          navigate(data.role === "user" ? "/forms-list" : "/");
-        }, 1000);
+          navigate(data.role === "user" ? "/forms-list" : "/dashboard");
+        }, 600);
       } else {
-        setMessage("❌ Invalid email or password");
+        showMessage("error", "Invalid email or password");
       }
     } catch (err) {
       console.error(err);
-      setMessage("⚠️ Server error. Please try again.");
+      showMessage("error", "Server error. Please try again.");
     }
   };
 
   return (
     <div className="login-container">
+      <ThemeToggle className="app-theme-toggle" />
       <div className="login-card">
         <div className="logo-container">
           <img src={rfgLogo} alt="RFG Logo" className="rfg-logo" />
@@ -68,8 +80,15 @@ function LoginPage({ onLogin }) {
         </form>
         <p className="subtitle">Sign in to continue</p>
 
-
-        {message && <p className="message">{message}</p>}
+        {message && (
+          <p
+            className={`message${
+              message.type === "error" ? " message-error" : ""
+            }`}
+          >
+            {message.text}
+          </p>
+        )}
       </div>
     </div>
   );
