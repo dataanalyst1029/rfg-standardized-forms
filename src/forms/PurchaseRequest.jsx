@@ -296,16 +296,13 @@ function PurchaseRequest({ onLogout }) {
             </div>
 
             <div className="pr-field">
-              <label className="pr-label" htmlFor="purposeText">
-                Purpose
-              </label>
               <textarea
                 id="purposeText"
                 name="purpose"
                 value={formData.purpose}
                 onChange={handleChange}
                 className="pr-textarea"
-                placeholder="Describe why this purchase is needed"
+                placeholder="Purpose of the purchase request"
                 rows={4}
               />
             </div>
