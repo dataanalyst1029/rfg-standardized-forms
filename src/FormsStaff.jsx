@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "./styles/FormsHub.css";
 
 function FormsStaff({ onLogout }) {
   const [selectedForm, setSelectedForm] = useState("");
@@ -35,46 +36,47 @@ function FormsStaff({ onLogout }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-100">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-semibold mb-6 text-center text-gray-800">
-          📋 Staff Forms
-        </h1>
+    <div className="forms-hub">
+      <div className="forms-card">
+        <header className="forms-header">
+          <h1 className="forms-title">Staff workspace</h1>
+          <p className="forms-subtitle">
+            Launch standardized forms or review approved requests.
+          </p>
+        </header>
 
-        <label
-          htmlFor="formSelect"
-          className="block text-gray-700 mb-2 text-sm font-medium"
-        >
-          Select a Form:
-        </label>
-        <select
-          id="formSelect"
-          value={selectedForm}
-          onChange={(e) => setSelectedForm(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        >
-          <option value="">-- Choose a form --</option>
-          {forms.map((form, index) => (
-            <option key={index} value={form}>
-              {form}
-            </option>
-          ))}
-        </select>
+        <div className="forms-field">
+          <label htmlFor="staffFormSelect" className="forms-label">
+            Select a form
+          </label>
+          <select
+            id="staffFormSelect"
+            value={selectedForm}
+            onChange={(event) => setSelectedForm(event.target.value)}
+            className="forms-select"
+          >
+            <option value="">-- Choose a form --</option>
+            {forms.map((form) => (
+              <option key={form} value={form}>
+                {form}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <button
-          onClick={handleGo}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-lg transition-all"
-        >
-          Go
-        </button>
-
-        <div className="mt-4 space-y-2">
+        <div className="forms-actions">
+          <button type="button" className="forms-button forms-button--primary" onClick={handleGo}>
+            Open form
+          </button>
           <button
             type="button"
+            className="forms-button forms-button--link"
             onClick={() => navigate("/approved-requests")}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition"
           >
-            ✅ Check Approved Requests
+            View approved requests
+          </button>
+          <button type="button" className="forms-button forms-button--muted" onClick={onLogout}>
+            Sign out
           </button>
         </div>
       </div>

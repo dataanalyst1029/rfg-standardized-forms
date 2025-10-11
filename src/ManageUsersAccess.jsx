@@ -1,325 +1,457 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import "./styles/AdminView.css";
+import "./ManageUsersAccess.css";
+
+const PAGE_SIZES = [5, 10, 20];
+
+const initialForm = {
+  id: null,
+  user_id: "",
+  access_forms: "",
+  role: "",
+};
 
 function ManageUsersAccess() {
-  const [accessList, setAccessList] = useState([]);
+  const [records, setRecords] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [status, setStatus] = useState(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [form, setForm] = useState(initialForm);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("create");
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleteClosing, setIsDeleteClosing] = useState(false);
-  const [accessToDelete, setAccessToDelete] = useState(null);
-
-  const [form, setForm] = useState({
-    id: "",
-    user_id: "",
-    access_forms: "",
-    role: "",
-  });
-
-  /* ------------------------ FETCH DATA ------------------------ */
-  const fetchAccessData = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/user_access");
-      if (!res.ok) throw new Error("Failed to fetch user access data");
-      const data = await res.json();
-      setAccessList(data);
-    } catch (err) {
-      console.error("Error fetching access data:", err);
-      setError("Failed to load user access data");
+      const [accessRes, usersRes] = await Promise.all([
+        fetch("http://localhost:5000/api/user_access"),
+        fetch("http://localhost:5000/api/users"),
+      ]);
+
+      if (!accessRes.ok) {
+        throw new Error("Failed to fetch user access records");
+      }
+
+      if (!usersRes.ok) {
+        throw new Error("Failed to fetch users");
+      }
+
+      const accessData = await accessRes.json();
+      const userData = await usersRes.json();
+      setRecords(accessData);
+      setUsers(userData);
+    } catch (error) {
+      console.error("Error loading access records", error);
+      setStatus({ type: "error", message: error.message || "Unable to load data." });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/users");
-      if (!res.ok) throw new Error("Failed to fetch users");
-      const data = await res.json();
-      setUsers(data);
-    } catch (err) {
-      console.error("Error fetching users:", err);
-    }
-  };
-
   useEffect(() => {
-    fetchAccessData();
-    fetchUsers();
+    loadData();
   }, []);
 
-  /* ------------------------ HANDLERS ------------------------ */
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    if (!status) return undefined;
+    const timeout = setTimeout(() => setStatus(null), 4000);
+    return () => clearTimeout(timeout);
+  }, [status]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    setPage(1);
+  }, [search, rowsPerPage]);
 
-    // Basic validation
-    if (!form.user_id || !form.access_forms || !form.role) return;
-
-    const method = isEditing ? "PUT" : "POST";
-    const url = isEditing
-      ? `http://localhost:5000/api/user_access/${form.id}`
-      : "http://localhost:5000/api/user_access";
-
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: form.user_id,
-          access_forms: form.access_forms,
-          role: form.role,
-        }),
-      });
-
-      if (res.ok) {
-        await fetchAccessData();
-        closeModalAnimated();
-      } else {
-        alert("Failed to save user access");
-      }
-    } catch (err) {
-      console.error("Error saving user access:", err);
-      alert("Error saving user access record");
-    }
-  };
-
-
-  /* ------------------------ DELETE HANDLERS ------------------------ */
-  const openDeleteModal = (record) => {
-    setAccessToDelete(record);
-    setIsDeleteModalOpen(true);
-  };
-
-  const closeDeleteModalAnimated = () => {
-    setIsDeleteClosing(true);
-    setTimeout(() => {
-      setIsDeleteModalOpen(false);
-      setIsDeleteClosing(false);
-      setAccessToDelete(null);
-    }, 300);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!accessToDelete) return;
-    try {
-      const res = await fetch(
-        `http://localhost:5000/api/user_access/${accessToDelete.id}`,
-        { method: "DELETE" }
-      );
-      if (res.ok) {
-        setAccessList(accessList.filter((a) => a.id !== accessToDelete.id));
-        closeDeleteModalAnimated();
-      } else {
-        alert("Failed to delete record");
-      }
-    } catch (err) {
-      console.error("Error deleting record:", err);
-      alert("Error deleting record");
-    }
-  };
-
-  /* ------------------------ MODAL HANDLERS ------------------------ */
-  const openAddModal = () => {
-    setIsEditing(false);
-    setIsModalOpen(true);
-    setForm({
-      id: "",
-      user_id: "",
-      access_forms: "",
-      role: "",
+  const userMap = useMemo(() => {
+    const map = new Map();
+    users.forEach((user) => {
+      map.set(String(user.id), user);
     });
+    return map;
+  }, [users]);
+
+  const mergedRecords = useMemo(
+    () =>
+      records.map((record) => ({
+        ...record,
+        user: userMap.get(String(record.user_id)) || null,
+      })),
+    [records, userMap],
+  );
+
+  const filteredRecords = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return mergedRecords;
+    return mergedRecords.filter((record) => {
+      const candidate = [
+        record.user?.name,
+        record.user?.email,
+        record.access_forms,
+        record.role,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return candidate.includes(term);
+    });
+  }, [mergedRecords, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / rowsPerPage) || 1);
+
+  const visibleRecords = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    return filteredRecords.slice(start, start + rowsPerPage);
+  }, [filteredRecords, page, rowsPerPage]);
+
+  const availableStaff = useMemo(
+    () => users.filter((user) => user.role === "staff"),
+    [users],
+  );
+
+  const openCreateModal = () => {
+    setForm(initialForm);
+    setModalMode("create");
+    setModalOpen(true);
   };
 
   const openEditModal = (record) => {
-    setIsEditing(true);
-    setForm(record);
-    setIsModalOpen(true);
+    setForm({
+      id: record.id,
+      user_id: String(record.user_id ?? ""),
+      access_forms: record.access_forms || "",
+      role: record.role || "",
+    });
+    setModalMode("edit");
+    setModalOpen(true);
   };
 
-  const closeModalAnimated = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsModalOpen(false);
-      setIsClosing(false);
-    }, 300);
+  const closeModal = () => {
+    setModalOpen(false);
+    setForm(initialForm);
   };
 
-  /* ------------------------ FILTERED & PAGINATED DATA ------------------------ */
-  const filteredAccessList = accessList.filter((item) => {
-    const search = searchTerm.toLowerCase();
-    return (
-      item.user_id?.toString().includes(search) ||
-      item.access_forms?.toLowerCase().includes(search) ||
-      item.role?.toLowerCase().includes(search)
-    );
-  });
+  const handleFormChange = (event) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-  const totalPages = Math.ceil(filteredAccessList.length / rowsPerPage) || 1;
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedAccessList = filteredAccessList.slice(startIndex, endIndex);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, rowsPerPage]);
+    if (!form.user_id || !form.access_forms.trim() || !form.role) {
+      setStatus({
+        type: "error",
+        message: "Please select a user, enter forms, and assign a role.",
+      });
+      return;
+    }
 
-  /* ------------------------ RENDER ------------------------ */
+    const payload = {
+      user_id: Number(form.user_id),
+      access_forms: form.access_forms.trim(),
+      role: form.role,
+    };
+
+    try {
+      if (modalMode === "create") {
+        const res = await fetch("http://localhost:5000/api/user_access", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await res.json();
+        if (!res.ok) {
+          throw new Error(result.message || "Failed to assign access");
+        }
+
+        setRecords((prev) => [...prev, result]);
+        setStatus({ type: "success", message: "Access assignment created." });
+      } else {
+        const res = await fetch(
+          `http://localhost:5000/api/user_access/${form.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+
+        const result = await res.json();
+        if (!res.ok) {
+          throw new Error(result.message || "Failed to update access");
+        }
+
+        setRecords((prev) =>
+          prev.map((record) => (record.id === result.id ? result : record)),
+        );
+        setStatus({ type: "success", message: "Access assignment updated." });
+      }
+
+      closeModal();
+    } catch (error) {
+      console.error("Error saving access record", error);
+      setStatus({
+        type: "error",
+        message: error.message || "Unable to save access assignment.",
+      });
+    }
+  };
+
+  const confirmDelete = (record) => {
+    setDeleteTarget(record);
+  };
+
+  const cancelDelete = () => setDeleteTarget(null);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/user_access/${deleteTarget.id}`,
+        { method: "DELETE" },
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to delete record");
+      }
+
+      setRecords((prev) => prev.filter((record) => record.id !== deleteTarget.id));
+      setStatus({ type: "success", message: "Access assignment removed." });
+    } catch (error) {
+      console.error("Error deleting access record", error);
+      setStatus({ type: "error", message: "Unable to delete access record." });
+    } finally {
+      cancelDelete();
+    }
+  };
+
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md w-full">
-      <h2 className="text-xl text-left mb-3 font-semibold">Manage Users Access</h2>
+    <div className="admin-view">
+      <div className="admin-toolbar">
+        <div className="admin-toolbar-title">
+          <h2>Form permissions</h2>
+          <p>Configure which staff members can work on specific standardized forms.</p>
+        </div>
 
-      <div className="flex justify-between items-center mb-4">
-        <button
-          onClick={openAddModal}
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-        >
-          + Add User Access
-        </button>
-
-        <input
-          type="search"
-          placeholder="Search by user ID, form, or role..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
+        <div className="admin-toolbar-actions">
+          <input
+            type="search"
+            className="admin-search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search access records"
+          />
+          <button type="button" className="admin-primary-action" onClick={openCreateModal}>
+            + Assign access
+          </button>
+        </div>
       </div>
 
-      {loading ? (
-        <p>Loading user access data...</p>
-      ) : filteredAccessList.length === 0 ? (
-        <p className="text-gray-500 italic">No access records found.</p>
-      ) : (
-        <>
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-200 text-left">
-                <th className="p-2 border">Name</th>
-                <th className="p-2 border">Access Forms</th>
-                <th className="p-2 border text-center">Role</th>
-                <th className="p-2 border text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedAccessList.map((record) => (
-                <tr key={record.id} className="hover:bg-gray-100">
-                  <td className="p-2 border text-left">
-                    {
-                      users.find((u) => u.id === record.user_id)?.name || 
-                      `User #${record.user_id}`
-                    }
-                  </td>
-                  <td className="p-2 border text-left">{record.access_forms}</td>
-                  <td className="p-2 border text-center">{record.role}</td>
-                  <td className="p-2 border text-center space-x-2">
-                    <button
-                      onClick={() => openEditModal(record)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => openDeleteModal(record)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
-
-      {/* Add/Edit Modal */}
-      {isModalOpen && (
+      {status && (
         <div
-          className={`fixed inset-0 flex justify-center items-start z-50 pt-20 transition-all duration-300 ${
-            isClosing
-              ? "animate-fadeOut bg-opacity-0"
-              : "animate-fadeIn bg-black bg-opacity-50"
+          className={`admin-status-banner${
+            status.type === "error"
+              ? " admin-status-banner--error"
+              : status.type === "info"
+                ? " admin-status-banner--info"
+                : ""
           }`}
         >
-          <div
-            className={`bg-white w-full max-w-md p-6 rounded-lg shadow-lg transform transition-all duration-300 ease-out ${
-              isClosing ? "animate-slideUp" : "animate-slideDown"
-            }`}
-          >
-            <h2 className="text-xl font-semibold mb-4">
-              {isEditing ? "Edit Access" : "Add Access"}
-            </h2>
+          {status.message}
+        </div>
+      )}
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Forms</th>
+              <th>Role</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="admin-empty-state">
+                  Loading access records...
+                </td>
+              </tr>
+            ) : visibleRecords.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="admin-empty-state">
+                  {search
+                    ? "No access assignments match your search."
+                    : "No assignments yet. Start by granting access to a staff member."}
+                </td>
+              </tr>
+            ) : (
+              visibleRecords.map((record) => {
+                const forms = record.access_forms
+                  ? record.access_forms.split(",").map((item) => item.trim()).filter(Boolean)
+                  : [];
+                return (
+                  <tr key={record.id}>
+                    <td data-label="User">
+                      {record.user ? (
+                        <div className="access-user">
+                          <span className="access-user-name">{record.user.name}</span>
+                          <span className="access-user-meta">{record.user.employee_id}</span>
+                        </div>
+                      ) : (
+                        <span className="access-user-missing">User not found</span>
+                      )}
+                    </td>
+                    <td data-label="Email">{record.user?.email || "—"}</td>
+                    <td data-label="Forms">
+                      {forms.length ? (
+                        <div className="access-chip-group">
+                          {forms.map((formName, index) => (
+                            <span key={`${record.id}-${formName}-${index}`} className="access-chip">
+                              {formName}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="access-user-meta">No forms assigned</span>
+                      )}
+                    </td>
+                    <td data-label="Role">
+                      <span className="admin-badge access-role-badge">
+                        {record.role || "Unassigned"}
+                      </span>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="admin-row-actions">
+                        <button
+                          type="button"
+                          className="admin-row-btn"
+                          onClick={() => openEditModal(record)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-row-btn admin-row-btn--danger"
+                          onClick={() => confirmDelete(record)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="admin-pagination">
+        <span className="admin-pagination-info">
+          Showing {visibleRecords.length} of {filteredRecords.length} assignments
+        </span>
+
+        <div className="admin-pagination-controls">
+          <button
+            type="button"
+            className="admin-pagination-btn"
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            disabled={page === 1}
+          >
+            Prev
+          </button>
+          <span className="admin-pagination-info">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            type="button"
+            className="admin-pagination-btn"
+            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={page === totalPages}
+          >
+            Next
+          </button>
+        </div>
+
+        <label className="admin-pagination-info" htmlFor="accessRowsPerPage">
+          Rows per page
+          <select
+            id="accessRowsPerPage"
+            className="admin-rows-select"
+            value={rowsPerPage}
+            onChange={(event) => setRowsPerPage(Number(event.target.value))}
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {modalOpen && (
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="admin-modal-panel">
+            <div>
+              <h2>{modalMode === "create" ? "Assign access" : "Update access"}</h2>
+              <p className="admin-modal-subtext">
+                {modalMode === "create"
+                  ? "Grant form permissions to a staff member."
+                  : "Adjust forms or approval role for this staff member."}
+              </p>
+            </div>
+
+            <form className="admin-modal-form" onSubmit={handleSubmit}>
               <select
                 name="user_id"
                 value={form.user_id}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
+                onChange={handleFormChange}
                 required
-                disabled={isEditing}
+                disabled={modalMode === "edit"}
               >
-                <option value="">Select User</option>
-                {users
-                  .filter((user) => user.role === "staff") 
-                  .map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name}
-                    </option>
-                  ))}
+                <option value="">Select staff member</option>
+                {availableStaff.map((staff) => (
+                  <option key={staff.id} value={staff.id}>
+                    {staff.name} — {staff.email}
+                  </option>
+                ))}
               </select>
 
-
-              <input
+              <textarea
                 name="access_forms"
                 value={form.access_forms}
-                onChange={handleChange}
-                placeholder="Access Forms (e.g., Form A, Form B)"
-                className="w-full border p-2 rounded"
+                onChange={handleFormChange}
+                placeholder="Access forms (comma separated)"
+                rows={3}
                 required
               />
 
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
-                required
-              >
-                <option value="">Select Role</option>
-                <option>Approve</option>
-                <option>Receive</option>
-                <option>Prepare</option>
-                <option>Endorse</option>
-                <option>HR Approve</option>
-                <option>Accomplish</option>
+              <select name="role" value={form.role} onChange={handleFormChange} required>
+                <option value="">Select role</option>
+                <option value="Approve">Approve</option>
+                <option value="Receive">Receive</option>
+                <option value="Prepare">Prepare</option>
+                <option value="Endorse">Endorse</option>
+                <option value="HR Approve">HR Approve</option>
+                <option value="Accomplish">Accomplish</option>
               </select>
 
-              <div className="flex justify-end space-x-2 mt-4">
-                <button
-                  type="button"
-                  onClick={closeModalAnimated}
-                  className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded"
-                >
+              <div className="admin-modal-footer">
+                <button type="button" className="admin-ghost-btn" onClick={closeModal}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white rounded bg-blue-500 hover:bg-blue-600"
-                >
-                  {isEditing ? "Update" : "Save"}
+                <button type="submit" className="admin-primary-btn">
+                  {modalMode === "create" ? "Assign access" : "Save changes"}
                 </button>
               </div>
             </form>
@@ -327,42 +459,21 @@ function ManageUsersAccess() {
         </div>
       )}
 
-      {/* Delete Modal */}
-      {isDeleteModalOpen && (
-        <div
-          className={`fixed inset-0 flex justify-center items-center z-50 transition-all duration-300 ${
-            isDeleteClosing
-              ? "animate-fadeOut bg-opacity-0"
-              : "animate-fadeIn bg-black bg-opacity-50"
-          }`}
-        >
-          <div
-            className={`bg-white w-full max-w-sm p-6 rounded-lg shadow-lg transform transition-all duration-300 ease-out ${
-              isDeleteClosing ? "animate-slideUp" : "animate-slideDown"
-            }`}
-          >
-            <h2 className="text-xl font-semibold mb-3 text-center text-gray-800">
-              Confirm Delete
-            </h2>
-            <p className="text-center text-gray-600 mb-4">
-              Are you sure you want to delete access for{" "}
-              <span className="font-semibold text-red-600">
-                User ID {accessToDelete?.user_id}
-              </span>
-              ?
+      {deleteTarget && (
+        <div className="admin-modal-backdrop" role="alertdialog" aria-modal="true">
+          <div className="admin-modal-panel">
+            <h2>Remove access</h2>
+            <p className="admin-modal-subtext">
+              You&apos;re about to revoke permissions for{" "}
+              <strong>{deleteTarget.user?.name || "this user"}</strong>. This action cannot be
+              undone.
             </p>
-            <div className="flex justify-center space-x-3">
-              <button
-                onClick={closeDeleteModalAnimated}
-                className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded"
-              >
+            <div className="admin-modal-footer">
+              <button type="button" className="admin-ghost-btn" onClick={cancelDelete}>
                 Cancel
               </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
-              >
-                Delete
+              <button type="button" className="admin-danger-btn" onClick={handleDelete}>
+                Delete assignment
               </button>
             </div>
           </div>

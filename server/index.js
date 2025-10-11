@@ -1,3 +1,5 @@
+/* eslint-env node */
+import process from "node:process";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -283,7 +285,7 @@ app.post("/api/purchase_request", async (req, res) => {
     department,
     address,
     purpose,
-    items,
+    items = [],
   } = req.body;
 
   try {
@@ -304,11 +306,32 @@ app.post("/api/purchase_request", async (req, res) => {
       ]
     );
 
-    for (const item of items) {
+    const requestId = result.rows[0]?.id;
+
+    if (!requestId) {
+      throw new Error("Failed to retrieve purchase request id");
+    }
+
+    const sanitizedItems = Array.isArray(items)
+      ? items
+          .map((item) => ({
+            quantity: item.quantity,
+            purchase_item: item.purchase_item?.trim(),
+          }))
+          .filter(
+            (item) =>
+              item.purchase_item &&
+              item.quantity !== undefined &&
+              item.quantity !== null &&
+              String(item.quantity).trim() !== "",
+          )
+      : [];
+
+    for (const item of sanitizedItems) {
       await pool.query(
         `INSERT INTO purchase_item (purchase_request_id, quantity, purchase_item)
          VALUES ($1, $2, $3)`,
-        [purchase_request_id, purchase_item.quantity, purchase_item.purchase_item]
+        [requestId, item.quantity, item.purchase_item]
       );
     }
 

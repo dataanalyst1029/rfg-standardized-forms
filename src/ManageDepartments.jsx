@@ -1,31 +1,40 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import "./styles/AdminView.css";
+
+const PAGE_SIZES = [5, 10, 20];
+
+const emptyDepartment = {
+  id: null,
+  department_name: "",
+  branch_id: "",
+};
 
 function ManageDepartments() {
   const [departments, setDepartments] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [form, setForm] = useState({
-    department_name: "",
-    branch_id: "",
-  });
-  const [editingId, setEditingId] = useState(null);
+  const [status, setStatus] = useState(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
+  const [form, setForm] = useState(emptyDepartment);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("create");
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-
-  /* -------------------- FETCH DATA -------------------- */
   const fetchDepartments = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/departments");
-      const data = await res.json();
+      const response = await fetch("http://localhost:5000/api/departments");
+      if (!response.ok) {
+        throw new Error("Failed to fetch departments");
+      }
+      const data = await response.json();
       setDepartments(data);
-    } catch (err) {
-      console.error("Error fetching departments:", err);
+    } catch (error) {
+      console.error("Error fetching departments", error);
+      setStatus({ type: "error", message: "Could not load departments." });
     } finally {
       setLoading(false);
     }
@@ -33,11 +42,15 @@ function ManageDepartments() {
 
   const fetchBranches = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/branches");
-      const data = await res.json();
+      const response = await fetch("http://localhost:5000/api/branches");
+      if (!response.ok) {
+        throw new Error("Failed to fetch branches");
+      }
+      const data = await response.json();
       setBranches(data);
-    } catch (err) {
-      console.error("Error fetching branches:", err);
+    } catch (error) {
+      console.error("Error fetching branches", error);
+      setStatus({ type: "error", message: "Unable to retrieve branches." });
     }
   };
 
@@ -46,262 +59,348 @@ function ManageDepartments() {
     fetchBranches();
   }, []);
 
-  /* -------------------- HANDLERS -------------------- */
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.department_name || !form.branch_id) return;
-
-    const method = editingId ? "PUT" : "POST";
-    const url = editingId
-      ? `http://localhost:5000/api/departments/${editingId}`
-      : "http://localhost:5000/api/departments";
-
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      if (res.ok) {
-        await fetchDepartments();
-        closeModalAnimated();
-      } else {
-        alert("Failed to save department");
-      }
-    } catch (err) {
-      console.error("Error saving department:", err);
-    }
-  };
-
-  const handleEdit = (dept) => {
-    setForm({
-      department_name: dept.department_name,
-      branch_id: dept.branch_id || "",
-    });
-    setEditingId(dept.id);
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this department?")) return;
-    try {
-      await fetch(`http://localhost:5000/api/departments/${id}`, { method: "DELETE" });
-      fetchDepartments();
-    } catch (err) {
-      console.error("Error deleting department:", err);
-    }
-  };
-
-  const closeModalAnimated = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsModalOpen(false);
-      setIsClosing(false);
-      setForm({ department_name: "", branch_id: "" });
-      setEditingId(null);
-    }, 300);
-  };
-
-  /* -------------------- SEARCH + PAGINATION -------------------- */
-  const filteredDepartments = departments.filter((d) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      d.department_name?.toLowerCase().includes(term) ||
-      d.branch_name?.toLowerCase().includes(term)
-    );
-  });
-
-  const totalPages = Math.ceil(filteredDepartments.length / rowsPerPage) || 1;
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedDepartments = filteredDepartments.slice(startIndex, endIndex);
+  useEffect(() => {
+    if (!status) return undefined;
+    const timeout = setTimeout(() => setStatus(null), 3500);
+    return () => clearTimeout(timeout);
+  }, [status]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, rowsPerPage]);
+    setPage(1);
+  }, [search, rowsPerPage]);
 
-  /* -------------------- RENDER -------------------- */
+  const filteredDepartments = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return departments;
+    return departments.filter((dept) =>
+      [dept.department_name, dept.branch_name]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(term)),
+    );
+  }, [departments, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredDepartments.length / rowsPerPage) || 1);
+
+  const visibleDepartments = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    return filteredDepartments.slice(start, start + rowsPerPage);
+  }, [filteredDepartments, page, rowsPerPage]);
+
+  const openCreateModal = () => {
+    setForm(emptyDepartment);
+    setModalMode("create");
+    setModalOpen(true);
+  };
+
+  const openEditModal = (department) => {
+    setForm({
+      id: department.id,
+      department_name: department.department_name || "",
+      branch_id: department.branch_id || "",
+    });
+    setModalMode("edit");
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setForm(emptyDepartment);
+  };
+
+  const handleFormChange = (event) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!form.department_name.trim() || !form.branch_id) {
+      setStatus({
+        type: "error",
+        message: "Department name and branch are required.",
+      });
+      return;
+    }
+
+    const payload = {
+      department_name: form.department_name.trim(),
+      branch_id: Number(form.branch_id),
+    };
+
+    try {
+      if (modalMode === "create") {
+        const response = await fetch("http://localhost:5000/api/departments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.message || "Failed to add department");
+        }
+
+        setDepartments((prev) => [...prev, result]);
+        setStatus({ type: "success", message: "Department added successfully." });
+      } else {
+        const response = await fetch(
+          `http://localhost:5000/api/departments/${form.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.message || "Failed to update department");
+        }
+
+        setDepartments((prev) =>
+          prev.map((dept) => (dept.id === result.id ? result : dept)),
+        );
+        setStatus({ type: "success", message: "Department details updated." });
+      }
+
+      closeModal();
+    } catch (error) {
+      console.error("Error saving department", error);
+      setStatus({
+        type: "error",
+        message: error.message || "Unable to save department.",
+      });
+    }
+  };
+
+  const confirmDelete = (department) => setDeleteTarget(department);
+  const cancelDelete = () => setDeleteTarget(null);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/departments/${deleteTarget.id}`,
+        { method: "DELETE" },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete department");
+      }
+
+      setDepartments((prev) => prev.filter((dept) => dept.id !== deleteTarget.id));
+      setStatus({ type: "success", message: "Department removed." });
+    } catch (error) {
+      console.error("Error deleting department", error);
+      setStatus({ type: "error", message: "Unable to delete department." });
+    } finally {
+      cancelDelete();
+    }
+  };
+
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md w-full">
-      <h2 className="text-xl font-semibold mb-3 text-left">Manage Departments</h2>
+    <div className="admin-view">
+      <div className="admin-toolbar">
+        <div className="admin-toolbar-title">
+          <h2>Departments</h2>
+          <p>Align departments to the correct branch for routing and reporting.</p>
+        </div>
 
-      <div className="flex justify-between items-center mb-4">
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-        >
-          + Add Department
-        </button>
-
-        <input
-          type="search"
-          placeholder="Search department name or branch..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
+        <div className="admin-toolbar-actions">
+          <input
+            type="search"
+            className="admin-search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search departments"
+          />
+          <button type="button" className="admin-primary-action" onClick={openCreateModal}>
+            + Add department
+          </button>
+        </div>
       </div>
 
-      {loading ? (
-        <p>Loading departments...</p>
-      ) : filteredDepartments.length === 0 ? (
-        <p className="text-gray-500 italic">No departments found.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
-            <div className="flex items-center space-x-2">
-              <label htmlFor="rowsPerPage" className="text-sm text-gray-600">
-                Rows per page:
-              </label>
-              <select
-                id="rowsPerPage"
-                value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="border border-gray-300 rounded px-2 py-1 text-sm"
-              >
-                {[5, 10, 15, 20].map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-            </div>
-
-            <span className="text-sm text-gray-600">
-              Showing{" "}
-              <strong>
-                {filteredDepartments.length === 0
-                  ? 0
-                  : startIndex + 1}–{Math.min(endIndex, filteredDepartments.length)}
-              </strong>{" "}
-              of <strong>{filteredDepartments.length}</strong> departments
-            </span>
-
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <span className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-200 text-left">
-                <th className="p-2 border">Department Name</th>
-                <th className="p-2 border">Branch</th>
-                <th className="p-2 border text-center w-40">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedDepartments.map((d) => (
-                <tr key={d.id} className="hover:bg-gray-100 text-left">
-                  <td className="p-2 border">{d.department_name}</td>
-                  <td className="p-2 border">
-                    {d.branch_name || "—"}
-                  </td>
-                  <td className="p-2 border text-center space-x-2">
-                    <button
-                      onClick={() => handleEdit(d)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(d.id)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {status && (
+        <div
+          className={`admin-status-banner${
+            status.type === "error"
+              ? " admin-status-banner--error"
+              : status.type === "info"
+                ? " admin-status-banner--info"
+                : ""
+          }`}
+        >
+          {status.message}
         </div>
       )}
 
-      {/* -------------------- MODAL -------------------- */}
-      {isModalOpen && (
-        <div
-          className={`fixed inset-0 flex justify-center items-start z-50 pt-20 transition-all duration-300 ${
-            isClosing
-              ? "animate-fadeOut bg-opacity-0"
-              : "animate-fadeIn bg-black bg-opacity-50"
-          }`}
-        >
-          <div
-            className={`bg-white w-full max-w-md p-6 rounded-lg shadow-lg transform transition-all duration-300 ease-out ${
-              isClosing ? "animate-slideUp" : "animate-slideDown"
-            }`}
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th>Branch</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={3} className="admin-empty-state">
+                  Loading departments...
+                </td>
+              </tr>
+            ) : visibleDepartments.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="admin-empty-state">
+                  {search
+                    ? "No departments match your search."
+                    : "No departments yet. Set up your structure to start routing forms."}
+                </td>
+              </tr>
+            ) : (
+              visibleDepartments.map((department) => (
+                <tr key={department.id}>
+                  <td data-label="Department">{department.department_name}</td>
+                  <td data-label="Branch">
+                    {department.branch_name ? (
+                      <span className="admin-badge">{department.branch_name}</span>
+                    ) : (
+                      <span className="admin-pagination-info">No branch assigned</span>
+                    )}
+                  </td>
+                  <td data-label="Actions">
+                    <div className="admin-row-actions">
+                      <button
+                        type="button"
+                        className="admin-row-btn"
+                        onClick={() => openEditModal(department)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-row-btn admin-row-btn--danger"
+                        onClick={() => confirmDelete(department)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="admin-pagination">
+        <span className="admin-pagination-info">
+          Showing {visibleDepartments.length} of {filteredDepartments.length} departments
+        </span>
+
+        <div className="admin-pagination-controls">
+          <button
+            type="button"
+            className="admin-pagination-btn"
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            disabled={page === 1}
           >
-            <h2 className="text-xl font-semibold mb-4">
-              {editingId ? "Edit Department" : "Add Department"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
+            Prev
+          </button>
+          <span className="admin-pagination-info">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            type="button"
+            className="admin-pagination-btn"
+            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={page === totalPages}
+          >
+            Next
+          </button>
+        </div>
+
+        <label className="admin-pagination-info" htmlFor="departmentRowsPerPage">
+          Rows per page
+          <select
+            id="departmentRowsPerPage"
+            className="admin-rows-select"
+            value={rowsPerPage}
+            onChange={(event) => setRowsPerPage(Number(event.target.value))}
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {modalOpen && (
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="admin-modal-panel">
+            <div>
+              <h2>{modalMode === "create" ? "Add department" : "Edit department"}</h2>
+              <p className="admin-modal-subtext">
+                Pair the department with a branch so approvals route to the right place.
+              </p>
+            </div>
+
+            <form className="admin-modal-form" onSubmit={handleSubmit}>
               <input
-                type="text"
                 name="department_name"
-                placeholder="Department Name"
+                placeholder="Department name"
                 value={form.department_name}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
+                onChange={handleFormChange}
                 required
               />
               <select
                 name="branch_id"
                 value={form.branch_id}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
+                onChange={handleFormChange}
                 required
               >
-                <option value="">Select Branch</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.branch_name}
+                <option value="">Select branch</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.branch_name}
                   </option>
                 ))}
               </select>
 
-              <div className="flex justify-end space-x-2 mt-4">
-                <button
-                  type="button"
-                  onClick={closeModalAnimated}
-                  className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded"
-                >
+              <div className="admin-modal-footer">
+                <button type="button" className="admin-ghost-btn" onClick={closeModal}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className={`px-4 py-2 text-white rounded ${
-                    editingId
-                      ? "bg-blue-500 hover:bg-blue-600"
-                      : "bg-green-500 hover:bg-green-600"
-                  }`}
-                >
-                  {editingId ? "Update" : "Add"}
+                <button type="submit" className="admin-primary-btn">
+                  {modalMode === "create" ? "Add department" : "Save changes"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="admin-modal-backdrop" role="alertdialog" aria-modal="true">
+          <div className="admin-modal-panel">
+            <h2>Delete department</h2>
+            <p className="admin-modal-subtext">
+              You&apos;re about to remove{" "}
+              <strong>{deleteTarget.department_name || "this department"}</strong>. Make sure forms
+              are reassigned before proceeding.
+            </p>
+            <div className="admin-modal-footer">
+              <button type="button" className="admin-ghost-btn" onClick={cancelDelete}>
+                Cancel
+              </button>
+              <button type="button" className="admin-danger-btn" onClick={handleDelete}>
+                Delete department
+              </button>
+            </div>
           </div>
         </div>
       )}

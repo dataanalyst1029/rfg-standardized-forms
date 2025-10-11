@@ -1,31 +1,40 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import "./styles/AdminView.css";
+
+const PAGE_SIZES = [5, 10, 20];
+
+const emptyBranch = {
+  id: null,
+  branch_name: "",
+  branch_code: "",
+  location: "",
+};
 
 function ManageBranches() {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [form, setForm] = useState({
-    branch_name: "",
-    branch_code: "",
-    location: "",
-  });
-  const [editingId, setEditingId] = useState(null);
+  const [status, setStatus] = useState(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
+  const [form, setForm] = useState(emptyBranch);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("create");
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-
-  /* -------------------- FETCH BRANCHES -------------------- */
   const fetchBranches = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/branches");
-      const data = await res.json();
+      const response = await fetch("http://localhost:5000/api/branches");
+      if (!response.ok) {
+        throw new Error("Failed to fetch branches");
+      }
+      const data = await response.json();
       setBranches(data);
-    } catch (err) {
-      console.error("Error fetching branches:", err);
+    } catch (error) {
+      console.error("Error fetching branches", error);
+      setStatus({ type: "error", message: "Could not load branch directory." });
     } finally {
       setLoading(false);
     }
@@ -35,267 +44,354 @@ function ManageBranches() {
     fetchBranches();
   }, []);
 
-  /* -------------------- HANDLERS -------------------- */
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.branch_name || !form.branch_code) return;
-
-    const method = editingId ? "PUT" : "POST";
-    const url = editingId
-      ? `http://localhost:5000/api/branches/${editingId}`
-      : "http://localhost:5000/api/branches";
-
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      if (res.ok) {
-        await fetchBranches();
-        closeModalAnimated();
-      } else {
-        alert("Failed to save branch");
-      }
-    } catch (err) {
-      console.error("Error saving branch:", err);
-    }
-  };
-
-  const handleEdit = (branch) => {
-    setForm({
-      branch_name: branch.branch_name,
-      branch_code: branch.branch_code,
-      location: branch.location || "",
-    });
-    setEditingId(branch.id);
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this branch?")) return;
-    try {
-      await fetch(`http://localhost:5000/api/branches/${id}`, { method: "DELETE" });
-      fetchBranches();
-    } catch (err) {
-      console.error("Error deleting branch:", err);
-    }
-  };
-
-  const closeModalAnimated = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsModalOpen(false);
-      setIsClosing(false);
-      setForm({ branch_name: "", branch_code: "", location: "" });
-      setEditingId(null);
-    }, 300);
-  };
-
-  /* -------------------- SEARCH + PAGINATION -------------------- */
-  const filteredBranches = branches.filter((b) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      b.branch_name?.toLowerCase().includes(term) ||
-      b.branch_code?.toLowerCase().includes(term) ||
-      b.location?.toLowerCase().includes(term)
-    );
-  });
-
-  const totalPages = Math.ceil(filteredBranches.length / rowsPerPage) || 1;
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedBranches = filteredBranches.slice(startIndex, endIndex);
+  useEffect(() => {
+    if (!status) return undefined;
+    const timeout = setTimeout(() => setStatus(null), 3500);
+    return () => clearTimeout(timeout);
+  }, [status]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, rowsPerPage]);
+    setPage(1);
+  }, [search, rowsPerPage]);
 
-  /* -------------------- RENDER -------------------- */
+  const filteredBranches = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return branches;
+    return branches.filter((branch) =>
+      [branch.branch_name, branch.branch_code, branch.location]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(term)),
+    );
+  }, [branches, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredBranches.length / rowsPerPage) || 1);
+
+  const visibleBranches = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    return filteredBranches.slice(start, start + rowsPerPage);
+  }, [filteredBranches, page, rowsPerPage]);
+
+  const openCreateModal = () => {
+    setForm(emptyBranch);
+    setModalMode("create");
+    setModalOpen(true);
+  };
+
+  const openEditModal = (branch) => {
+    setForm({
+      id: branch.id,
+      branch_name: branch.branch_name || "",
+      branch_code: branch.branch_code || "",
+      location: branch.location || "",
+    });
+    setModalMode("edit");
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setForm(emptyBranch);
+  };
+
+  const handleFormChange = (event) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!form.branch_name.trim() || !form.branch_code.trim()) {
+      setStatus({
+        type: "error",
+        message: "Branch name and code are required.",
+      });
+      return;
+    }
+
+    const payload = {
+      branch_name: form.branch_name.trim(),
+      branch_code: form.branch_code.trim(),
+      location: form.location.trim() || null,
+    };
+
+    try {
+      if (modalMode === "create") {
+        const response = await fetch("http://localhost:5000/api/branches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.message || "Failed to create branch");
+        }
+
+        setBranches((prev) => [...prev, result]);
+        setStatus({ type: "success", message: "Branch added successfully." });
+      } else {
+        const response = await fetch(
+          `http://localhost:5000/api/branches/${form.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.message || "Failed to update branch");
+        }
+
+        setBranches((prev) =>
+          prev.map((branch) => (branch.id === result.id ? result : branch)),
+        );
+        setStatus({ type: "success", message: "Branch details updated." });
+      }
+
+      closeModal();
+    } catch (error) {
+      console.error("Error saving branch", error);
+      setStatus({
+        type: "error",
+        message: error.message || "Unable to save branch information.",
+      });
+    }
+  };
+
+  const confirmDelete = (branch) => setDeleteTarget(branch);
+  const cancelDelete = () => setDeleteTarget(null);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/branches/${deleteTarget.id}`,
+        { method: "DELETE" },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete branch");
+      }
+
+      setBranches((prev) => prev.filter((branch) => branch.id !== deleteTarget.id));
+      setStatus({ type: "success", message: "Branch removed from directory." });
+    } catch (error) {
+      console.error("Error deleting branch", error);
+      setStatus({ type: "error", message: "Unable to delete branch." });
+    } finally {
+      cancelDelete();
+    }
+  };
+
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md w-full">
-      <h2 className="text-xl font-semibold mb-3 text-left">Manage Branches</h2>
-
-      <div className="flex justify-between items-center mb-4">
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-        >
-          + Add Branch
-        </button>
-
-        <input
-          type="search"
-          placeholder="Search branch name, code, or location..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-      </div>
-
-      {loading ? (
-        <p>Loading branches...</p>
-      ) : filteredBranches.length === 0 ? (
-        <p className="text-gray-500 italic">No branches found.</p>
-      ) : (
-        <div className="overflow-x-auto">
-        <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
-            <div className="flex items-center space-x-2">
-                <label htmlFor="rowsPerPage" className="text-sm text-gray-600">
-                Rows per page:
-                </label>
-                <select
-                id="rowsPerPage"
-                value={rowsPerPage}
-                onChange={(e) => {
-                    setRowsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                }}
-                className="border border-gray-300 rounded px-2 py-1 text-sm"
-                >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-                </select>
-            </div>
-
-            <span className="text-sm text-gray-600">
-                Showing{" "}
-                <strong>
-                {filteredBranches.length === 0
-                    ? 0
-                    : startIndex + 1}–{Math.min(endIndex, filteredBranches.length)}
-                </strong>{" "}
-                of <strong>{filteredBranches.length}</strong> branches
-            </span>
-
-            <div className="flex items-center space-x-2">
-                <button
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-                >
-                Prev
-                </button>
-                <span className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-                </span>
-                <button
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-                >
-                Next
-                </button>
-            </div>
+    <div className="admin-view">
+      <div className="admin-toolbar">
+        <div className="admin-toolbar-title">
+          <h2>Branch directory</h2>
+          <p>Track every site and ensure location information stays current.</p>
         </div>
 
+        <div className="admin-toolbar-actions">
+          <input
+            type="search"
+            className="admin-search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search branches"
+          />
+          <button type="button" className="admin-primary-action" onClick={openCreateModal}>
+            + Add branch
+          </button>
+        </div>
+      </div>
 
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-200 text-left">
-                <th className="p-2 border">Branch Name</th>
-                <th className="p-2 border">Branch Code</th>
-                <th className="p-2 border">Location</th>
-                <th className="p-2 border text-center w-40">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedBranches.map((b) => (
-                <tr key={b.id} className="hover:bg-gray-100 text-left">
-                  <td className="p-2 border">{b.branch_name}</td>
-                  <td className="p-2 border">{b.branch_code}</td>
-                  <td className="p-2 border">{b.location || "—"}</td>
-                  <td className="p-2 border text-center space-x-2">
-                    <button
-                      onClick={() => handleEdit(b)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(b.id)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {status && (
+        <div
+          className={`admin-status-banner${
+            status.type === "error"
+              ? " admin-status-banner--error"
+              : status.type === "info"
+                ? " admin-status-banner--info"
+                : ""
+          }`}
+        >
+          {status.message}
         </div>
       )}
 
-      {isModalOpen && (
-        <div
-          className={`fixed inset-0 flex justify-center items-start z-50 pt-20 transition-all duration-300 ${
-            isClosing
-              ? "animate-fadeOut bg-opacity-0"
-              : "animate-fadeIn bg-black bg-opacity-50"
-          }`}
-        >
-          <div
-            className={`bg-white w-full max-w-md p-6 rounded-lg shadow-lg transform transition-all duration-300 ease-out ${
-              isClosing ? "animate-slideUp" : "animate-slideDown"
-            }`}
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Branch name</th>
+              <th>Code</th>
+              <th>Location</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="admin-empty-state">
+                  Loading branches...
+                </td>
+              </tr>
+            ) : visibleBranches.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="admin-empty-state">
+                  {search
+                    ? "No branches match your search."
+                    : "No branches on file. Add your first location to get started."}
+                </td>
+              </tr>
+            ) : (
+              visibleBranches.map((branch) => (
+                <tr key={branch.id}>
+                  <td data-label="Branch name">{branch.branch_name}</td>
+                  <td data-label="Code">
+                    <span className="admin-badge">{branch.branch_code}</span>
+                  </td>
+                  <td data-label="Location">
+                    {branch.location ? (
+                      <span>{branch.location}</span>
+                    ) : (
+                      <span className="admin-pagination-info">No location on file</span>
+                    )}
+                  </td>
+                  <td data-label="Actions">
+                    <div className="admin-row-actions">
+                      <button
+                        type="button"
+                        className="admin-row-btn"
+                        onClick={() => openEditModal(branch)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-row-btn admin-row-btn--danger"
+                        onClick={() => confirmDelete(branch)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="admin-pagination">
+        <span className="admin-pagination-info">
+          Showing {visibleBranches.length} of {filteredBranches.length} branches
+        </span>
+
+        <div className="admin-pagination-controls">
+          <button
+            type="button"
+            className="admin-pagination-btn"
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            disabled={page === 1}
           >
-            <h2 className="text-xl font-semibold mb-4">
-              {editingId ? "Edit Branch" : "Add Branch"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
+            Prev
+          </button>
+          <span className="admin-pagination-info">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            type="button"
+            className="admin-pagination-btn"
+            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={page === totalPages}
+          >
+            Next
+          </button>
+        </div>
+
+        <label className="admin-pagination-info" htmlFor="branchRowsPerPage">
+          Rows per page
+          <select
+            id="branchRowsPerPage"
+            className="admin-rows-select"
+            value={rowsPerPage}
+            onChange={(event) => setRowsPerPage(Number(event.target.value))}
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {modalOpen && (
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="admin-modal-panel">
+            <div>
+              <h2>{modalMode === "create" ? "Add branch" : "Edit branch"}</h2>
+              <p className="admin-modal-subtext">
+                Capture the branch name, code, and where the team is located.
+              </p>
+            </div>
+
+            <form className="admin-modal-form" onSubmit={handleSubmit}>
               <input
-                type="text"
                 name="branch_name"
-                placeholder="Branch Name"
+                placeholder="Branch name"
                 value={form.branch_name}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
+                onChange={handleFormChange}
                 required
               />
               <input
-                type="text"
                 name="branch_code"
-                placeholder="Branch Code"
+                placeholder="Code (e.g., NCR-01)"
                 value={form.branch_code}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
+                onChange={handleFormChange}
                 required
               />
               <input
-                type="text"
                 name="location"
-                placeholder="Location"
+                placeholder="Location (optional)"
                 value={form.location}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
+                onChange={handleFormChange}
               />
-              <div className="flex justify-end space-x-2 mt-4">
-                <button
-                  type="button"
-                  onClick={closeModalAnimated}
-                  className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded"
-                >
+
+              <div className="admin-modal-footer">
+                <button type="button" className="admin-ghost-btn" onClick={closeModal}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className={`px-4 py-2 text-white rounded ${
-                    editingId
-                      ? "bg-blue-500 hover:bg-blue-600"
-                      : "bg-green-500 hover:bg-green-600"
-                  }`}
-                >
-                  {editingId ? "Update" : "Add"}
+                <button type="submit" className="admin-primary-btn">
+                  {modalMode === "create" ? "Add branch" : "Save changes"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="admin-modal-backdrop" role="alertdialog" aria-modal="true">
+          <div className="admin-modal-panel">
+            <h2>Remove branch</h2>
+            <p className="admin-modal-subtext">
+              This will delete{" "}
+              <strong>{deleteTarget.branch_name || "this branch"}</strong> from your directory.
+              Any departments tied to it must be reassigned manually.
+            </p>
+            <div className="admin-modal-footer">
+              <button type="button" className="admin-ghost-btn" onClick={cancelDelete}>
+                Cancel
+              </button>
+              <button type="button" className="admin-danger-btn" onClick={handleDelete}>
+                Delete branch
+              </button>
+            </div>
           </div>
         </div>
       )}
