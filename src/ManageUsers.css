@@ -1,0 +1,5 @@
+.user-role-badge {
+  background: rgba(36, 207, 142, 0.16);
+  color: var(--color-accent);
+  border: 1px solid rgba(36, 207, 142, 0.35);
+}
