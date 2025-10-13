@@ -300,7 +300,7 @@ function PurchaseRequest({ onLogout }) {
                   className="pr-input"
                   required
                 >
-                  <option value="">Select department</option>
+                  <option value="" disabled>Select department</option>
                   {filteredDepartments.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.department_name}
