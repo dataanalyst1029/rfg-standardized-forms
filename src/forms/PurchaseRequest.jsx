@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./PurchaseRequest.css";
+import { API_BASE_URL } from "../config/api.js";
 
 const initialFormData = {
   purchase_request_code: "",
@@ -30,7 +31,7 @@ function PurchaseRequest({ onLogout }) {
   useEffect(() => {
     const fetchNextCode = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/purchase_request/next-code");
+        const res = await fetch(`${API_BASE_URL}/api/purchase_request/next-code`);
         if (!res.ok) throw new Error("Failed to retrieve next reference number");
         const data = await res.json();
         if (data.nextCode) {
@@ -116,7 +117,7 @@ function PurchaseRequest({ onLogout }) {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/purchase_request", {
+      const res = await fetch(`${API_BASE_URL}/api/purchase_request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

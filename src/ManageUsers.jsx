@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./styles/AdminView.css";
 import "./ManageUsers.css";
+import { API_BASE_URL } from "./config/api.js";
 
 const PAGE_SIZES = [5, 10, 20];
 
@@ -30,7 +31,7 @@ function ManageUsers() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/users");
+      const response = await fetch(`${API_BASE_URL}/api/users`);
       if (!response.ok) {
         throw new Error("Failed to fetch users");
       }
@@ -116,7 +117,7 @@ function ManageUsers() {
 
     try {
       if (modalMode === "create") {
-        const response = await fetch("http://localhost:5000/api/users", {
+        const response = await fetch(`${API_BASE_URL}/api/users`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
@@ -136,7 +137,7 @@ function ManageUsers() {
         }
 
         const response = await fetch(
-          `http://localhost:5000/api/users/${form.id}`,
+          `${API_BASE_URL}/api/users/${form.id}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -177,7 +178,7 @@ function ManageUsers() {
     if (!deleteTarget) return;
     try {
       const response = await fetch(
-        `http://localhost:5000/api/users/${deleteTarget.id}`,
+        `${API_BASE_URL}/api/users/${deleteTarget.id}`,
         { method: "DELETE" },
       );
 

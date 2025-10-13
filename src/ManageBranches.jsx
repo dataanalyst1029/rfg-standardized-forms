@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./styles/AdminView.css";
+import { API_BASE_URL } from "./config/api.js";
 
 const PAGE_SIZES = [5, 10, 20];
 
@@ -26,7 +27,7 @@ function ManageBranches() {
   const fetchBranches = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/branches");
+      const response = await fetch(`${API_BASE_URL}/api/branches`);
       if (!response.ok) {
         throw new Error("Failed to fetch branches");
       }
@@ -117,7 +118,7 @@ function ManageBranches() {
 
     try {
       if (modalMode === "create") {
-        const response = await fetch("http://localhost:5000/api/branches", {
+        const response = await fetch(`${API_BASE_URL}/api/branches`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -132,7 +133,7 @@ function ManageBranches() {
         setStatus({ type: "success", message: "Branch added successfully." });
       } else {
         const response = await fetch(
-          `http://localhost:5000/api/branches/${form.id}`,
+          `${API_BASE_URL}/api/branches/${form.id}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -168,7 +169,7 @@ function ManageBranches() {
     if (!deleteTarget) return;
     try {
       const response = await fetch(
-        `http://localhost:5000/api/branches/${deleteTarget.id}`,
+        `${API_BASE_URL}/api/branches/${deleteTarget.id}`,
         { method: "DELETE" },
       );
 

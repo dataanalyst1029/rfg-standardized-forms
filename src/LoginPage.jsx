@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./LoginPage.css";
 import rfgLogo from "./assets/rfg_logo.png";
 import ThemeToggle from "./components/ThemeToggle.jsx";
+import { API_BASE_URL } from "./config/api.js";
 
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -25,7 +26,7 @@ function LoginPage({ onLogin }) {
     showMessage("info", "Logging in...");
 
     try {
-      const res = await fetch("http://localhost:5000/api/login", {
+      const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

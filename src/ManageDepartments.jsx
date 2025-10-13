@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./styles/AdminView.css";
+import { API_BASE_URL } from "./config/api.js";
 
 const PAGE_SIZES = [5, 10, 20];
 
@@ -26,7 +27,7 @@ function ManageDepartments() {
   const fetchDepartments = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/departments");
+      const response = await fetch(`${API_BASE_URL}/api/departments`);
       if (!response.ok) {
         throw new Error("Failed to fetch departments");
       }
@@ -42,7 +43,7 @@ function ManageDepartments() {
 
   const fetchBranches = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/branches");
+      const response = await fetch(`${API_BASE_URL}/api/branches`);
       if (!response.ok) {
         throw new Error("Failed to fetch branches");
       }
@@ -130,7 +131,7 @@ function ManageDepartments() {
 
     try {
       if (modalMode === "create") {
-        const response = await fetch("http://localhost:5000/api/departments", {
+        const response = await fetch(`${API_BASE_URL}/api/departments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -145,7 +146,7 @@ function ManageDepartments() {
         setStatus({ type: "success", message: "Department added successfully." });
       } else {
         const response = await fetch(
-          `http://localhost:5000/api/departments/${form.id}`,
+          `${API_BASE_URL}/api/departments/${form.id}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -181,7 +182,7 @@ function ManageDepartments() {
     if (!deleteTarget) return;
     try {
       const response = await fetch(
-        `http://localhost:5000/api/departments/${deleteTarget.id}`,
+        `${API_BASE_URL}/api/departments/${deleteTarget.id}`,
         { method: "DELETE" },
       );
 

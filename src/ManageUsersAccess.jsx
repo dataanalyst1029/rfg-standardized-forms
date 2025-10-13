@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./styles/AdminView.css";
 import "./ManageUsersAccess.css";
+import { API_BASE_URL } from "./config/api.js";
 
 const PAGE_SIZES = [5, 10, 20];
 
@@ -29,8 +30,8 @@ function ManageUsersAccess() {
     setLoading(true);
     try {
       const [accessRes, usersRes] = await Promise.all([
-        fetch("http://localhost:5000/api/user_access"),
-        fetch("http://localhost:5000/api/users"),
+        fetch(`${API_BASE_URL}/api/user_access`),
+        fetch(`${API_BASE_URL}/api/users`),
       ]);
 
       if (!accessRes.ok) {
@@ -159,7 +160,7 @@ function ManageUsersAccess() {
 
     try {
       if (modalMode === "create") {
-        const res = await fetch("http://localhost:5000/api/user_access", {
+        const res = await fetch(`${API_BASE_URL}/api/user_access`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -174,7 +175,7 @@ function ManageUsersAccess() {
         setStatus({ type: "success", message: "Access assignment created." });
       } else {
         const res = await fetch(
-          `http://localhost:5000/api/user_access/${form.id}`,
+          `${API_BASE_URL}/api/user_access/${form.id}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -213,7 +214,7 @@ function ManageUsersAccess() {
     if (!deleteTarget) return;
     try {
       const res = await fetch(
-        `http://localhost:5000/api/user_access/${deleteTarget.id}`,
+        `${API_BASE_URL}/api/user_access/${deleteTarget.id}`,
         { method: "DELETE" },
       );
 
