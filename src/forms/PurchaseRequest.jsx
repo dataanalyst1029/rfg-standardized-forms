@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import "./PurchaseRequest.css";
 import { API_BASE_URL } from "../config/api.js";
+import { useNavigate } from "react-router-dom";
 
 const initialFormData = {
   purchase_request_code: "",
   request_date: new Date().toISOString().split("T")[0],
-  requested_by: "",
+  request_by: "",
+  user_id: "", 
   contact_number: "",
   branch: "",
   department: "",
   address: "",
   purpose: "",
 };
+
+
 
 const emptyItem = { quantity: "", purchase_item: "" };
 
@@ -20,6 +24,7 @@ const NAV_SECTIONS = [
   { id: "contact", label: "Contact & routing" },
   { id: "purpose", label: "Purpose" },
   { id: "items", label: "Line items" },
+  { id: "submitted", label: "View submitted requests" },
 ];
 
 function PurchaseRequest({ onLogout }) {
@@ -30,6 +35,8 @@ function PurchaseRequest({ onLogout }) {
   const [departments, setDepartments] = useState([]);
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [activeSection, setActiveSection] = useState("details");
+  const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchNextCode = async () => {
@@ -42,7 +49,7 @@ function PurchaseRequest({ onLogout }) {
         }
       } catch (error) {
         console.error("Error fetching next code", error);
-        window.alert("Unable to load the next purchase request reference. Please try again.");
+        setModal({ isOpen: true, type: "error", message: "Unable to load the next purchase request reference. Please try again." });
       } finally {
         setLoading(false);
       }
@@ -67,7 +74,7 @@ function PurchaseRequest({ onLogout }) {
         setDepartments(deptData);
       } catch (error) {
         console.error("Error loading branch/department data:", error);
-        window.alert("Unable to load branches and departments. Please try again.");
+        setModal({ isOpen: true, type: "error", message: "Unable to load branches and departments. Please try again." });
       }
     };
 
@@ -77,23 +84,28 @@ function PurchaseRequest({ onLogout }) {
   useEffect(() => {
     if (formData.branch) {
       const filtered = departments.filter(
-        (dept) => Number(dept.branch_id) === Number(formData.branch)
+        (dept) => dept.branch_name === formData.branch
       );
       setFilteredDepartments(filtered);
-      setFormData((prev) => ({ ...prev, department: "" })); 
+      setFormData((prev) => ({ ...prev, department: "" }));
     } else {
       setFilteredDepartments([]);
     }
   }, [formData.branch, departments]);
 
-  useEffect(() => {
-    const storedName = localStorage.getItem("name") || localStorage.getItem("userName");
-    if (storedName) {
-      setFormData((prev) => ({ ...prev, requested_by: storedName }));
-    }
-  }, []);
 
-  // 🟦 Handlers
+useEffect(() => {
+  const storedName = localStorage.getItem("name");
+  const storedId = localStorage.getItem("id");
+  if (storedName || storedId) {
+    setFormData((prev) => ({
+      ...prev,
+      request_by: storedName || "",
+      user_id: storedId || ""
+    }));
+  }
+}, []);
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -128,24 +140,38 @@ function PurchaseRequest({ onLogout }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!formData.purchase_request_code) {
-      return window.alert("Reference number not ready yet. Please wait a moment and try again.");
-    }
     if (sanitizedItems.length === 0) {
-      return window.alert("Add at least one line item before submitting.");
+      return setModal({ isOpen: true, type: "error", message: "Add at least one line item before submitting." });
     }
 
-    const payload = {
-      purchase_request_code: formData.purchase_request_code,
-      date_applied: formData.request_date,
-      requested_by: formData.requested_by,
-      contact_number: formData.contact_number,
-      branch: formData.branch,
-      department: formData.department,
-      address: formData.address,
-      purpose: formData.purpose,
-      items: sanitizedItems,
-    };
+    let currentPRCode = formData.purchase_request_code;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/purchase_request/next-code`);
+      if (!res.ok) throw new Error("Failed to retrieve latest purchase request code");
+      const data = await res.json();
+      if (data.nextCode) {
+        currentPRCode = data.nextCode;
+        setFormData((prev) => ({ ...prev, purchase_request_code: data.nextCode }));
+      }
+    } catch (error) {
+      console.error("Error fetching latest PR code", error);
+      return setModal({ isOpen: true, type: "error", message: "Unable to get the latest PR number. Please try again." });
+    }
+
+  const payload = {
+    purchase_request_code: currentPRCode,
+    date_applied: formData.request_date,
+    request_by: formData.request_by,
+    user_id: formData.user_id,
+    contact_number: formData.contact_number,
+    branch: formData.branch,
+    department: formData.department,
+    address: formData.address,
+    purpose: formData.purpose,
+    items: sanitizedItems,
+  };
+
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/purchase_request`, {
@@ -157,18 +183,27 @@ function PurchaseRequest({ onLogout }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to submit purchase request");
 
-      window.alert(`Purchase Request ${formData.purchase_request_code} submitted successfully.`);
-      window.history.back();
+      setModal({
+        isOpen: true,
+        type: "success",
+        message: `Purchase Request ${currentPRCode} submitted successfully.`,
+      });
     } catch (error) {
       console.error("Error submitting purchase request", error);
-      window.alert(error.message || "Unable to submit purchase request. Please try again.");
+      setModal({ isOpen: true, type: "error", message: error.message || "Unable to submit purchase request. Please try again." });
     }
   };
 
+
+
   const handleNavigate = (sectionId) => {
-    setActiveSection(sectionId);
-    const element = document.getElementById(sectionId);
-    if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (sectionId === "submitted") {
+      navigate("/submitted-requests"); 
+    } else {
+      setActiveSection(sectionId);
+      const element = document.getElementById(sectionId);
+      if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   if (loading) {
@@ -177,9 +212,32 @@ function PurchaseRequest({ onLogout }) {
 
   return (
     <div className="pr-layout">
+      {modal.isOpen && (
+        <div className="pr-modal-overlay">
+          <div className={`pr-modal ${modal.type}`}>
+            <p>{modal.message}</p>
+            <button
+              onClick={() => {
+                setModal({ ...modal, isOpen: false });
+                if (modal.type === "success") {
+                  window.location.reload();
+                }
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2>Purchase Request</h2>
+          <h2 
+            onClick={() => navigate("/forms-list")} 
+            style={{ cursor: "pointer", color: "#007bff" }}
+          >
+            Purchase Request
+          </h2>
           <span>Standardized form</span>
         </div>
 
@@ -221,7 +279,13 @@ function PurchaseRequest({ onLogout }) {
               {formData.purchase_request_code || "—"}
             </span>
             <span className="pr-reference-label">Request date</span>
-            <span>{formData.request_date}</span>
+            <span>
+              {new Date(formData.request_date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
           </div>
         </header>
 
@@ -239,14 +303,25 @@ function PurchaseRequest({ onLogout }) {
                 </label>
                 <input
                   id="requestedBy"
-                  name="requested_by"
-                  value={formData.requested_by}
+                  name="request_by"
+                  value={formData.request_by}
                   onChange={handleChange}
                   className="pr-input"
                   placeholder="Full name"
+                  readOnly
                   required
                 />
+                <input
+                  type="hidden"
+                  id="requestById"
+                  name="user_id"
+                  value={formData.user_id} 
+                  className="pr-input"
+                  placeholder="User ID"
+                  readOnly
+                />
               </div>
+                
 
               <div className="pr-field">
                 <label className="pr-label" htmlFor="contactNumber">
@@ -256,9 +331,15 @@ function PurchaseRequest({ onLogout }) {
                   id="contactNumber"
                   name="contact_number"
                   value={formData.contact_number}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (/^\d{0,11}$/.test(value)) {
+                      handleChange(e);
+                    }
+                  }}
                   className="pr-input"
                   placeholder="09XX XXX XXXX"
+                  required
                 />
               </div>
             </div>
@@ -283,12 +364,13 @@ function PurchaseRequest({ onLogout }) {
                 >
                   <option value="" disabled>Select branch</option>
                   {branches.map((b) => (
-                    <option key={b.id || b.branch_id} value={b.id || b.branch_id}>
+                    <option key={b.branch_name} value={b.branch_name}>
                       {b.branch_name}
                     </option>
                   ))}
                 </select>
               </div>
+
 
               <div className="pr-field">
                 <label className="pr-label" htmlFor="department">Department</label>
@@ -302,12 +384,13 @@ function PurchaseRequest({ onLogout }) {
                 >
                   <option value="" disabled>Select department</option>
                   {filteredDepartments.map((d) => (
-                    <option key={d.id} value={d.id}>
+                    <option key={d.department_name} value={d.department_name}>
                       {d.department_name}
                     </option>
                   ))}
                 </select>
               </div>
+
             </div>
 
             <div className="pr-field">
@@ -321,6 +404,7 @@ function PurchaseRequest({ onLogout }) {
                 onChange={handleChange}
                 className="pr-input"
                 placeholder="Delivery or branch address"
+                required
               />
             </div>
           </section>
@@ -340,6 +424,7 @@ function PurchaseRequest({ onLogout }) {
                 className="pr-textarea"
                 placeholder="Purpose of the purchase request"
                 rows={4}
+                required
               />
             </div>
           </section>

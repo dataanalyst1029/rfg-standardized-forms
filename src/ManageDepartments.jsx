@@ -265,7 +265,7 @@ function ManageDepartments() {
                 <tr key={department.id}>
                   <td data-label="Department">{department.department_name}</td>
                   <td data-label="Branch">
-                    {department.branch_name ? (
+                    {department.branch_id ? (
                       <span className="admin-badge">{department.branch_name}</span>
                     ) : (
                       <span className="admin-pagination-info">No branch assigned</span>

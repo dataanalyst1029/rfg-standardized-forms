@@ -51,6 +51,7 @@ app.post("/api/login", async (req, res) => {
     res.json({
   success: true,
   message: "Login successful!",
+  id: user.id, 
   role: user.role,
   name: user.name, 
   email: user.email,
@@ -112,16 +113,22 @@ app.post("/api/users", async (req, res) => {
 
 app.put("/api/users/:id", async (req, res) => {
   const { id } = req.params;
-  const { employee_id, name, email, role } = req.body;
+  const { employee_id, name, email, role, password } = req.body;
 
   try {
-    const result = await pool.query(
-      `UPDATE users 
-       SET employee_id = $1, name = $2, email = $3, role = $4 
-       WHERE id = $5 
-       RETURNING id, employee_id, name, email, role`,
-      [employee_id, name, email, role, id]
-    );
+    let query = `UPDATE users SET employee_id=$1, name=$2, email=$3, role=$4`;
+    const params = [employee_id, name, email, role];
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      query += `, password=$5 WHERE id=$6 RETURNING id, employee_id, name, email, role`;
+      params.push(hashedPassword, id);
+    } else {
+      query += ` WHERE id=$5 RETURNING id, employee_id, name, email, role`;
+      params.push(id);
+    }
+
+    const result = await pool.query(query, params);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
@@ -133,6 +140,7 @@ app.put("/api/users/:id", async (req, res) => {
     res.status(500).json({ message: "Server error updating user" });
   }
 });
+
 
 app.delete("/api/users/:id", async (req, res) => {
   const { id } = req.params;
@@ -149,7 +157,6 @@ app.delete("/api/users/:id", async (req, res) => {
    USER ACCESS ROUTES
 ------------------------ */
 
-// ✅ Get all user access records
 app.get("/api/user_access", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM user_access ORDER BY id ASC");
@@ -160,7 +167,6 @@ app.get("/api/user_access", async (req, res) => {
   }
 });
 
-// ✅ Add a new user access record
 app.post("/api/user_access", async (req, res) => {
   const { user_id, access_forms, role } = req.body;
   console.log("📥 Incoming POST /api/user_access:", req.body);
@@ -185,7 +191,6 @@ app.post("/api/user_access", async (req, res) => {
   }
 });
 
-// ✅ Update an existing user access record
 app.put("/api/user_access/:id", async (req, res) => {
   const { id } = req.params;
   const { user_id, access_forms, role } = req.body;
@@ -216,7 +221,6 @@ app.put("/api/user_access/:id", async (req, res) => {
 });
 
 
-// ✅ Delete a user access record
 app.delete("/api/user_access/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -244,6 +248,7 @@ app.delete("/api/user_access/:id", async (req, res) => {
    PURCHASE REQUESTS
 ------------------------ */
 
+// ✅ Generate next purchase request code
 app.get("/api/purchase_request/next-code", async (req, res) => {
   try {
     const year = new Date().getFullYear();
@@ -258,19 +263,18 @@ app.get("/api/purchase_request/next-code", async (req, res) => {
     );
 
     let nextCode;
-
     if (result.rows.length > 0) {
       const lastCode = result.rows[0].purchase_request_code;
-      const lastNum = parseInt(lastCode.split("-")[2]); 
-      const nextNum = String(lastNum + 1).padStart(3, "0");
+      const lastNum = parseInt(lastCode.split("-")[2]);
+      const nextNum = String(lastNum + 1).padStart(6, "0");
       nextCode = `PR-${year}-${nextNum}`;
     } else {
-      nextCode = `PR-${year}-001`;
+      nextCode = `PR-${year}-000001`;
     }
 
     res.json({ nextCode });
   } catch (err) {
-    console.error("Error generating next purchase request code:", err);
+    console.error("❌ Error generating next purchase request code:", err);
     res.status(500).json({ message: "Server error generating next code" });
   }
 });
@@ -278,73 +282,110 @@ app.get("/api/purchase_request/next-code", async (req, res) => {
 app.post("/api/purchase_request", async (req, res) => {
   const {
     purchase_request_code,
-    request_date,
-    requested_by,
+    date_applied,      
+    request_by,
     contact_number,
     branch,
     department,
     address,
     purpose,
+    user_id, // <-- add this
     items = [],
   } = req.body;
 
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
-      `INSERT INTO purchase_request 
-       (purchase_request_code, request_date, requested_by, contact_number, branch, department, address, purpose)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       RETURNING *`,
+    await client.query("BEGIN");
+
+    // Include user_id in INSERT
+    const result = await client.query(
+      `INSERT INTO purchase_request
+       (purchase_request_code, request_date, request_by, contact_number, branch, department, address, purpose, user_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       RETURNING id`,
       [
         purchase_request_code,
-        request_date,
-        requested_by,
+        date_applied || new Date(),
+        request_by,
         contact_number,
         branch,
         department,
         address,
         purpose,
+        user_id, // <-- include in values
       ]
     );
 
     const requestId = result.rows[0]?.id;
+    if (!requestId) throw new Error("Failed to get purchase_request ID");
 
-    if (!requestId) {
-      throw new Error("Failed to retrieve purchase request id");
-    }
-
-    const sanitizedItems = Array.isArray(items)
-      ? items
-          .map((item) => ({
-            quantity: item.quantity,
-            purchase_item: item.purchase_item?.trim(),
-          }))
-          .filter(
-            (item) =>
-              item.purchase_item &&
-              item.quantity !== undefined &&
-              item.quantity !== null &&
-              String(item.quantity).trim() !== "",
-          )
-      : [];
-
-    for (const item of sanitizedItems) {
-      await pool.query(
-        `INSERT INTO purchase_item (purchase_request_id, quantity, purchase_item)
+    for (const item of items) {
+      if (!item.purchase_item || !item.quantity) continue;
+      await client.query(
+        `INSERT INTO purchase_request_items (request_id, quantity, purchase_item)
          VALUES ($1, $2, $3)`,
-        [requestId, item.quantity, item.purchase_item]
+        [requestId, item.quantity, item.purchase_item.trim()]
       );
     }
 
+    await client.query("COMMIT");
+
     res.status(201).json({
       success: true,
-      message: "Purchase Request saved successfully!",
-      data: result.rows[0],
+      message: `Purchase Request ${purchase_request_code} saved successfully!`,
     });
   } catch (err) {
-    console.error("Error saving purchase request:", err);
+    await client.query("ROLLBACK");
+    console.error("❌ Error saving purchase request:", err);
     res.status(500).json({ message: "Server error saving purchase request" });
+  } finally {
+    client.release();
   }
 });
+
+
+app.get("/api/purchase_request", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT pr.*, json_agg(json_build_object('id', pri.id, 'quantity', pri.quantity, 'purchase_item', pri.purchase_item)) AS items
+      FROM purchase_request pr
+      LEFT JOIN purchase_request_items pri ON pr.id = pri.request_id
+      GROUP BY pr.id
+      ORDER BY pr.created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching purchase requests:", err);
+    res.status(500).json({ message: "Server error fetching purchase requests" });
+  }
+});
+
+app.get("/api/purchase_request_items", async (req, res) => {
+  const { request_id } = req.query;
+
+  try {
+    let query = `
+      SELECT id, request_id, purchase_item, quantity
+      FROM purchase_request_items
+    `;
+    const params = [];
+
+    if (request_id) {
+      query += " WHERE request_id = $1";
+      params.push(request_id);
+    }
+
+    query += " ORDER BY id ASC";
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching purchase request items:", err);
+    res.status(500).json({ message: "Server error fetching purchase request items" });
+  }
+});
+
+
 
 /* ------------------------
    BRANCHES CRUD API
@@ -420,7 +461,6 @@ app.delete("/api/branches/:id", async (req, res) => {
    DEPARTMENTS CRUD API
 ------------------------ */
 
-// ✅ GET all departments with branch name
 app.get("/api/departments", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -436,7 +476,6 @@ app.get("/api/departments", async (req, res) => {
   }
 });
 
-// ✅ CREATE a new department
 app.post("/api/departments", async (req, res) => {
   const { department_name, branch_id } = req.body;
 
@@ -458,7 +497,6 @@ app.post("/api/departments", async (req, res) => {
   }
 });
 
-// ✅ UPDATE an existing department
 app.put("/api/departments/:id", async (req, res) => {
   const { id } = req.params;
   const { department_name, branch_id } = req.body;
@@ -483,7 +521,6 @@ app.put("/api/departments/:id", async (req, res) => {
   }
 });
 
-// ✅ DELETE a department
 app.delete("/api/departments/:id", async (req, res) => {
   const { id } = req.params;
 

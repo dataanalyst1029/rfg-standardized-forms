@@ -9,6 +9,7 @@ import LoginPage from "./LoginPage";
 import Dashboard from "./Dashboard";
 import FormsList from "./FormsList";
 import PurchaseRequest from "./forms/PurchaseRequest";
+import SubmittedPurchaseRequests from "./submitted-request/SubmittedPurchaseRequests";
 import "./App.css";
 
 function App() {
@@ -66,7 +67,6 @@ function App() {
           }
         />
 
-
         <Route
           path="/dashboard"
           element={
@@ -93,16 +93,25 @@ function App() {
           path="/forms/purchase-request"
           element={
             user &&
-            (user.role === "user" ||
-              user.role === "staff" ||
-              user.role === "admin") ? (
-              <PurchaseRequest onLogout={handleLogout} />
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
+              <PurchaseRequest onLogout={handleLogout} currentUserId={user.id} />
             ) : (
               <Navigate to="/" replace />
             )
           }
         />
 
+        <Route
+          path="/submitted-requests"
+          element={
+            user &&
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
+              <SubmittedPurchaseRequests onLogout={handleLogout} currentUserId={user.id} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
       </Routes>
     </Router>
   );

@@ -33,13 +33,14 @@ function LoginPage({ onLogin }) {
       });
 
       const data = await res.json();
+      // console.log("Login response data:", data); 
 
       if (data.success) {
         showMessage("success", "Login successful!");
         localStorage.setItem("name", data.name);
         localStorage.setItem("role", data.role);
-        onLogin({ role: data.role, name: data.name });
-
+        localStorage.setItem("id", data.id);
+        onLogin({ role: data.role, name: data.name, id: data.id });
         setTimeout(() => {
           navigate(data.role === "user" ? "/forms-list" : "/dashboard");
         }, 600);
@@ -50,6 +51,7 @@ function LoginPage({ onLogin }) {
       console.error(err);
       showMessage("error", "Server error. Please try again.");
     }
+
   };
 
   return (
