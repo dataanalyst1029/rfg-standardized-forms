@@ -13,6 +13,150 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const getNextRevolvingFundCode = async () => {
+  const year = new Date().getFullYear();
+  const prefix = `RFF-${year}-`;
+
+  const { rows } = await pool.query(
+    `SELECT form_code
+       FROM revolving_fund_requests
+      WHERE form_code LIKE $1
+      ORDER BY form_code DESC
+      LIMIT 1`,
+    [`${prefix}%`],
+  );
+
+  if (rows.length === 0) {
+    return `${prefix}001`;
+  }
+
+  const lastCode = rows[0].form_code;
+  const parts = lastCode.split("-");
+  const lastNumber = parseInt(parts[2], 10);
+  const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
+  return `${prefix}${nextNumber}`;
+};
+
+const getNextCashAdvanceCode = async () => {
+  const year = new Date().getFullYear();
+  const prefix = `CAR-${year}-`;
+
+  const { rows } = await pool.query(
+    `SELECT form_code
+       FROM cash_advance_requests
+      WHERE form_code LIKE $1
+      ORDER BY form_code DESC
+      LIMIT 1`,
+    [`${prefix}%`],
+  );
+
+  if (rows.length === 0) {
+    return `${prefix}001`;
+  }
+
+  const lastCode = rows[0].form_code;
+  const parts = lastCode.split("-");
+  const lastNumber = parseInt(parts[2], 10);
+  const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
+  return `${prefix}${nextNumber}`;
+};
+
+const getNextPaymentRequestCode = async () => {
+  const year = new Date().getFullYear();
+  const prefix = `PRF-${year}-`;
+
+  const { rows } = await pool.query(
+    `SELECT form_code
+       FROM payment_requests
+      WHERE form_code LIKE $1
+      ORDER BY form_code DESC
+      LIMIT 1`,
+    [`${prefix}%`],
+  );
+
+  if (rows.length === 0) {
+    return `${prefix}001`;
+  }
+
+  const lastCode = rows[0].form_code;
+  const parts = lastCode.split("-");
+  const lastNumber = parseInt(parts[2], 10);
+  const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
+  return `${prefix}${nextNumber}`;
+};
+
+const fetchRevolvingFundById = async (id) => {
+  const { rows } = await pool.query(
+    `SELECT *
+       FROM revolving_fund_requests
+      WHERE id = $1`,
+    [id],
+  );
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const request = rows[0];
+  const { rows: itemRows } = await pool.query(
+    `SELECT *
+       FROM revolving_fund_items
+      WHERE request_id = $1
+      ORDER BY entry_date ASC, created_at ASC`,
+    [id],
+  );
+
+  return { ...request, items: itemRows };
+};
+
+const fetchCashAdvanceById = async (id) => {
+  const { rows } = await pool.query(
+    `SELECT *
+       FROM cash_advance_requests
+      WHERE id = $1`,
+    [id],
+  );
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const request = rows[0];
+  const { rows: itemRows } = await pool.query(
+    `SELECT *
+       FROM cash_advance_items
+      WHERE request_id = $1
+      ORDER BY created_at ASC`,
+    [id],
+  );
+
+  return { ...request, items: itemRows };
+};
+
+const fetchPaymentRequestById = async (id) => {
+  const { rows } = await pool.query(
+    `SELECT *
+       FROM payment_requests
+      WHERE id = $1`,
+    [id],
+  );
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const request = rows[0];
+  const { rows: itemRows } = await pool.query(
+    `SELECT *
+       FROM payment_request_items
+      WHERE request_id = $1
+      ORDER BY created_at ASC`,
+    [id],
+  );
+
+  return { ...request, items: itemRows };
+};
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
@@ -49,14 +193,16 @@ app.post("/api/login", async (req, res) => {
     }
 
     res.json({
-  success: true,
-  message: "Login successful!",
-  id: user.id, 
-  role: user.role,
-  name: user.name, 
-  email: user.email,
-  employee_id: user.employee_id
-});
+        success: true,
+        message: "Login successful!",
+        id: user.id,
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        employee_id: user.employee_id,
+        branch: user.branch || null,
+        department: user.department || null,
+      });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ success: false, message: "Server error" });
@@ -533,6 +679,708 @@ app.delete("/api/departments/:id", async (req, res) => {
   }
 });
 
+/* ------------------------
+   PAYMENT REQUEST API
+------------------------ */
+const parseAmount = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return 0;
+  }
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+app.get("/api/payment_request/next-code", async (req, res) => {
+  try {
+    const nextCode = await getNextPaymentRequestCode();
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("Error generating next payment request code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+const buildPaymentRequestResponse = async (requests) => {
+  if (!requests.length) {
+    return [];
+  }
+
+  const ids = requests.map((req) => req.id);
+  const { rows: items } = await pool.query(
+    `SELECT *
+       FROM payment_request_items
+      WHERE request_id = ANY($1)
+      ORDER BY created_at ASC`,
+    [ids],
+  );
+
+  const itemsMap = items.reduce((acc, item) => {
+    if (!acc[item.request_id]) {
+      acc[item.request_id] = [];
+    }
+    acc[item.request_id].push(item);
+    return acc;
+  }, {});
+
+  return requests.map((request) => ({
+    ...request,
+    items: itemsMap[request.id] || [],
+  }));
+};
+
+app.get("/api/payment_request", async (req, res) => {
+  const { role, userId, status } = req.query;
+  const normalizedRole = normalizeRole(role);
+
+  try {
+    const clauses = [];
+    const params = [];
+
+    if (status) {
+      params.push(status);
+      clauses.push(`status = $${params.length}`);
+    }
+
+    if (normalizedRole === "user") {
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required for user-level requests" });
+      }
+      params.push(Number(userId));
+      clauses.push(`submitted_by = $${params.length}`);
+    }
+
+    const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+    const { rows } = await pool.query(
+      `SELECT *
+         FROM payment_requests
+        ${whereClause}
+        ORDER BY created_at DESC`,
+      params,
+    );
+
+    const response = await buildPaymentRequestResponse(rows);
+    res.json(response);
+  } catch (err) {
+    console.error("Error fetching payment requests:", err);
+    res.status(500).json({ message: "Server error fetching payment requests" });
+  }
+});
+
+app.get("/api/payment_request/:id", async (req, res) => {
+  const { id } = req.params;
+  const { role, userId } = req.query;
+  const normalizedRole = normalizeRole(role);
+
+  try {
+    const request = await fetchPaymentRequestById(id);
+    if (!request) {
+      return res.status(404).json({ message: "Payment request not found" });
+    }
+
+    if (normalizedRole === "user" && Number(request.submitted_by) !== Number(userId)) {
+      return res.status(403).json({ message: "You do not have access to this record" });
+    }
+
+    res.json(request);
+  } catch (err) {
+    console.error("Error fetching payment request:", err);
+    res.status(500).json({ message: "Server error fetching payment request" });
+  }
+});
+
+app.post("/api/payment_request", async (req, res) => {
+  const {
+    requester_name,
+    branch,
+    department,
+    employee_id,
+    request_date,
+    vendor_name,
+    pr_number,
+    date_needed,
+    purpose,
+    items = [],
+    submitted_by,
+  } = req.body;
+
+  const status = "submitted";
+  const requestDateValue = request_date ? new Date(request_date) : new Date();
+  const dateNeededValue = date_needed ? new Date(date_needed) : null;
+  const submittedAt = new Date();
+
+  const computeItemAmount = (item) => {
+    const quantity = parseAmount(item.quantity);
+    const unitPrice = parseAmount(item.unit_price);
+    const amount = parseAmount(item.amount);
+    const derived = quantity * unitPrice;
+    return derived > 0 ? derived : amount;
+  };
+
+  const totalAmount = items.reduce((acc, curr) => acc + computeItemAmount(curr), 0);
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const formCode = await getNextPaymentRequestCode();
+    const insertRequest = await client.query(
+      `INSERT INTO payment_requests
+        (form_code, status, requester_name, branch, department, employee_id, request_date,
+         vendor_name, pr_number, date_needed, purpose, total_amount, submitted_by, submitted_at,
+         created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW(),NOW())
+       RETURNING *`,
+      [
+        formCode,
+        status,
+        requester_name || null,
+        branch || null,
+        department || null,
+        employee_id || null,
+        requestDateValue,
+        vendor_name || null,
+        pr_number || null,
+        dateNeededValue,
+        purpose || null,
+        totalAmount,
+        submitted_by || null,
+        submittedAt,
+      ],
+    );
+
+    const requestId = insertRequest.rows[0].id;
+    const savedItems = [];
+
+    for (const item of items) {
+      const quantity = parseAmount(item.quantity);
+      const unitPrice = parseAmount(item.unit_price);
+      const amountValue = computeItemAmount(item);
+      const { rows: itemRows } = await client.query(
+        `INSERT INTO payment_request_items
+          (request_id, description, quantity, unit_price, amount, budget_code)
+         VALUES ($1,$2,$3,$4,$5,$6)
+         RETURNING *`,
+        [
+          requestId,
+          item.description || null,
+          quantity,
+          unitPrice,
+          amountValue,
+          item.budget_code || null,
+        ],
+      );
+      savedItems.push(itemRows[0]);
+    }
+
+    await client.query("COMMIT");
+    res.status(201).json({ ...insertRequest.rows[0], items: savedItems });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Error creating payment request:", err);
+    res.status(500).json({ message: err?.message || "Server error creating payment request" });
+  } finally {
+    client.release();
+  }
+});
+
+app.patch("/api/payment_request/:id/approve", async (req, res) => {
+  const { id } = req.params;
+  const { approved_by } = req.body;
+
+  try {
+    const request = await fetchPaymentRequestById(id);
+    if (!request) {
+      return res.status(404).json({ message: "Payment request not found" });
+    }
+
+    if (request.status !== "submitted") {
+      return res.status(409).json({ message: "Only submitted requests can be approved" });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE payment_requests
+          SET status = 'approved',
+              approved_by = $1,
+              approved_at = NOW(),
+              updated_at = NOW()
+        WHERE id = $2
+        RETURNING *`,
+      [approved_by || null, id],
+    );
+
+    const response = await fetchPaymentRequestById(rows[0].id);
+    res.json(response);
+  } catch (err) {
+    console.error("Error approving payment request:", err);
+    res.status(500).json({ message: "Server error approving payment request" });
+  }
+});
+
+app.patch("/api/payment_request/:id/release", async (req, res) => {
+  const { id } = req.params;
+  const {
+    accounting_gl_code,
+    accounting_amount,
+    accounting_or_number,
+    accounting_check_number,
+    received_by,
+    released_by,
+  } = req.body;
+
+  try {
+    const request = await fetchPaymentRequestById(id);
+    if (!request) {
+      return res.status(404).json({ message: "Payment request not found" });
+    }
+
+    if (request.status !== "approved") {
+      return res.status(409).json({ message: "Only approved requests can be released" });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE payment_requests
+          SET status = 'released',
+              accounting_gl_code = $1,
+              accounting_amount = $2,
+              accounting_or_number = $3,
+              accounting_check_number = $4,
+              received_by = $5,
+              received_at = NOW(),
+              released_by = $6,
+              released_at = NOW(),
+              updated_at = NOW()
+        WHERE id = $7
+        RETURNING *`,
+      [
+        accounting_gl_code || null,
+        accounting_amount !== undefined && accounting_amount !== null
+          ? parseAmount(accounting_amount)
+          : null,
+        accounting_or_number || null,
+        accounting_check_number || null,
+        received_by || null,
+        released_by || null,
+        id,
+      ],
+    );
+
+    const response = await fetchPaymentRequestById(rows[0].id);
+    res.json(response);
+  } catch (err) {
+    console.error("Error releasing payment request:", err);
+    res.status(500).json({ message: "Server error releasing payment request" });
+  }
+});
+
+/* ------------------------
+   REVOLVING FUND API
+------------------------ */
+app.get("/api/revolving_fund/next-code", async (req, res) => {
+  try {
+    const nextCode = await getNextRevolvingFundCode();
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("Error generating next revolving fund code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+app.get("/api/cash_advance/next-code", async (req, res) => {
+  try {
+    const nextCode = await getNextCashAdvanceCode();
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("Error generating next cash advance code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+const normalizeRole = (role = "") => role.toString().trim().toLowerCase();
+
+const isUserRole = (role) => normalizeRole(role) === "user";
+
+const buildRevolvingFundResponse = async (requests) => {
+  if (!requests.length) {
+    return [];
+  }
+
+  const ids = requests.map((req) => req.id);
+  const { rows: items } = await pool.query(
+    `SELECT *
+       FROM revolving_fund_items
+      WHERE request_id = ANY($1)
+      ORDER BY entry_date ASC, created_at ASC`,
+    [ids],
+  );
+
+  const itemsByRequest = items.reduce((acc, item) => {
+    if (!acc[item.request_id]) {
+      acc[item.request_id] = [];
+    }
+    acc[item.request_id].push(item);
+    return acc;
+  }, {});
+
+  return requests.map((request) => ({
+    ...request,
+    items: itemsByRequest[request.id] || [],
+  }));
+};
+
+app.get("/api/revolving_fund", async (req, res) => {
+  const { role, userId, status } = req.query;
+  const normalizedRole = normalizeRole(role);
+
+  if (normalizedRole === "staff") {
+    return res.status(403).json({ message: "Staff accounts cannot access revolving fund requests" });
+  }
+
+  try {
+    const clauses = [];
+    const params = [];
+
+    if (status) {
+      params.push(status);
+      clauses.push(`status = $${params.length}`);
+    }
+
+    if (isUserRole(role)) {
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required for staff-level users" });
+      }
+      params.push(Number(userId));
+      clauses.push(`submitted_by = $${params.length}`);
+    }
+
+    const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+    const { rows } = await pool.query(
+      `SELECT *
+         FROM revolving_fund_requests
+        ${whereClause}
+        ORDER BY created_at DESC`,
+      params,
+    );
+
+    const response = await buildRevolvingFundResponse(rows);
+    res.json(response);
+  } catch (err) {
+    console.error("Error fetching revolving fund requests:", err);
+    res.status(500).json({ message: "Server error fetching revolving fund requests" });
+  }
+});
+
+app.get("/api/revolving_fund/:id", async (req, res) => {
+  const { id } = req.params;
+  const { role, userId } = req.query;
+  const normalizedRole = normalizeRole(role);
+
+  if (normalizedRole === "staff") {
+    return res.status(403).json({ message: "Staff accounts cannot access revolving fund requests" });
+  }
+
+  try {
+    const request = await fetchRevolvingFundById(id);
+
+    if (!request) {
+      return res.status(404).json({ message: "Revolving fund request not found" });
+    }
+
+    if (isUserRole(role) && Number(request.submitted_by) !== Number(userId)) {
+      return res.status(403).json({ message: "You do not have access to this record" });
+    }
+
+    res.json(request);
+  } catch (err) {
+    console.error("Error fetching revolving fund request:", err);
+    res.status(500).json({ message: "Server error fetching revolving fund request" });
+  }
+});
+
+app.post("/api/revolving_fund", async (req, res) => {
+  const {
+    custodian_name,
+    branch,
+    department,
+    employee_id,
+    petty_cash_amount,
+    items = [],
+    submitted_by,
+    action = "draft",
+    request_date,
+  } = req.body;
+
+  const status = action === "submit" ? "submitted" : "draft";
+  const pettyCash = parseAmount(petty_cash_amount);
+  const totalExpenses = items.reduce((acc, curr) => acc + parseAmount(curr.amount), 0);
+  const cashOnHand = pettyCash - totalExpenses;
+  const submittedAt = status === "submitted" ? new Date() : null;
+  const requestDateValue = request_date ? new Date(request_date) : new Date();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const formCode = await getNextRevolvingFundCode();
+    const insertRequest = await client.query(
+      `INSERT INTO revolving_fund_requests
+        (form_code, status, custodian_name, branch, department, employee_id, petty_cash_amount,
+         total_expenses, cash_on_hand, submitted_by, submitted_at, request_date, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())
+       RETURNING *`,
+      [
+        formCode,
+        status,
+        custodian_name || null,
+        branch || null,
+        department || null,
+        employee_id || null,
+        pettyCash,
+        totalExpenses,
+        cashOnHand,
+        submitted_by || null,
+        submittedAt,
+        requestDateValue,
+      ],
+    );
+
+    const requestId = insertRequest.rows[0].id;
+    const savedItems = [];
+
+    for (const item of items) {
+      const { rows: itemInsertRows } = await client.query(
+        `INSERT INTO revolving_fund_items
+          (request_id, entry_date, voucher_no, or_ref_no, amount, expense_category, gl_account, remarks)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         RETURNING *`,
+        [
+          requestId,
+          item.entry_date || item.date || null,
+          item.voucher_no || null,
+          item.or_ref_no || null,
+          parseAmount(item.amount),
+          item.expense_category || null,
+          item.gl_account || null,
+          item.remarks || null,
+        ],
+      );
+      savedItems.push(itemInsertRows[0]);
+    }
+
+    await client.query("COMMIT");
+
+    res.status(201).json({ ...insertRequest.rows[0], items: savedItems });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Error creating revolving fund request:", err);
+    res.status(500).json({
+      message: err?.message || "Server error creating revolving fund request",
+    });
+  } finally {
+    client.release();
+  }
+});
+
+app.put("/api/revolving_fund/:id", async (req, res) => {
+  const { id } = req.params;
+  const {
+    custodian_name,
+    branch,
+    department,
+    employee_id,
+    petty_cash_amount,
+    items = [],
+  } = req.body;
+
+  const pettyCash = parseAmount(petty_cash_amount);
+  const totalExpenses = items.reduce((acc, curr) => acc + parseAmount(curr.amount), 0);
+  const cashOnHand = pettyCash - totalExpenses;
+  const requestDateValue = req.body.request_date ? new Date(req.body.request_date) : new Date();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const existing = await client.query(
+      `SELECT *
+         FROM revolving_fund_requests
+        WHERE id = $1`,
+      [id],
+    );
+
+    if (existing.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Revolving fund request not found" });
+    }
+
+    const currentStatus = existing.rows[0].status;
+    if (!["draft", "rejected"].includes(currentStatus)) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ message: "Only draft or rejected requests can be edited" });
+    }
+
+    const updatedRequest = await client.query(
+      `UPDATE revolving_fund_requests
+          SET custodian_name = $1,
+              branch = $2,
+              department = $3,
+              employee_id = $4,
+              petty_cash_amount = $5,
+              total_expenses = $6,
+              cash_on_hand = $7,
+              request_date = $8,
+              updated_at = NOW()
+        WHERE id = $9
+        RETURNING *`,
+      [
+        custodian_name || null,
+        branch || null,
+        department || null,
+        employee_id || null,
+        pettyCash,
+        totalExpenses,
+        cashOnHand,
+        requestDateValue,
+        id,
+      ],
+    );
+
+    await client.query("DELETE FROM revolving_fund_items WHERE request_id = $1", [id]);
+    const savedItems = [];
+
+    for (const item of items) {
+      const { rows: itemInsertRows } = await client.query(
+        `INSERT INTO revolving_fund_items
+          (request_id, entry_date, voucher_no, or_ref_no, amount, expense_category, gl_account, remarks)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         RETURNING *`,
+        [
+          id,
+          item.entry_date || item.date || null,
+          item.voucher_no || null,
+          item.or_ref_no || null,
+          parseAmount(item.amount),
+          item.expense_category || null,
+          item.gl_account || null,
+          item.remarks || null,
+        ],
+      );
+      savedItems.push(itemInsertRows[0]);
+    }
+
+    await client.query("COMMIT");
+    res.json({ ...updatedRequest.rows[0], items: savedItems });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Error updating revolving fund request:", err);
+    res.status(500).json({ message: "Server error updating revolving fund request" });
+  } finally {
+    client.release();
+  }
+});
+
+app.patch("/api/revolving_fund/:id/submit", async (req, res) => {
+  const { id } = req.params;
+  const { submitted_by } = req.body;
+
+  try {
+    const request = await fetchRevolvingFundById(id);
+    if (!request) {
+      return res.status(404).json({ message: "Revolving fund request not found" });
+    }
+
+    if (!["draft", "rejected"].includes(request.status)) {
+      return res.status(409).json({ message: "Only draft or rejected requests can be submitted" });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE revolving_fund_requests
+          SET status = 'submitted',
+              submitted_by = COALESCE($1, submitted_by),
+              submitted_at = NOW(),
+              updated_at = NOW()
+        WHERE id = $2
+        RETURNING *`,
+      [submitted_by || request.submitted_by || null, id],
+    );
+
+    const response = await fetchRevolvingFundById(rows[0].id);
+    res.json(response);
+  } catch (err) {
+    console.error("Error submitting revolving fund request:", err);
+    res.status(500).json({ message: "Server error submitting revolving fund request" });
+  }
+});
+
+app.patch("/api/revolving_fund/:id/approve", async (req, res) => {
+  const { id } = req.params;
+  const { approved_by } = req.body;
+
+  try {
+    const request = await fetchRevolvingFundById(id);
+    if (!request) {
+      return res.status(404).json({ message: "Revolving fund request not found" });
+    }
+
+    if (request.status !== "submitted") {
+      return res.status(409).json({ message: "Only submitted requests can be approved" });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE revolving_fund_requests
+          SET status = 'approved',
+              approved_by = $1,
+              approved_at = NOW(),
+              updated_at = NOW()
+        WHERE id = $2
+        RETURNING *`,
+      [approved_by || null, id],
+    );
+
+    const response = await fetchRevolvingFundById(rows[0].id);
+    res.json(response);
+  } catch (err) {
+    console.error("Error approving revolving fund request:", err);
+    res.status(500).json({ message: "Server error approving revolving fund request" });
+  }
+});
+
+app.patch("/api/revolving_fund/:id/reject", async (req, res) => {
+  const { id } = req.params;
+  const { rejected_by, reason = null } = req.body;
+
+  try {
+    const request = await fetchRevolvingFundById(id);
+    if (!request) {
+      return res.status(404).json({ message: "Revolving fund request not found" });
+    }
+
+    if (request.status !== "submitted") {
+      return res.status(409).json({ message: "Only submitted requests can be rejected" });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE revolving_fund_requests
+          SET status = 'rejected',
+              rejected_by = $1,
+              rejected_reason = $2,
+              rejected_at = NOW(),
+              updated_at = NOW()
+        WHERE id = $3
+        RETURNING *`,
+      [rejected_by || null, reason || null, id],
+    );
+
+    const response = await fetchRevolvingFundById(rows[0].id);
+    res.json(response);
+  } catch (err) {
+    console.error("Error rejecting revolving fund request:", err);
+    res.status(500).json({ message: "Server error rejecting revolving fund request" });
+  }
+});
+
 
 /* ------------------------
    START SERVER
@@ -541,3 +1389,366 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
+
+
+
+
+/* ------------------------
+   CASH ADVANCE API
+------------------------ */
+app.get("/api/cash_advance", async (req, res) => {
+  const { role, userId, status } = req.query;
+  const normalizedRole = normalizeRole(role);
+
+  try {
+    const clauses = [];
+    const params = [];
+
+    if (status) {
+      params.push(status);
+      clauses.push(`status = $${params.length}`);
+    }
+
+    if (normalizedRole === "user") {
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required for user-level requests" });
+      }
+      params.push(Number(userId));
+      clauses.push(`submitted_by = $${params.length}`);
+    }
+
+    const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+    const { rows } = await pool.query(
+      `SELECT *
+         FROM cash_advance_requests
+        ${whereClause}
+        ORDER BY created_at DESC`,
+      params,
+    );
+
+    const ids = rows.map((row) => row.id);
+    let itemsByRequest = {};
+    if (ids.length) {
+      const { rows: itemRows } = await pool.query(
+        `SELECT *
+           FROM cash_advance_items
+          WHERE request_id = ANY($1)
+          ORDER BY created_at ASC`,
+        [ids],
+      );
+
+      itemsByRequest = itemRows.reduce((acc, item) => {
+        if (!acc[item.request_id]) {
+          acc[item.request_id] = [];
+        }
+        acc[item.request_id].push(item);
+        return acc;
+      }, {});
+    }
+
+    const response = rows.map((row) => ({
+      ...row,
+      items: itemsByRequest[row.id] || [],
+    }));
+
+    res.json(response);
+  } catch (err) {
+    console.error("Error fetching cash advance requests:", err);
+    res.status(500).json({ message: "Server error fetching cash advance requests" });
+  }
+});
+
+app.get("/api/cash_advance/:id", async (req, res) => {
+  const { id } = req.params;
+  const { role, userId } = req.query;
+  const normalizedRole = normalizeRole(role);
+
+  try {
+    const request = await fetchCashAdvanceById(id);
+
+    if (!request) {
+      return res.status(404).json({ message: "Cash advance request not found" });
+    }
+
+    if (normalizedRole === "user" && Number(request.submitted_by) !== Number(userId)) {
+      return res.status(403).json({ message: "You do not have access to this record" });
+    }
+
+    res.json(request);
+  } catch (err) {
+    console.error("Error fetching cash advance request:", err);
+    res.status(500).json({ message: "Server error fetching cash advance request" });
+  }
+});
+
+app.post("/api/cash_advance", async (req, res) => {
+  const {
+    custodian_name,
+    branch,
+    department,
+    employee_id,
+    request_date,
+    cut_off_date,
+    signature,
+    nature_of_activity,
+    inclusive_dates,
+    purpose,
+    items = [],
+    submitted_by,
+  } = req.body;
+
+  const status = "submitted";
+  const requestDateValue = request_date ? new Date(request_date) : new Date();
+  const cutOffDateValue = cut_off_date ? new Date(cut_off_date) : null;
+  const totalAmount = items.reduce((acc, curr) => acc + parseAmount(curr.amount), 0);
+  const submittedAt = new Date();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const formCode = await getNextCashAdvanceCode();
+    const insertRequest = await client.query(
+      `INSERT INTO cash_advance_requests
+        (form_code, status, custodian_name, branch, department, employee_id, request_date, cut_off_date,
+         signature, nature_of_activity, inclusive_dates, purpose, total_amount, submitted_by, submitted_at,
+         created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW(),NOW())
+       RETURNING *`,
+      [
+        formCode,
+        status,
+        custodian_name || null,
+        branch || null,
+        department || null,
+        employee_id || null,
+        requestDateValue,
+        cutOffDateValue,
+        signature || null,
+        nature_of_activity || null,
+        inclusive_dates || null,
+        purpose || null,
+        totalAmount,
+        submitted_by || null,
+        submittedAt,
+      ],
+    );
+
+    const requestId = insertRequest.rows[0].id;
+    const savedItems = [];
+
+    for (const item of items) {
+      const { rows: itemInsertRows } = await client.query(
+        `INSERT INTO cash_advance_items
+          (request_id, description, amount, budget_account, remarks)
+         VALUES ($1,$2,$3,$4,$5)
+         RETURNING *`,
+        [
+          requestId,
+          item.description || null,
+          parseAmount(item.amount),
+          item.budget_account || null,
+          item.remarks || null,
+        ],
+      );
+      savedItems.push(itemInsertRows[0]);
+    }
+
+    await client.query("COMMIT");
+    res.status(201).json({ ...insertRequest.rows[0], items: savedItems });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Error creating cash advance request:", err);
+    res.status(500).json({ message: err?.message || "Server error creating cash advance request" });
+  } finally {
+    client.release();
+  }
+});
+
+app.put("/api/cash_advance/:id", async (req, res) => {
+  const { id } = req.params;
+  const {
+    custodian_name,
+    branch,
+    department,
+    employee_id,
+    request_date,
+    cut_off_date,
+    signature,
+    nature_of_activity,
+    inclusive_dates,
+    purpose,
+    items = [],
+  } = req.body;
+
+  const requestDateValue = request_date ? new Date(request_date) : new Date();
+  const cutOffDateValue = cut_off_date ? new Date(cut_off_date) : null;
+  const totalAmount = items.reduce((acc, curr) => acc + parseAmount(curr.amount), 0);
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const existing = await client.query(
+      `SELECT *
+         FROM cash_advance_requests
+        WHERE id = $1`,
+      [id],
+    );
+
+    if (existing.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Cash advance request not found" });
+    }
+
+    const currentStatus = existing.rows[0].status;
+    if (currentStatus !== "submitted" && currentStatus !== "draft" && currentStatus !== "rejected") {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ message: "Only draft, submitted, or rejected requests can be edited" });
+    }
+
+    const updatedRequest = await client.query(
+      `UPDATE cash_advance_requests
+          SET custodian_name = $1,
+              branch = $2,
+              department = $3,
+              employee_id = $4,
+              request_date = $5,
+              cut_off_date = $6,
+              signature = $7,
+              nature_of_activity = $8,
+              inclusive_dates = $9,
+              purpose = $10,
+              total_amount = $11,
+              updated_at = NOW()
+        WHERE id = $12
+        RETURNING *`,
+      [
+        custodian_name || null,
+        branch || null,
+        department || null,
+        employee_id || null,
+        requestDateValue,
+        cutOffDateValue,
+        signature || null,
+        nature_of_activity || null,
+        inclusive_dates || null,
+        purpose || null,
+        totalAmount,
+        id,
+      ],
+    );
+
+    await client.query("DELETE FROM cash_advance_items WHERE request_id = $1", [id]);
+    const savedItems = [];
+
+    for (const item of items) {
+      const { rows: itemInsertRows } = await client.query(
+        `INSERT INTO cash_advance_items
+          (request_id, description, amount, budget_account, remarks)
+         VALUES ($1,$2,$3,$4,$5)
+         RETURNING *`,
+        [
+          id,
+          item.description || null,
+          parseAmount(item.amount),
+          item.budget_account || null,
+          item.remarks || null,
+        ],
+      );
+      savedItems.push(itemInsertRows[0]);
+    }
+
+    await client.query("COMMIT");
+    res.json({ ...updatedRequest.rows[0], items: savedItems });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Error updating cash advance request:", err);
+    res.status(500).json({ message: "Server error updating cash advance request" });
+  } finally {
+    client.release();
+  }
+});
+
+app.patch("/api/cash_advance/:id/approve", async (req, res) => {
+  const { id } = req.params;
+  const { approved_by } = req.body;
+
+  try {
+    const request = await fetchCashAdvanceById(id);
+    if (!request) {
+      return res.status(404).json({ message: "Cash advance request not found" });
+    }
+
+    if (request.status !== "submitted") {
+      return res.status(409).json({ message: "Only submitted requests can be approved" });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE cash_advance_requests
+          SET status = 'approved',
+              approved_by = $1,
+              approved_at = NOW(),
+              updated_at = NOW()
+        WHERE id = $2
+        RETURNING *`,
+      [approved_by || null, id],
+    );
+
+    const response = await fetchCashAdvanceById(rows[0].id);
+    res.json(response);
+  } catch (err) {
+    console.error("Error approving cash advance request:", err);
+    res.status(500).json({ message: "Server error approving cash advance request" });
+  }
+});
+
+app.patch("/api/cash_advance/:id/release", async (req, res) => {
+  const { id } = req.params;
+  const { release_method, check_number, bank_gl_code, released_by } = req.body;
+
+  try {
+    const request = await fetchCashAdvanceById(id);
+    if (!request) {
+      return res.status(404).json({ message: "Cash advance request not found" });
+    }
+
+    if (request.status !== "approved") {
+      return res.status(409).json({ message: "Only approved requests can be released" });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE cash_advance_requests
+          SET release_method = $1,
+              check_number = $2,
+              bank_gl_code = $3,
+              released_by = $4,
+              released_at = NOW(),
+              updated_at = NOW()
+        WHERE id = $5
+        RETURNING *`,
+      [
+        release_method || null,
+        check_number || null,
+        bank_gl_code || null,
+        released_by || null,
+        id,
+      ],
+    );
+
+    const response = await fetchCashAdvanceById(rows[0].id);
+    res.json(response);
+  } catch (err) {
+    console.error("Error releasing cash advance request:", err);
+    res.status(500).json({ message: "Server error releasing cash advance request" });
+  }
+});
+
+
+/* ------------------------
+   REVOLVING FUND API
+------------------------ */
+

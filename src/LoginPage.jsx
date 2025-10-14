@@ -41,6 +41,25 @@ function LoginPage({ onLogin }) {
         localStorage.setItem("role", data.role);
         localStorage.setItem("id", data.id);
         onLogin({ role: data.role, name: data.name, id: data.id });
+
+        const userPayload = {
+          id: data.id,
+          role: data.role,
+          name: data.name,
+          email: data.email,
+          employee_id: data.employee_id,
+          branch: data.branch,
+          department: data.department,
+        };
+
+        localStorage.setItem("name", data.name || "");
+        localStorage.setItem("role", data.role || "");
+        if (data.branch) localStorage.setItem("branch", data.branch);
+        if (data.department) localStorage.setItem("department", data.department);
+        if (data.employee_id) localStorage.setItem("employee_id", data.employee_id);
+
+        onLogin(userPayload);
+
         setTimeout(() => {
           navigate(data.role === "user" ? "/forms-list" : "/dashboard");
         }, 600);

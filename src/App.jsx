@@ -10,6 +10,9 @@ import Dashboard from "./Dashboard";
 import FormsList from "./FormsList";
 import PurchaseRequest from "./forms/PurchaseRequest";
 import SubmittedPurchaseRequests from "./submitted-request/SubmittedPurchaseRequests";
+import RevolvingFund from "./forms/RevolvingFund";
+import CashAdvanceRequest from "./forms/CashAdvanceRequest";
+import PaymentRequest from "./forms/PaymentRequest";
 import "./App.css";
 
 function App() {
@@ -101,17 +104,6 @@ function App() {
           }
         />
 
-        <Route
-          path="/submitted-requests"
-          element={
-            user &&
-            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
-              <SubmittedPurchaseRequests onLogout={handleLogout} currentUserId={user.id} />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
       </Routes>
     </Router>
   );
