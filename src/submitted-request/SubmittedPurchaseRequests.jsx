@@ -8,7 +8,7 @@ const NAV_SECTIONS = [
   { id: "new-request", label: "New purchase request" },
 ];
 
-function SubmittedPurchaseRequests({ onLogout, currentUserId }) {
+function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequestCode, setSelectedRequestCode] = useState("");
@@ -36,11 +36,19 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId }) {
         if (!res.ok) throw new Error("Failed to fetch submitted requests");
         const data = await res.json();
 
-        const userRequests = data.filter(
-          (req) => Number(req.user_id) === Number(currentUserId)
-        );
+        const hydrated = data.map((req) => ({
+          ...req,
+          submitted_by: req.user_id,
+        }));
 
-        setRequests(userRequests);
+        if (showAll) {
+          setRequests(hydrated);
+        } else {
+          const userRequests = hydrated.filter(
+            (req) => Number(req.submitted_by) === Number(currentUserId)
+          );
+          setRequests(userRequests);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -49,7 +57,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId }) {
     };
 
     fetchRequests();
-  }, [currentUserId]);
+  }, [currentUserId, showAll]);
 
   useEffect(() => {
     const selected = requests.find(

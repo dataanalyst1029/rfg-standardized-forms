@@ -104,6 +104,55 @@ function App() {
           }
         />
 
+        <Route
+          path="/forms/revolving-fund"
+          element={
+            user && user.role === "user" ? (
+              <RevolvingFund onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/cash-advance-request"
+          element={
+            user && user.role === "user" ? (
+              <CashAdvanceRequest onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/payment-request-form"
+          element={
+            user && user.role === "user" ? (
+              <PaymentRequest onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/submitted-purchase-requests"
+          element={
+            user && user.role === "user" ? (
+              <SubmittedPurchaseRequests onLogout={handleLogout} currentUserId={user.id} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/submitted-requests"
+          element={<Navigate to="/forms/submitted-purchase-requests" replace />}
+        />
+
       </Routes>
     </Router>
   );
