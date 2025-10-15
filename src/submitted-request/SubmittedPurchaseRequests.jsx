@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../config/api.js";
 import { useNavigate } from "react-router-dom";
-import "./submitted-request.css";
+import "./styles/submitted-request.css";
 
 const NAV_SECTIONS = [
   { id: "submitted", label: "Submitted purchase requests" },
@@ -106,14 +106,17 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
     printWindow.document.write(`
       <html>
         <head>
-          <title>Print Purchase Request</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
             h2, h3, h4 { margin-bottom: 8px; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
             th.text-center, td.text-center { text-align: center; }
-            .purchase-dept { margin-top: 20px; border-top: 2px solid #000; padding-top: 10px; }
+            .purchase-dept { margin-top: 20px; padding-top: 10px; }
+            .print-btn { display: none !important; }
+            .purchase-dept-box { page-break-inside: avoid; border: 1px solid #ddd; margin-top: 1rem; padding: 1rem 3rem 1rem 3rem; }
+            .purchase-dept-content { display: flex !important; justify-content: space-between; align-items: center; flex-wrap: nowrap; width: 100%; font-size: 0.95rem; }
+            .purchase-dept-title { text-align: center; font-weight: 600; margin-bottom: 0.5rem; }
           </style>
         </head>
         <body>
@@ -204,7 +207,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                   onChange={handleSelectChange}
                   className="pr-input"
                 >
-                  <option value="">-- Choose Reference Number --</option>
+                  <option value="" disabled>-- Choose Reference Number --</option>
                   {requests.map((req) => (
                     <option
                       key={req.purchase_request_code}
@@ -219,18 +222,16 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
               {selectedRequest && (
                 <div
                   className="submitted-request-card"
-                  ref={cardRef} // 🆕 Ref added here
+                  ref={cardRef}
                   style={{ marginTop: "1rem" }}
                 >
                   <h2>{selectedRequest.purchase_request_code}</h2>
                   <p hidden>ID: {selectedRequest.id}</p>
-                  <p>Requested by: {selectedRequest.request_by}</p>
-                  <p>Date: {formatDate(selectedRequest.request_date)}</p>
-                  <p>
-                    Branch: {selectedRequest.branch} | Department:{" "}
-                    {selectedRequest.department}
-                  </p>
-                  <p>Purpose: {selectedRequest.purpose}</p>
+                  <p>Requested by: <i>{selectedRequest.request_by}</i></p>
+                  <p>Date: <i>{formatDate(selectedRequest.request_date)}</i></p>
+                  <p>Branch: <i>{selectedRequest.branch}</i></p>
+                  <p>Department: <i>{selectedRequest.department}</i></p>
+                  <p>Purpose: <i>{selectedRequest.purpose}</i></p>
 
                   <div style={{ marginTop: "1.5rem" }}>
                     <h3>Requested Items</h3>
@@ -239,10 +240,10 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                     ) : items.length === 0 ? (
                       <p>No items found for this request.</p>
                     ) : (
-                      <table className="pr-items-table">
+                      <table className="p-items-table">
                         <thead>
                           <tr>
-                            <th>Item Name</th>
+                            <th className="text-left">Item Name</th>
                             <th className="text-center">Quantity</th>
                           </tr>
                         </thead>
@@ -257,7 +258,6 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                       </table>
                     )}
                   </div>
-
                     <div className="purchase-dept-box">
                         <h4 className="purchase-dept-title">Purchasing Department Use Only</h4>
                     
@@ -268,10 +268,9 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
                         <div className="purchase-dept-content">
                             <p>Approved by: {selectedRequest.approved_by}</p>
-                            <p>Status: <strong>{selectedRequest.status}</strong></p>
+                            <p>Signature: <strong>{selectedRequest.approved_signature}</strong></p>
                         </div>
                     </div>
-
                 </div>
               )}
             </>

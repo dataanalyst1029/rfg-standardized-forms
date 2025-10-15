@@ -13,7 +13,7 @@ import SubmittedPurchaseRequests from "./submitted-request/SubmittedPurchaseRequ
 import RevolvingFund from "./forms/RevolvingFund";
 import CashAdvanceRequest from "./forms/CashAdvanceRequest";
 import PaymentRequest from "./forms/PaymentRequest";
-import "./App.css";
+import "./styles/App.css";
 
 function App() {
   const [user, setUser] = useState(null);

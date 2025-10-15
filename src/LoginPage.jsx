@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./LoginPage.css";
+import "./styles/LoginPage.css";
 import rfgLogo from "./assets/rfg_logo.png";
 import ThemeToggle from "./components/ThemeToggle.jsx";
 import { API_BASE_URL } from "./config/api.js";
@@ -33,14 +33,20 @@ function LoginPage({ onLogin }) {
       });
 
       const data = await res.json();
-      // console.log("Login response data:", data); 
 
       if (data.success) {
         showMessage("success", "Login successful!");
-        localStorage.setItem("name", data.name);
-        localStorage.setItem("role", data.role);
-        localStorage.setItem("id", data.id);
-        onLogin({ role: data.role, name: data.name, id: data.id });
+
+        // Store user data in sessionStorage instead of localStorage
+        sessionStorage.setItem("name", data.name || "");
+        sessionStorage.setItem("role", data.role || "");
+        sessionStorage.setItem("id", data.id || "");
+        if (data.branch) sessionStorage.setItem("branch", data.branch);
+        if (data.department) sessionStorage.setItem("department", data.department);
+        if (data.employee_id) sessionStorage.setItem("employee_id", data.employee_id);
+
+        // Also store logged-in user specifically for RequestPurchase
+        sessionStorage.setItem("loggedInUser", data.name || "");
 
         const userPayload = {
           id: data.id,
@@ -51,12 +57,6 @@ function LoginPage({ onLogin }) {
           branch: data.branch,
           department: data.department,
         };
-
-        localStorage.setItem("name", data.name || "");
-        localStorage.setItem("role", data.role || "");
-        if (data.branch) localStorage.setItem("branch", data.branch);
-        if (data.department) localStorage.setItem("department", data.department);
-        if (data.employee_id) localStorage.setItem("employee_id", data.employee_id);
 
         onLogin(userPayload);
 
@@ -70,7 +70,6 @@ function LoginPage({ onLogin }) {
       console.error(err);
       showMessage("error", "Server error. Please try again.");
     }
-
   };
 
   return (

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./styles/AdminView.css";
-import "./ManageUsers.css";
+import "./styles/ManageUsers.css";
 import { API_BASE_URL } from "./config/api.js";
 
 const PAGE_SIZES = [5, 10, 20];
@@ -24,7 +24,7 @@ function ManageUsers() {
 
   const [form, setForm] = useState(emptyForm);
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("create"); // or "edit"
+  const [modalMode, setModalMode] = useState("create"); 
 
   const [deleteTarget, setDeleteTarget] = useState(null);
 

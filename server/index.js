@@ -5,6 +5,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 import pkg from "pg";
 import bcrypt from "bcryptjs";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
 
 dotenv.config();
 const { Pool } = pkg;
@@ -528,6 +531,77 @@ app.get("/api/purchase_request_items", async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching purchase request items:", err);
     res.status(500).json({ message: "Server error fetching purchase request items" });
+  }
+});
+
+// 🗂️ Create uploads directory if it doesn't exist
+const uploadDir = "uploads/signatures";
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log(`✅ Created directory: ${uploadDir}`);
+}
+
+// ⚙️ Configure Multer storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const code = req.body.purchase_request_code || "PR-unknown";
+    cb(null, `${code}-${Date.now()}${ext}`);
+  },
+});
+
+const upload = multer({ storage });
+
+// 🖼️ Serve uploaded files publicly
+app.use("/uploads", express.static("uploads"));
+
+// ✅ Now the route comes AFTER upload is defined
+app.put("/api/update_purchase_request", upload.single("approved_signature"), async (req, res) => {
+  const { purchase_request_code, date_ordered, approved_by, po_number, status } = req.body;
+
+  try {
+    if (status === "Approved" && (!date_ordered || !approved_by || !po_number)) {
+      return res.status(400).json({ message: "Missing required fields for approval." });
+    }
+
+    const values = [];
+    let query = `
+      UPDATE purchase_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+    values.push(status);
+
+    if (status === "Approved") {
+      query += `,
+        date_ordered = $2,
+        approved_by = $3,
+        po_number = $4
+      `;
+      values.push(date_ordered, approved_by, po_number);
+    }
+
+    if (req.file) {
+      const filePath = req.file.path.replace(/\\/g, "/");
+      query += `, approved_signature = $${values.length + 1}`;
+      values.push(filePath);
+    }
+
+    query += ` WHERE purchase_request_code = $${values.length + 1} RETURNING *`;
+    values.push(purchase_request_code);
+
+    const result = await pool.query(query, values);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Purchase request not found." });
+    }
+
+    res.json({ success: true, message: "Purchase request updated successfully." });
+  } catch (err) {
+    console.error("❌ Error updating purchase request:", err);
+    res.status(500).json({ message: "Server error updating purchase request." });
   }
 });
 

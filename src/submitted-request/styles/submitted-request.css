@@ -21,7 +21,7 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.purchase-dept {
+.purchase-dept-box {
   margin-top: 2rem;
   padding: 1rem 1.25rem;
   border-radius: 10px;
@@ -36,7 +36,7 @@
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
 } */
 
-.purchase-dept h4 {
+.purchase-dept-box h4 {
   margin-bottom: 0.75rem;
   margin-top: 0rem;
   font-size: 1.1rem;
@@ -46,14 +46,9 @@
 }
 
 .purchase-dept-content {
-  font-size: 0.9rem;
-  text-align: center;
-  color: var(--purchase-text, #555);
-  font-style: italic;
-}
-
-.purchase-dept-content {
   display: flex;
+  font-style: italic;
+  font-size: 0.9rem;
   flex-direction: row;
   justify-content: center;
   align-items: center;
@@ -70,7 +65,16 @@
   min-width: 150px;
 }
 
-.pr-items-table {
+.p-items-table thead tr th {
+  background: var(--color-table-header);
+  text-transform: uppercase;
+  padding: 0.3rem .8rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.p-items-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 0.75rem;
@@ -80,19 +84,23 @@
   color: var(--table-text, #333);
 }
 
-.pr-items-table td {
+.p-items-table td {
   border: 1px solid var(--table-border, #dcdcdc);
   padding: 0.5rem 0.75rem;
   text-align: left;
 }
 
-.pr-items-table tbody tr:hover {
-  background-color: var(--table-hover, #dadada);
+.p-items-table tbody tr:hover {
+  background-color: var(--table-hover, #ececec);
 }
 
-.pr-items-table th.text-center,
-.pr-items-table td.text-center {
+.p-items-table td.text-center {
   text-align: center !important;
+  vertical-align: middle;
+}
+
+.text-left {
+  text-align: left !important;
   vertical-align: middle;
 }
 
@@ -108,8 +116,13 @@
     align-self: center;
 }
 
+.submitted-request-card b {
+  color: #4f97e4;
+  font-weight: 400;
+}
+
 @media (prefers-color-scheme: dark) {
-  .pr-items-table {
+  .p-items-table {
     --table-bg: #1e1e1e;
     --table-text: #e0e0e0;
     --table-border: #444;
@@ -127,7 +140,7 @@
 
 
 @media (prefers-color-scheme: dark) {
-  .purchase-dept {
+  .purchase-dept-box {
     --purchase-bg: #2a2a2a;
     --purchase-border: #444;
     --purchase-title: #f0f0f0;
@@ -148,35 +161,3 @@
   }
 }
 
-@media print {
-  .print-btn {
-    display: none !important;
-  }
-
-  .purchase-dept-box {
-    page-break-inside: avoid;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 1rem;
-    background-color: #fff;
-    color: #000;
-  }
-
-  .purchase-dept-content {
-    display: flex !important;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-  }
-
-  .purchase-dept-title {
-    text-align: center;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-  }
-
-  body {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-}

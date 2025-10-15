@@ -95,8 +95,8 @@ function PurchaseRequest({ onLogout }) {
 
 
 useEffect(() => {
-  const storedName = localStorage.getItem("name");
-  const storedId = localStorage.getItem("id");
+  const storedName = sessionStorage.getItem("name");
+  const storedId = sessionStorage.getItem("id");
   if (storedName || storedId) {
     setFormData((prev) => ({
       ...prev,

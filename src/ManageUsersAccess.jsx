@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./styles/AdminView.css";
-import "./ManageUsersAccess.css";
+import "./styles/ManageUsersAccess.css";
 import { API_BASE_URL } from "./config/api.js";
 
 const PAGE_SIZES = [5, 10, 20];
@@ -420,7 +420,7 @@ function ManageUsersAccess() {
                 required
                 disabled={modalMode === "edit"}
               >
-                <option value="">Select staff member</option>
+                <option value="" disabled>Select staff member</option>
                 {availableStaff.map((staff) => (
                   <option key={staff.id} value={staff.id}>
                     {staff.name} — {staff.email}
@@ -428,14 +428,35 @@ function ManageUsersAccess() {
                 ))}
               </select>
 
-              <textarea
+              <select 
+                name="access_forms"
+                value={form.access_forms}
+                onChange={handleFormChange}
+                placeholder="Access forms (comma separated)"
+                required
+                >
+                  <option value="" disabled>Select access forms</option>
+                  <option value="Purchase Request">Purchase Request</option>
+                  <option value="Revolving Fund">Revolving Fund</option>
+                  <option value="Cash Advance Request">Cash Advance Request</option>
+                  <option value="Cash Advance Liquidation">Cash Advance Liquidation</option>
+                  <option value="CA Receipt Form">CA Receipt Form</option>
+                  <option value="Reimbursement Form">Reimbursement Form</option>
+                  <option value="Payment Request Form">Payment Request Form</option>
+                  <option value="Maintenance or Repair">Maintenance or Repair</option>
+                  <option value="c/o HR Overtime Approval">c/o HR Overtime Approval</option>
+                  <option value="c/o HR Leave Application">c/o HR Leave Application</option>
+                  <option value="Interbranch Transfer Slip">Interbranch Transfer Slip</option>
+                  <option value="Credit Card Acknowledgement Receipt">Credit Card Acknowledgement Receipt</option>
+                </select>
+              {/* <textarea
                 name="access_forms"
                 value={form.access_forms}
                 onChange={handleFormChange}
                 placeholder="Access forms (comma separated)"
                 rows={3}
                 required
-              />
+              /> */}
 
               <select name="role" value={form.role} onChange={handleFormChange} required>
                 <option value="">Select role</option>
