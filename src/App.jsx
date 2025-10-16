@@ -10,9 +10,15 @@ import Dashboard from "./Dashboard";
 import FormsList from "./FormsList";
 import PurchaseRequest from "./forms/PurchaseRequest";
 import SubmittedPurchaseRequests from "./submitted-request/SubmittedPurchaseRequests";
+import SubmittedRequests from "./submitted-request/SubmittedRequests";
+import SubmittedRevolvingFund from "./submitted-request/SubmittedRevolvingFund";
+import SubmittedCashAdvance from "./submitted-request/SubmittedCashAdvance";
 import RevolvingFund from "./forms/RevolvingFund";
 import CashAdvanceRequest from "./forms/CashAdvanceRequest";
 import PaymentRequest from "./forms/PaymentRequest";
+import MaintenanceRepair from "./forms/MaintenanceRepair";
+import OvertimeApproval from "./forms/OvertimeApproval";
+import LeaveApplication from "./forms/LeaveApplication";
 import "./styles/App.css";
 
 function App() {
@@ -138,6 +144,44 @@ function App() {
         />
 
         <Route
+          path="/forms/maintenance-or-repair"
+          element={
+            user && user.role === "user" ? (
+              <MaintenanceRepair onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/hr-overtime-approval"
+          element={
+            user && user.role === "user" ? (
+              <OvertimeApproval onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/c-o-hr-overtime-approval"
+          element={<Navigate to="/forms/hr-overtime-approval" replace />}
+        />
+
+        <Route
+          path="/forms/hr-leave-application"
+          element={
+            user && user.role === "user" ? (
+              <LeaveApplication onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
           path="/forms/submitted-purchase-requests"
           element={
             user && user.role === "user" ? (
@@ -151,6 +195,72 @@ function App() {
         <Route
           path="/submitted-requests"
           element={<Navigate to="/forms/submitted-purchase-requests" replace />}
+        />
+
+        <Route
+          path="/forms/cash-advance-request/submitted"
+          element={
+            user ? (
+              <SubmittedCashAdvance />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/revolving-fund/submitted"
+          element={
+            user ? (
+              <SubmittedRevolvingFund />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/payment-request-form/submitted"
+          element={
+            user ? (
+              <SubmittedRequests formSlug="payment-request-form" />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/maintenance-or-repair/submitted"
+          element={
+            user ? (
+              <SubmittedRequests formSlug="maintenance-or-repair" />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/hr-overtime-approval/submitted"
+          element={
+            user ? (
+              <SubmittedRequests formSlug="hr-overtime-approval" />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/hr-leave-application/submitted"
+          element={
+            user ? (
+              <SubmittedRequests formSlug="hr-leave-application" />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
         />
 
       </Routes>

@@ -113,6 +113,34 @@
   height: 100vh; 
 }
 
+.form-back-button {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background: rgba(63, 140, 255, 0.12);
+  color: var(--color-accent);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.form-back-button:hover {
+  background: rgba(63, 140, 255, 0.18);
+  border-color: rgba(63, 140, 255, 0.32);
+  transform: translateX(-2px);
+}
+
+.form-back-button span {
+  font-size: 1rem;
+}
+
 .pr-main form {
   padding-bottom: 3rem;
 }

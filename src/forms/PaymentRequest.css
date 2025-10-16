@@ -49,27 +49,3 @@
   border-color: rgba(239, 68, 68, 0.35);
 }
 
-.pay-accounting-note {
-  background: rgba(36, 207, 142, 0.08);
-  border: 1px dashed rgba(36, 207, 142, 0.32);
-}
-
-.pay-signature-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.9rem;
-}
-
-.pay-signature-label {
-  display: block;
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  margin-bottom: 0.25rem;
-}
-
-.pay-signature-value {
-  font-weight: 600;
-  color: var(--color-text-primary);
-}

@@ -37,6 +37,9 @@ function PurchaseRequest({ onLogout }) {
   const [activeSection, setActiveSection] = useState("details");
   const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
   const navigate = useNavigate();
+  const handleBackToForms = () => {
+    navigate("/forms-list");
+  };
 
   useEffect(() => {
     const fetchNextCode = async () => {
@@ -265,6 +268,9 @@ useEffect(() => {
       </aside>
 
       <main className="pr-main">
+        <button type="button" className="form-back-button" onClick={handleBackToForms}>
+          ← <span>Back to forms library</span>
+        </button>
         <header className="pr-topbar">
           <div>
             <h1>New purchase request</h1>

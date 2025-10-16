@@ -15,8 +15,8 @@ function FormsList({ onLogout }) {
     // "Reimbursement Form",
     "Payment Request Form",
     "Maintenance or Repair",
-    "c/o HR Overtime Approval",
-    "c/o HR Leave Application",
+    "HR Overtime Approval",
+    "HR Leave Application",
     "Interbranch Transfer Slip",
     "Credit Card Acknowledgement Receipt",
   ];

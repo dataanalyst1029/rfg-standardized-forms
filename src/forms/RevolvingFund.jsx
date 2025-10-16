@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./PurchaseRequest.css";
 import "./RevolvingFund.css";
 import { API_BASE_URL } from "../config/api.js";
@@ -18,8 +19,19 @@ const parseNumber = (value) => {
   const parsed = Number(value);
   return Number.isNaN(parsed) ? 0 : parsed;
 };
+const pesoFormatter = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 function RevolvingFund({ onLogout }) {
   const storedUser = JSON.parse(sessionStorage.getItem("user") || "{}");
+  const navigate = useNavigate();
+  const handleBackToForms = () => {
+    navigate("/forms-list");
+  };
+  const [activeSection, setActiveSection] = useState("details");
   const [request, setRequest] = useState(null);
   const [formData, setFormData] = useState({
     custodian_name: storedUser.name || "",
@@ -311,6 +323,17 @@ function RevolvingFund({ onLogout }) {
   const currentStatus = (request && request.status) || "draft";
   const isDraft = currentStatus === "draft" || currentStatus === "rejected";
   const isReadOnly = !isDraft;
+  const handleNavigate = (sectionId) => {
+    if (sectionId === "submitted") {
+      navigate("/forms/revolving-fund/submitted");
+      return;
+    }
+    setActiveSection(sectionId);
+    const target = document.getElementById(sectionId);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth" });
+    }
+  };
   return (
     <div className="pr-layout">
       <aside className="pr-sidebar">
@@ -319,11 +342,19 @@ function RevolvingFund({ onLogout }) {
           <span>{currentStatus.toUpperCase()}</span>
         </div>
         <nav className="pr-sidebar-nav">
-          {["details", "totals", "items"].map((section) => (
-            <button key={section} type="button" onClick={() => document.getElementById(section)?.scrollIntoView({ behavior: "smooth" })}>
-              {section === "details" && "Request details"}
-              {section === "totals" && "Fund totals"}
-              {section === "items" && "Line items"}
+          {[
+            { id: "details", label: "Request details" },
+            { id: "totals", label: "Fund totals" },
+            { id: "items", label: "Line items" },
+            { id: "submitted", label: "View submitted requests" },
+          ].map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={activeSection === section.id ? "is-active" : ""}
+              onClick={() => handleNavigate(section.id)}
+            >
+              {section.label}
             </button>
           ))}
         </nav>
@@ -339,6 +370,9 @@ function RevolvingFund({ onLogout }) {
         </div>
       </aside>
       <main className="pr-main">
+        <button type="button" className="form-back-button" onClick={handleBackToForms}>
+          ← <span>Back to forms library</span>
+        </button>
         <header className="pr-topbar">
           <div>
             <h1 className="topbar-title">Revolving Fund Replenishment</h1>
@@ -451,7 +485,10 @@ function RevolvingFund({ onLogout }) {
           </div>
         </section>
         <section className="pr-form-section" id="totals">
-          <h2 className="pr-section-title">Amount for replenishment</h2>
+          <h2 className="pr-section-title">
+            Amount for replenishment{" "}
+            <span className="rf-section-amount">{pesoFormatter.format(totalExpenses)}</span>
+          </h2>
           <p className="pr-section-subtitle">Summarize petty cash usage and compute cash on hand.</p>
           <div className="pr-grid-two">
             <div className="pr-field">
