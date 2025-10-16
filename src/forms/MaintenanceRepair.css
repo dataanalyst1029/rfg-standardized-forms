@@ -1,0 +1,18 @@
+.mr-alert {
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--color-border);
+}
+
+.mr-alert--success {
+  color: var(--color-accent);
+  background: rgba(36, 207, 142, 0.15);
+  border-color: rgba(36, 207, 142, 0.4);
+}
+
+.mr-alert--error {
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+}

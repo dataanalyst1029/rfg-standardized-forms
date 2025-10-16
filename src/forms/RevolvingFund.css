@@ -13,6 +13,13 @@
   border-radius: 9999px;
 }
 
+.rf-section-amount {
+  margin-left: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
 .pr-form-actions {
     display: flex;
     justify-content: flex-end;

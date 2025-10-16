@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./PurchaseRequest.css";
 import "./PaymentRequest.css";
 import { API_BASE_URL } from "../config/api.js";
@@ -23,6 +24,11 @@ const formatAmount = (value) => parseNumber(value).toFixed(2);
 
 function PaymentRequest({ onLogout }) {
   const storedUser = JSON.parse(sessionStorage.getItem("user") || "{}");
+  const navigate = useNavigate();
+  const handleBackToForms = () => {
+    navigate("/forms-list");
+  };
+  const [activeSection, setActiveSection] = useState("details");
   const role = (storedUser.role || "").toLowerCase();
   const isUserAccount = role === "user";
 
@@ -384,6 +390,18 @@ function PaymentRequest({ onLogout }) {
   const currentStatus = request?.status || "new";
   const isReadOnly = Boolean(request);
 
+  const handleNavigate = (sectionId) => {
+    if (sectionId === "submitted") {
+      navigate("/forms/payment-request-form/submitted");
+      return;
+    }
+    setActiveSection(sectionId);
+    const target = document.getElementById(sectionId);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <div className="pr-layout">
       <aside className="pr-sidebar">
@@ -397,14 +415,13 @@ function PaymentRequest({ onLogout }) {
             { id: "vendor", label: "Vendor info" },
             { id: "items", label: "Line items" },
             { id: "purpose", label: "Purpose" },
-            { id: "signatories", label: "Signatories" },
+            { id: "submitted", label: "View submitted requests" },
           ].map((section) => (
             <button
               key={section.id}
               type="button"
-              onClick={() =>
-                document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth" })
-              }
+              className={activeSection === section.id ? "is-active" : ""}
+              onClick={() => handleNavigate(section.id)}
             >
               {section.label}
             </button>
@@ -422,6 +439,9 @@ function PaymentRequest({ onLogout }) {
         </div>
       </aside>
       <main className="pr-main">
+        <button type="button" className="form-back-button" onClick={handleBackToForms}>
+          ← <span>Back to forms library</span>
+        </button>
         <header className="pr-topbar">
           <div>
             <h1 className="topbar-title">Request for Payment</h1>
@@ -710,41 +730,6 @@ function PaymentRequest({ onLogout }) {
             <span className="pay-total-label">Grand total</span>
             <span className="pay-total-amount">{"\u20B1"} {totalAmount.toFixed(2)}</span>
           </div>
-        </section>
-
-        <section className="pr-form-section" id="signatories">
-          <h2 className="pr-section-title">Routing & signatures</h2>
-          <p className="pr-section-subtitle">
-            Requested by entries come from the submitter. Approved by, Received by, and Accounting
-            fields populate automatically as staff processes the request.
-          </p>
-          <div className="pay-signature-grid">
-            <div>
-              <span className="pay-signature-label">Requested by</span>
-              <span className="pay-signature-value">
-                {formData.requester_name || "Pending assignment"}
-              </span>
-            </div>
-            <div>
-              <span className="pay-signature-label">Approved by</span>
-              <span className="pay-signature-value">
-                {request?.approved_by || "Awaiting approval"}
-              </span>
-            </div>
-            <div>
-              <span className="pay-signature-label">Received by</span>
-              <span className="pay-signature-value">
-                {request?.received_by || "Pending release"}
-              </span>
-            </div>
-          </div>
-        </section>
-
-        <section className="pr-form-section pay-accounting-note" id="accounting">
-          <h2 className="pr-section-title">Accounting department use only</h2>
-          <p className="pr-section-subtitle">
-            Staff-level accounts capture GL, OR, and check details after the request is approved.
-          </p>
         </section>
 
         <div className="pr-form-actions">

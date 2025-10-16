@@ -30,11 +30,6 @@
   font-weight: 700;
 }
 
-.ca-accounting-note {
-  background: rgba(36, 207, 142, 0.08);
-  border: 1px dashed rgba(36, 207, 142, 0.32);
-}
-
 .ca-alert {
   border-radius: 0.75rem;
   padding: 0.85rem 1rem;

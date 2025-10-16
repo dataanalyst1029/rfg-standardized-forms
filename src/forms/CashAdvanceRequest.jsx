@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./PurchaseRequest.css";
 import "./CashAdvanceRequest.css";
 import { API_BASE_URL } from "../config/api.js";
@@ -6,7 +7,8 @@ import { API_BASE_URL } from "../config/api.js";
 const emptyItem = () => ({
   description: "",
   amount: "",
-  budget_account: "",
+  expense_category: "",
+  store_branch: "",
   remarks: "",
 });
 
@@ -20,6 +22,11 @@ const parseNumber = (value) => {
 
 function CashAdvanceRequest({ onLogout }) {
   const storedUser = JSON.parse(sessionStorage.getItem("user") || "{}");
+  const navigate = useNavigate();
+  const handleBackToForms = () => {
+    navigate("/forms-list");
+  };
+  const [activeSection, setActiveSection] = useState("details");
   const role = (storedUser.role || "").toLowerCase();
   const isUserAccount = role === "user";
 
@@ -29,7 +36,6 @@ function CashAdvanceRequest({ onLogout }) {
     department: storedUser.department || "",
     employee_id: storedUser.employee_id || "",
     request_date: new Date().toISOString().split("T")[0],
-    cut_off_date: "",
     signature: storedUser.name || "",
     nature_of_activity: "",
     inclusive_dates: "",
@@ -234,7 +240,6 @@ function CashAdvanceRequest({ onLogout }) {
       department: data.department || "",
       employee_id: data.employee_id || "",
       request_date: data.request_date ? data.request_date.slice(0, 10) : new Date().toISOString().split("T")[0],
-      cut_off_date: data.cut_off_date ? data.cut_off_date.slice(0, 10) : "",
       signature: data.signature || storedUser.name || "",
       nature_of_activity: data.nature_of_activity || "",
       inclusive_dates: data.inclusive_dates || "",
@@ -248,7 +253,8 @@ function CashAdvanceRequest({ onLogout }) {
               item.amount !== undefined && item.amount !== null
                 ? String(item.amount)
                 : "",
-            budget_account: item.budget_account || "",
+            expense_category: item.expense_category || "",
+            store_branch: item.store_branch || "",
             remarks: item.remarks || "",
           }))
         : [emptyItem()];
@@ -285,16 +291,18 @@ function CashAdvanceRequest({ onLogout }) {
     }
     const cleanedItems = items
       .map((item) => ({
-        description: item.description.trim(),
+        description: (item.description || "").trim(),
         amount: item.amount,
-        budget_account: item.budget_account.trim(),
-        remarks: item.remarks.trim(),
+        expense_category: (item.expense_category || "").trim(),
+        store_branch: (item.store_branch || "").trim(),
+        remarks: (item.remarks || "").trim(),
       }))
       .filter(
         (item) =>
           item.description ||
           parseNumber(item.amount) > 0 ||
-          item.budget_account ||
+          item.expense_category ||
+          item.store_branch ||
           item.remarks,
       );
     if (cleanedItems.length === 0) {
@@ -314,7 +322,6 @@ function CashAdvanceRequest({ onLogout }) {
       department: formData.department,
       employee_id: formData.employee_id,
       request_date: formData.request_date,
-      cut_off_date: formData.cut_off_date || null,
       signature: formData.signature,
       nature_of_activity: formData.nature_of_activity,
       inclusive_dates: formData.inclusive_dates,
@@ -343,6 +350,18 @@ function CashAdvanceRequest({ onLogout }) {
     }
   };
 
+  const handleNavigate = (sectionId) => {
+    if (sectionId === "submitted") {
+      navigate("/forms/cash-advance-request/submitted");
+      return;
+    }
+    setActiveSection(sectionId);
+    const target = document.getElementById(sectionId);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   const currentStatus = request?.status || "draft";
   const isReadOnly = currentStatus !== "draft";
 
@@ -359,15 +378,13 @@ function CashAdvanceRequest({ onLogout }) {
             { id: "activity", label: "Activity info" },
             { id: "items", label: "Line items" },
             { id: "purpose", label: "Purpose" },
+            { id: "submitted", label: "View submitted requests" },
           ].map((section) => (
             <button
               key={section.id}
               type="button"
-              onClick={() =>
-                document
-                  .getElementById(section.id)
-                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
+              className={activeSection === section.id ? "is-active" : ""}
+              onClick={() => handleNavigate(section.id)}
             >
               {section.label}
             </button>
@@ -385,6 +402,9 @@ function CashAdvanceRequest({ onLogout }) {
         </div>
       </aside>
       <main className="pr-main">
+        <button type="button" className="form-back-button" onClick={handleBackToForms}>
+          ← <span>Back to forms library</span>
+        </button>
         <header className="pr-topbar">
           <div>
             <h1 className="topbar-title">Cash Advance Request</h1>
@@ -496,31 +516,17 @@ function CashAdvanceRequest({ onLogout }) {
           <p className="pr-section-subtitle">
             Tell finance when the advance is needed and what it will cover.
           </p>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="cut_off_date">Cut-off date</label>
-              <input
-                type="date"
-                id="cut_off_date"
-                name="cut_off_date"
-                value={formData.cut_off_date}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="signature">Signature</label>
-              <input
-                type="text"
-                id="signature"
-                name="signature"
-                value={formData.signature}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
+          <div className="pr-field">
+            <label className="pr-label" htmlFor="signature">Signature</label>
+            <input
+              type="text"
+              id="signature"
+              name="signature"
+              value={formData.signature}
+              onChange={handleFieldChange}
+              className="pr-input"
+              disabled={isReadOnly}
+            />
           </div>
           <div className="pr-grid-two">
             <div className="pr-field">
@@ -556,7 +562,7 @@ function CashAdvanceRequest({ onLogout }) {
             <div>
               <h2 className="pr-items-title">Requested amounts</h2>
               <p className="pr-section-subtitle">
-                Break down the requested budget by description and accounting reference.
+                Break down each requested advance with the expense category and store assignment.
               </p>
             </div>
             <button
@@ -574,7 +580,8 @@ function CashAdvanceRequest({ onLogout }) {
                 <tr>
                   <th>Description</th>
                   <th>Amount</th>
-                  <th>Budget account</th>
+                  <th>Expense category</th>
+                  <th>Store / branch</th>
                   <th>Remarks</th>
                   {!isReadOnly && <th>Action</th>}
                 </tr>
@@ -609,9 +616,20 @@ function CashAdvanceRequest({ onLogout }) {
                     <td>
                       <input
                         type="text"
-                        value={item.budget_account}
+                        value={item.expense_category}
                         onChange={(event) =>
-                          handleItemChange(index, "budget_account", event.target.value)
+                          handleItemChange(index, "expense_category", event.target.value)
+                        }
+                        className="pr-input"
+                        disabled={isReadOnly}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={item.store_branch}
+                        onChange={(event) =>
+                          handleItemChange(index, "store_branch", event.target.value)
                         }
                         className="pr-input"
                         disabled={isReadOnly}
@@ -648,7 +666,7 @@ function CashAdvanceRequest({ onLogout }) {
                   <td style={{ fontWeight: 600 }}>
                     {"\u20B1"} {grandTotal.toFixed(2)}
                   </td>
-                  <td colSpan={isReadOnly ? 2 : 3} />
+                  <td colSpan={isReadOnly ? 3 : 4} />
                 </tr>
               </tfoot>
             </table>
@@ -675,14 +693,6 @@ function CashAdvanceRequest({ onLogout }) {
               disabled={isReadOnly}
             />
           </div>
-        </section>
-
-        <section className="pr-form-section ca-accounting-note" id="accounting">
-          <h2 className="pr-section-title">Accounting department</h2>
-          <p className="pr-section-subtitle">
-            Staff-level accounts populate release details after approval. You will see the status
-            update once accounting completes the release.
-          </p>
         </section>
 
         <div className="pr-form-actions">
