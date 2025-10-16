@@ -162,14 +162,16 @@
 
 .signature-image {
   position: absolute;
-  top: 0; 
-  left: 0;
+  top: 50%;
+  left: 50%;
   width: 170px;
   height: auto;
   object-fit: contain;
+  transform: translate(-53%, -50%);
   z-index: 0;
-  transform: translate(35%, -35%);
+  max-width: 25vw;
 }
+
 
 .purchase-signature p {
   border-top: 1px solid #444;

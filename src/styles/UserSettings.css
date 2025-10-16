@@ -1,71 +1,164 @@
+:root {
+  /* Light theme colors */
+  --bg-color: #ffffff;
+  --card-bg: #f9fafb;
+  --text-color: #1a1a1a;
+  --label-color: #555555;
+  --border-color: #e0e0e0;
+  --hover-bg: #f0f6ff;
+  --hover-border: #cce0ff;
+  --signature-border: #cccccc;
+  --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --text-color: #f5f5f5;
+    --label-color: #cccccc;
+    --border-color: #2a2a2a;
+    --hover-bg: #2c3442;
+    --hover-border: #3b82f6;
+    --signature-border: #444444;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+  }
+}
+
 .user-settings {
-  width: 95%;
-  margin: 1% auto;
-  padding: 1rem;
-  height: 75vh;
-  overflow-y: auto;
-  color: #000;
-  border-radius: 8px;
-  flex-wrap: wrap;
+  width: 90%;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 2rem;
+  border-radius: 16px;
+  font-family: "Inter", sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: all 0.3s ease;
 }
 
-.settings-form {
+.settings-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: var(--text-color);
+}
+
+.settings-card {
+  background-color: var(--card-bg);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px var(--shadow-color);
+  padding: 2rem;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.user-info-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2 columns */
-  gap: 20px; /* space between columns and rows */
-  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
 }
 
-.settings-form label {
+.info-item {
   display: flex;
   flex-direction: column;
-  font-weight: 500;
-  color: #333;
+  background: var(--card-bg);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease-in-out;
 }
 
-.settings-form input[type="text"],
-.settings-form input[type="email"],
-.settings-form input[type="password"],
-.settings-form input[type="file"] {
-  margin-top: 5px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
+.info-item:hover {
+  background: var(--hover-bg);
+  border-color: var(--hover-border);
 }
 
-.signature-preview {
-  grid-column: span 2; /* make the image take full width */
+.info-label {
+  font-weight: 600;
+  color: var(--label-color);
   display: flex;
-  justify-content: center;
   align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
 }
 
-.signature-preview img {
-  margin-top: 8px;
-  max-width: 300px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+.info-value {
+  margin-top: 6px;
+  font-size: 1rem;
+  color: var(--text-color);
+  font-weight: 500;
+  word-break: break-word;
 }
 
-.form-actions {
+.signature-section {
+  text-align: center;
   grid-column: span 2;
+  background: var(--card-bg);
+  border: 1px dashed var(--signature-border);
+  padding: 1.5rem;
+}
+
+.signature-img {
+  margin-top: 10px;
+  max-width: 250px;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid var(--signature-border);
+}
+
+.no-signature {
+  color: var(--label-color);
+  font-style: italic;
+  margin-top: 10px;
+}
+
+
+.settings-actions {
   display: flex;
   justify-content: center;
-  margin-top: 15px;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-edit,
+.btn-save,
+.btn-cancel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.4rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-edit {
+  background-color: #007bff;
+  color: white;
 }
 
 .btn-save {
-  background-color: #007bff;
+  background-color: #28a745;
   color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 15px;
-  cursor: pointer;
-  transition: background 0.2s;
+}
+
+.btn-cancel {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-edit:hover {
+  background-color: #0056b3;
 }
 
 .btn-save:hover {
-  background-color: #0056b3;
+  background-color: #218838;
+}
+
+.btn-cancel:hover {
+  background-color: #c82333;
 }

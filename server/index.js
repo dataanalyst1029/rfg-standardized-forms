@@ -260,35 +260,35 @@ app.post("/api/users", async (req, res) => {
   }
 });
 
-app.put("/api/users/:id", async (req, res) => {
-  const { id } = req.params;
-  const { employee_id, name, email, role, password } = req.body;
+// app.put("/api/users/:id", async (req, res) => {
+//   const { id } = req.params;
+//   const { employee_id, name, email, role, password } = req.body;
 
-  try {
-    let query = `UPDATE users SET employee_id=$1, name=$2, email=$3, role=$4`;
-    const params = [employee_id, name, email, role];
+//   try {
+//     let query = `UPDATE users SET employee_id=$1, name=$2, email=$3, role=$4`;
+//     const params = [employee_id, name, email, role];
 
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      query += `, password=$5 WHERE id=$6 RETURNING id, employee_id, name, email, role`;
-      params.push(hashedPassword, id);
-    } else {
-      query += ` WHERE id=$5 RETURNING id, employee_id, name, email, role`;
-      params.push(id);
-    }
+//     if (password) {
+//       const hashedPassword = await bcrypt.hash(password, 10);
+//       query += `, password=$5 WHERE id=$6 RETURNING id, employee_id, name, email, role`;
+//       params.push(hashedPassword, id);
+//     } else {
+//       query += ` WHERE id=$5 RETURNING id, employee_id, name, email, role`;
+//       params.push(id);
+//     }
 
-    const result = await pool.query(query, params);
+//     const result = await pool.query(query, params);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "User not found" });
-    }
+//     if (result.rows.length === 0) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
 
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error("Error updating user:", err);
-    res.status(500).json({ message: "Server error updating user" });
-  }
-});
+//     res.json(result.rows[0]);
+//   } catch (err) {
+//     console.error("Error updating user:", err);
+//     res.status(500).json({ message: "Server error updating user" });
+//   }
+// });
 
 
 app.delete("/api/users/:id", async (req, res) => {
@@ -302,6 +302,117 @@ app.delete("/api/users/:id", async (req, res) => {
     res.status(500).json({ message: "Server error deleting user" });
   }
 });
+
+/* ------------------------
+   UPDATE USER (with signature upload)
+------------------------ */
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = path.join("public", "signatures");
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `signature-${Date.now()}${ext}`);
+  },
+});
+
+const upload = multer({ storage });
+
+app.put("/api/users/:id", upload.single("signature"), async (req, res) => {
+  const { id } = req.params;
+  const {
+    employee_id,
+    name,
+    email,
+    contact_no,
+    role,
+    password,
+  } = req.body;
+
+  try {
+    // Prepare dynamic query
+    const updates = [];
+    const values = [];
+    let index = 1;
+
+    if (employee_id !== undefined) {
+      updates.push(`employee_id = $${index++}`);
+      values.push(employee_id);
+    }
+
+    if (name !== undefined) {
+      updates.push(`name = $${index++}`);
+      values.push(name);
+    }
+
+    if (email !== undefined) {
+      updates.push(`email = $${index++}`);
+      values.push(email);
+    }
+
+    if (contact_no !== undefined) {
+      updates.push(`contact_no = $${index++}`);
+      values.push(contact_no);
+    }
+
+    if (role !== undefined) {
+      updates.push(`role = $${index++}`);
+      values.push(role);
+    }
+
+    // Handle password hashing if provided
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updates.push(`password = $${index++}`);
+      values.push(hashedPassword);
+    }
+
+    // Handle file upload (signature)
+    if (req.file) {
+      const signatureUrl = `/signatures/${req.file.filename}`;
+      updates.push(`signature_url = $${index++}`);
+      values.push(signatureUrl);
+    }
+
+    // If no fields provided
+    if (updates.length === 0) {
+      return res.status(400).json({ message: "No fields to update." });
+    }
+
+    // Build final query
+    values.push(id);
+    const query = `
+      UPDATE users
+      SET ${updates.join(", ")}
+      WHERE id = $${index}
+      RETURNING id, employee_id, name, email, contact_no, role, signature_url
+    `;
+
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "User updated successfully",
+      ...result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating user:", err.message, err.stack);
+    res.status(500).json({ message: "Server error updating user" });
+  }
+});
+
+// serve static signature files
+app.use("/signatures", express.static(path.join("public", "signatures")));
+
 /* ------------------------
    USER ACCESS ROUTES
 ------------------------ */
@@ -535,31 +646,36 @@ app.get("/api/purchase_request_items", async (req, res) => {
 });
 
 // 🗂️ Create uploads directory if it doesn't exist
-const uploadDir = "uploads/signatures";
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log(`✅ Created directory: ${uploadDir}`);
+/* ------------------------
+   PURCHASE REQUEST APPROVAL (with signature upload)
+------------------------ */
+
+// 🗂️ Create uploads directory for approved signatures
+const approvalUploadDir = path.join("public", "approved_signatures");
+if (!fs.existsSync(approvalUploadDir)) {
+  fs.mkdirSync(approvalUploadDir, { recursive: true });
+  console.log(`✅ Created directory: ${approvalUploadDir}`);
 }
 
-// ⚙️ Configure Multer storage
-const storage = multer.diskStorage({
+// ⚙️ Separate Multer storage for approved signatures
+const approvalStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, approvalUploadDir);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
     const code = req.body.purchase_request_code || "PR-unknown";
-    cb(null, `${code}-${Date.now()}${ext}`);
+    cb(null, `${code}-approved-${Date.now()}${ext}`);
   },
 });
 
-const upload = multer({ storage });
+const approvalUpload = multer({ storage: approvalStorage });
 
-// 🖼️ Serve uploaded files publicly
-app.use("/uploads", express.static("uploads"));
+// 🖼️ Serve uploaded approved signatures publicly
+app.use("/approved_signatures", express.static(path.join("public", "approved_signatures")));
 
-// ✅ Now the route comes AFTER upload is defined
-app.put("/api/update_purchase_request", upload.single("approved_signature"), async (req, res) => {
+// ✅ Update purchase request route
+app.put("/api/update_purchase_request", approvalUpload.single("approved_signature"), async (req, res) => {
   const { purchase_request_code, date_ordered, approved_by, po_number, status } = req.body;
 
   try {
@@ -585,7 +701,7 @@ app.put("/api/update_purchase_request", upload.single("approved_signature"), asy
     }
 
     if (req.file) {
-      const filePath = req.file.path.replace(/\\/g, "/");
+      const filePath = `/approved_signatures/${req.file.filename}`;
       query += `, approved_signature = $${values.length + 1}`;
       values.push(filePath);
     }
@@ -604,7 +720,6 @@ app.put("/api/update_purchase_request", upload.single("approved_signature"), asy
     res.status(500).json({ message: "Server error updating purchase request." });
   }
 });
-
 
 
 /* ------------------------
