@@ -16,8 +16,8 @@ function UserSettings() {
     signature_url: "",
   });
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [originalData, setOriginalData] = useState({}); // store original values before editing
+  const [showModal, setShowModal] = useState(false);
+  const [originalData, setOriginalData] = useState({});
 
   useEffect(() => {
     const storedEmployeeId = sessionStorage.getItem("employee_id") || "";
@@ -54,9 +54,10 @@ function UserSettings() {
       alert("Please upload a valid image file.");
       return;
     }
+
     const reader = new FileReader();
     reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, signature_url: reader.result }));
+      setFormData((prev) => ({ ...prev, signature_url: reader.result })); // store base64
     };
     reader.readAsDataURL(file);
   };
@@ -67,11 +68,21 @@ function UserSettings() {
       return;
     }
 
+    const payload = {
+      employee_id: formData.employee_id,
+      name: formData.name,
+      email: formData.email,
+      contact_no: formData.contact_no,
+      role: formData.role,
+      password: formData.password || null,
+      signature_url: formData.signature_url, // base64 string
+    };
+
     try {
       const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/users/${storedId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -85,7 +96,7 @@ function UserSettings() {
         if (data.signature_url) sessionStorage.setItem("signature_url", data.signature_url);
 
         alert("Profile updated successfully!");
-        setIsEditing(false);
+        setShowModal(false);
         setOriginalData(formData);
       } else {
         alert(data.message || "Failed to update profile.");
@@ -97,9 +108,8 @@ function UserSettings() {
   };
 
   const handleCancel = () => {
-    // restore original data and exit edit mode
     setFormData(originalData);
-    setIsEditing(false);
+    setShowModal(false);
   };
 
   return (
@@ -110,62 +120,22 @@ function UserSettings() {
         <div className="user-info-grid">
           <div className="info-item">
             <span className="info-label"><IdCard size={18} /> Employee ID</span>
-            {isEditing ? (
-              <input
-                type="text"
-                name="employee_id"
-                value={formData.employee_id}
-                onChange={handleChange}
-                className="info-input"
-              />
-            ) : (
-              <p className="info-value">{formData.employee_id || "—"}</p>
-            )}
+            <p className="info-value">{formData.employee_id || "—"}</p>
           </div>
 
           <div className="info-item">
             <span className="info-label"><User size={18} /> Full Name</span>
-            {isEditing ? (
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="info-input"
-              />
-            ) : (
-              <p className="info-value">{formData.name || "—"}</p>
-            )}
+            <p className="info-value">{formData.name || "—"}</p>
           </div>
 
           <div className="info-item">
             <span className="info-label"><Mail size={18} /> Email</span>
-            {isEditing ? (
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="info-input"
-              />
-            ) : (
-              <p className="info-value">{formData.email || "—"}</p>
-            )}
+            <p className="info-value">{formData.email || "—"}</p>
           </div>
 
           <div className="info-item">
             <span className="info-label"><Phone size={18} /> Contact Number</span>
-            {isEditing ? (
-              <input
-                type="text"
-                name="contact_no"
-                value={formData.contact_no}
-                onChange={handleChange}
-                className="info-input"
-              />
-            ) : (
-              <p className="info-value">{formData.contact_no || "—"}</p>
-            )}
+            <p className="info-value">{formData.contact_no || "—"}</p>
           </div>
 
           <div className="info-item">
@@ -175,14 +145,7 @@ function UserSettings() {
 
           <div className="info-item signature-section">
             <span className="info-label">Signature</span>
-            {isEditing ? (
-              <>
-                <input type="file" accept="image/*" onChange={handleFileChange} />
-                {formData.signature_url && (
-                  <img src={formData.signature_url} alt="Signature" className="signature-img" />
-                )}
-              </>
-            ) : formData.signature_url ? (
+            {formData.signature_url ? (
               <img src={formData.signature_url} alt="Signature" className="signature-img" />
             ) : (
               <p className="no-signature">No signature uploaded</p>
@@ -190,56 +153,42 @@ function UserSettings() {
           </div>
         </div>
 
-        {/* Buttons */}
         <div className="settings-actions">
-          {isEditing ? (
-            <form
-                onSubmit={(e) => {
-                e.preventDefault();
-                handleSave();
-                }}
-            >
-                {/* All editable inputs go here */}
-                <div className="user-info-grid">
-                {/* Example input */}
-                <div className="info-item">
-                    <span className="info-label">
-                    <IdCard size={18} /> Employee ID
-                    </span>
-                    <input
-                    type="text"
-                    name="employee_id"
-                    value={formData.employee_id}
-                    onChange={handleChange}
-                    className="info-input"
-                    />
-                </div>
-
-                </div>
-
-                <div className="settings-actions">
-                <button type="submit" className="btn-save">
-                    <Save size={18} /> Save Changes
-                </button>
-                <button
-                    type="button"
-                    className="btn-cancel"
-                    onClick={handleCancel}
-                >
-                    <X size={18} /> Cancel
-                </button>
-                </div>
-            </form>
-            ) : (
-            <div className="settings-actions">
-                <button className="btn-edit" onClick={() => setIsEditing(true)}>
-                <Edit3 size={18} /> Update Profile
-                </button>
-            </div>
-            )}
-
+          <button className="btn-edit" onClick={() => setShowModal(true)}>
+            <Edit3 size={18} /> Update Profile
+          </button>
         </div>
       </div>
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Edit Profile</h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSave();
+              }}
+            >
+              <input type="text" name="employee_id" value={formData.employee_id} onChange={handleChange} placeholder="Employee ID" />
+              <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Full Name" />
+              <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" />
+              <input type="text" name="contact_no" value={formData.contact_no} onChange={handleChange} placeholder="Contact Number" />
+              <input type="file" accept="image/*" onChange={handleFileChange} />
+
+              {formData.signature_url && (
+                <img src={formData.signature_url} alt="Preview" className="signature-img" />
+              )}
+
+              <div className="modal-actions">
+                <button type="submit" className="btn-save"><Save size={16} /> Save</button>
+                <button type="button" className="btn-cancel" onClick={handleCancel}><X size={16} /> Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

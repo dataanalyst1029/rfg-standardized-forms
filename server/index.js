@@ -16,6 +16,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const uploadDir = path.join(process.cwd(), "uploads/signatures");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log(`✅ Created directory: ${uploadDir}`);
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const code = req.body.purchase_request_code || "";
+    cb(null, `${code}-${Date.now()}${ext}`);
+  },
+});
+
 const getNextRevolvingFundCode = async () => {
   const year = new Date().getFullYear();
   const prefix = `RFF-${year}-`;
@@ -88,78 +105,6 @@ const getNextPaymentRequestCode = async () => {
   return `${prefix}${nextNumber}`;
 };
 
-const getNextMaintenanceRepairCode = async () => {
-  const year = new Date().getFullYear();
-  const prefix = `MRF-${year}-`;
-
-  const { rows } = await pool.query(
-    `SELECT form_code
-       FROM maintenance_requests
-      WHERE form_code LIKE $1
-      ORDER BY form_code DESC
-      LIMIT 1`,
-    [`${prefix}%`],
-  );
-
-  if (rows.length === 0) {
-    return `${prefix}001`;
-  }
-
-  const lastCode = rows[0].form_code;
-  const parts = lastCode.split("-");
-  const lastNumber = parseInt(parts[2], 10);
-  const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
-  return `${prefix}${nextNumber}`;
-};
-
-const getNextOvertimeRequestCode = async () => {
-  const year = new Date().getFullYear();
-  const prefix = `OAR-${year}-`;
-
-  const { rows } = await pool.query(
-    `SELECT form_code
-       FROM overtime_requests
-      WHERE form_code LIKE $1
-      ORDER BY form_code DESC
-      LIMIT 1`,
-    [`${prefix}%`],
-  );
-
-  if (rows.length === 0) {
-    return `${prefix}001`;
-  }
-
-  const lastCode = rows[0].form_code;
-  const parts = lastCode.split("-");
-  const lastNumber = parseInt(parts[2], 10);
-  const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
-  return `${prefix}${nextNumber}`;
-};
-
-const getNextLeaveApplicationCode = async () => {
-  const year = new Date().getFullYear();
-  const prefix = `LAF-${year}-`;
-
-  const { rows } = await pool.query(
-    `SELECT form_code
-       FROM leave_requests
-      WHERE form_code LIKE $1
-      ORDER BY form_code DESC
-      LIMIT 1`,
-    [`${prefix}%`],
-  );
-
-  if (rows.length === 0) {
-    return `${prefix}001`;
-  }
-
-  const lastCode = rows[0].form_code;
-  const parts = lastCode.split("-");
-  const lastNumber = parseInt(parts[2], 10);
-  const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
-  return `${prefix}${nextNumber}`;
-};
-
 const fetchRevolvingFundById = async (id) => {
   const { rows } = await pool.query(
     `SELECT *
@@ -206,60 +151,6 @@ const fetchCashAdvanceById = async (id) => {
   );
 
   return { ...request, items: itemRows };
-};
-
-const fetchMaintenanceRequestById = async (id) => {
-  const { rows } = await pool.query(
-    `SELECT *
-       FROM maintenance_requests
-      WHERE id = $1`,
-    [id],
-  );
-
-  if (rows.length === 0) {
-    return null;
-  }
-
-  return rows[0];
-};
-
-const fetchOvertimeRequestById = async (id) => {
-  const { rows } = await pool.query(
-    `SELECT *
-       FROM overtime_requests
-      WHERE id = $1`,
-    [id],
-  );
-
-  if (rows.length === 0) {
-    return null;
-  }
-
-  const request = rows[0];
-  const { rows: entryRows } = await pool.query(
-    `SELECT *
-       FROM overtime_entries
-      WHERE request_id = $1
-      ORDER BY ot_date ASC, time_from ASC`,
-    [id],
-  );
-
-  return { ...request, entries: entryRows };
-};
-
-const fetchLeaveRequestById = async (id) => {
-  const { rows } = await pool.query(
-    `SELECT *
-       FROM leave_requests
-      WHERE id = $1`,
-    [id],
-  );
-
-  if (rows.length === 0) {
-    return null;
-  }
-
-  return rows[0];
 };
 
 const fetchPaymentRequestById = async (id) => {
@@ -433,84 +324,35 @@ app.delete("/api/users/:id", async (req, res) => {
    UPDATE USER (with signature upload)
 ------------------------ */
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join("public", "signatures");
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `signature-${Date.now()}${ext}`);
-  },
-});
 
 const upload = multer({ storage });
-
-app.put("/api/users/:id", upload.single("signature"), async (req, res) => {
+app.put("/api/users/:id", async (req, res) => {
   const { id } = req.params;
-  const {
-    employee_id,
-    name,
-    email,
-    contact_no,
-    role,
-    password,
-  } = req.body;
+  const { employee_id, name, email, contact_no, role, password, signature_url } = req.body;
 
   try {
-    // Prepare dynamic query
     const updates = [];
     const values = [];
     let index = 1;
 
-    if (employee_id !== undefined) {
-      updates.push(`employee_id = $${index++}`);
-      values.push(employee_id);
-    }
-
-    if (name !== undefined) {
-      updates.push(`name = $${index++}`);
-      values.push(name);
-    }
-
-    if (email !== undefined) {
-      updates.push(`email = $${index++}`);
-      values.push(email);
-    }
-
-    if (contact_no !== undefined) {
-      updates.push(`contact_no = $${index++}`);
-      values.push(contact_no);
-    }
-
-    if (role !== undefined) {
-      updates.push(`role = $${index++}`);
-      values.push(role);
-    }
-
-    // Handle password hashing if provided
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
+    if (employee_id) { updates.push(`employee_id = $${index++}`); values.push(employee_id); }
+    if (name) { updates.push(`name = $${index++}`); values.push(name); }
+    if (email) { updates.push(`email = $${index++}`); values.push(email); }
+    if (contact_no) { updates.push(`contact_no = $${index++}`); values.push(contact_no); }
+    if (role) { updates.push(`role = $${index++}`); values.push(role); }
+    if (password && password.trim() !== "") {
+      const hashed = await bcrypt.hash(password, 10);
       updates.push(`password = $${index++}`);
-      values.push(hashedPassword);
+      values.push(hashed);
     }
-
-    // Handle file upload (signature)
-    if (req.file) {
-      const signatureUrl = `/signatures/${req.file.filename}`;
+    if (signature_url) {
+      // store base64 directly, or convert to file and save path if preferred
       updates.push(`signature_url = $${index++}`);
-      values.push(signatureUrl);
+      values.push(signature_url);
     }
 
-    // If no fields provided
-    if (updates.length === 0) {
-      return res.status(400).json({ message: "No fields to update." });
-    }
+    if (updates.length === 0) return res.status(400).json({ message: "No fields provided to update." });
 
-    // Build final query
     values.push(id);
     const query = `
       UPDATE users
@@ -518,26 +360,18 @@ app.put("/api/users/:id", upload.single("signature"), async (req, res) => {
       WHERE id = $${index}
       RETURNING id, employee_id, name, email, contact_no, role, signature_url
     `;
-
     const result = await pool.query(query, values);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (result.rows.length === 0) return res.status(404).json({ message: "User not found." });
 
-    res.json({
-      success: true,
-      message: "User updated successfully",
-      ...result.rows[0],
-    });
+    res.json(result.rows[0]);
   } catch (err) {
-    console.error("❌ Error updating user:", err.message, err.stack);
-    res.status(500).json({ message: "Server error updating user" });
+    console.error("Error updating user:", err);
+    res.status(500).json({ message: "Server error updating user." });
   }
 });
 
-// serve static signature files
-app.use("/signatures", express.static(path.join("public", "signatures")));
+
 
 /* ------------------------
    USER ACCESS ROUTES
@@ -772,36 +606,13 @@ app.get("/api/purchase_request_items", async (req, res) => {
 });
 
 // 🗂️ Create uploads directory if it doesn't exist
-/* ------------------------
-   PURCHASE REQUEST APPROVAL (with signature upload)
------------------------- */
 
-// 🗂️ Create uploads directory for approved signatures
-const approvalUploadDir = path.join("public", "approved_signatures");
-if (!fs.existsSync(approvalUploadDir)) {
-  fs.mkdirSync(approvalUploadDir, { recursive: true });
-  console.log(`✅ Created directory: ${approvalUploadDir}`);
-}
 
-// ⚙️ Separate Multer storage for approved signatures
-const approvalStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, approvalUploadDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const code = req.body.purchase_request_code || "PR-unknown";
-    cb(null, `${code}-approved-${Date.now()}${ext}`);
-  },
-});
+// 🖼️ Serve uploaded files publicly
+app.use("/uploads", express.static("uploads"));
 
-const approvalUpload = multer({ storage: approvalStorage });
-
-// 🖼️ Serve uploaded approved signatures publicly
-app.use("/approved_signatures", express.static(path.join("public", "approved_signatures")));
-
-// ✅ Update purchase request route
-app.put("/api/update_purchase_request", approvalUpload.single("approved_signature"), async (req, res) => {
+// ✅ Now the route comes AFTER upload is defined
+app.put("/api/update_purchase_request", upload.single("approved_signature"), async (req, res) => {
   const { purchase_request_code, date_ordered, approved_by, po_number, status } = req.body;
 
   try {
@@ -827,7 +638,7 @@ app.put("/api/update_purchase_request", approvalUpload.single("approved_signatur
     }
 
     if (req.file) {
-      const filePath = `/approved_signatures/${req.file.filename}`;
+      const filePath = req.file.path.replace(/\\/g, "/");
       query += `, approved_signature = $${values.length + 1}`;
       values.push(filePath);
     }
@@ -846,6 +657,7 @@ app.put("/api/update_purchase_request", approvalUpload.single("approved_signatur
     res.status(500).json({ message: "Server error updating purchase request." });
   }
 });
+
 
 
 /* ------------------------
@@ -1003,32 +815,6 @@ const parseAmount = (value) => {
   }
   const parsed = Number(value);
   return Number.isNaN(parsed) ? 0 : parsed;
-};
-
-const parseTimeToMinutes = (value) => {
-  if (!value) {
-    return null;
-  }
-  const [hourStr = "", minuteStr = ""] = value.split(":");
-  const hours = Number(hourStr);
-  const minutes = Number(minuteStr);
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
-    return null;
-  }
-  return hours * 60 + minutes;
-};
-
-const calculateHoursBetween = (from, to) => {
-  const fromMinutes = parseTimeToMinutes(from);
-  const toMinutes = parseTimeToMinutes(to);
-  if (fromMinutes === null || toMinutes === null) {
-    return 0;
-  }
-  let diff = toMinutes - fromMinutes;
-  if (diff < 0) {
-    diff += 24 * 60;
-  }
-  return diff / 60;
 };
 
 app.get("/api/payment_request/next-code", async (req, res) => {
@@ -1311,665 +1097,6 @@ app.patch("/api/payment_request/:id/release", async (req, res) => {
   } catch (err) {
     console.error("Error releasing payment request:", err);
     res.status(500).json({ message: "Server error releasing payment request" });
-  }
-});
-
-/* ------------------------
-   MAINTENANCE / REPAIR API
------------------------- */
-app.get("/api/maintenance_repair/next-code", async (req, res) => {
-  try {
-    const nextCode = await getNextMaintenanceRepairCode();
-    res.json({ nextCode });
-  } catch (err) {
-    console.error("Error generating next maintenance request code:", err);
-    res.status(500).json({ message: "Server error generating next code" });
-  }
-});
-
-app.get("/api/maintenance_repair", async (req, res) => {
-  const { role, userId, status } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  try {
-    const clauses = [];
-    const params = [];
-
-    if (status) {
-      params.push(status);
-      clauses.push(`status = $${params.length}`);
-    }
-
-    if (normalizedRole === "user") {
-      if (!userId) {
-        return res.status(400).json({ message: "userId is required for user-level requests" });
-      }
-      params.push(Number(userId));
-      clauses.push(`submitted_by = $${params.length}`);
-    }
-
-    const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-    const { rows } = await pool.query(
-      `SELECT *
-         FROM maintenance_requests
-        ${whereClause}
-        ORDER BY created_at DESC`,
-      params,
-    );
-
-    res.json(rows);
-  } catch (err) {
-    console.error("Error fetching maintenance requests:", err);
-    res.status(500).json({ message: "Server error fetching maintenance requests" });
-  }
-});
-
-app.get("/api/maintenance_repair/:id", async (req, res) => {
-  const { id } = req.params;
-  const { role, userId } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  try {
-    const request = await fetchMaintenanceRequestById(id);
-
-    if (!request) {
-      return res.status(404).json({ message: "Maintenance request not found" });
-    }
-
-    if (normalizedRole === "user" && Number(request.submitted_by) !== Number(userId)) {
-      return res.status(403).json({ message: "You do not have access to this record" });
-    }
-
-    res.json(request);
-  } catch (err) {
-    console.error("Error fetching maintenance request:", err);
-    res.status(500).json({ message: "Server error fetching maintenance request" });
-  }
-});
-
-app.post("/api/maintenance_repair", async (req, res) => {
-  const {
-    requester_name,
-    branch,
-    department,
-    employee_id,
-    request_date,
-    signature,
-    date_needed,
-    work_description,
-    asset_tag,
-    performed_by,
-    date_completed,
-    completion_remarks,
-    submitted_by,
-  } = req.body;
-
-  const status = "submitted";
-  const requestDateValue = request_date ? new Date(request_date) : new Date();
-  const dateNeededValue = date_needed ? new Date(date_needed) : null;
-  const dateCompletedValue = date_completed ? new Date(date_completed) : null;
-  const submittedAt = new Date();
-
-  try {
-    const formCode = await getNextMaintenanceRepairCode();
-    const { rows } = await pool.query(
-      `INSERT INTO maintenance_requests
-        (form_code, status, requester_name, branch, department, employee_id, request_date,
-         signature, date_needed, work_description, asset_tag, performed_by, date_completed,
-         completion_remarks, submitted_by, submitted_at, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),NOW())
-       RETURNING *`,
-      [
-        formCode,
-        status,
-        requester_name || null,
-        branch || null,
-        department || null,
-        employee_id || null,
-        requestDateValue,
-        signature || null,
-        dateNeededValue,
-        work_description || null,
-        asset_tag || null,
-        performed_by || null,
-        dateCompletedValue,
-        completion_remarks || null,
-        submitted_by || null,
-        submittedAt,
-      ],
-    );
-
-    res.status(201).json(rows[0]);
-  } catch (err) {
-    console.error("Error creating maintenance request:", err);
-    res.status(500).json({ message: err?.message || "Server error creating maintenance request" });
-  }
-});
-
-app.patch("/api/maintenance_repair/:id/approve", async (req, res) => {
-  const { id } = req.params;
-  const { approved_by } = req.body;
-
-  try {
-    const current = await fetchMaintenanceRequestById(id);
-    if (!current) {
-      return res.status(404).json({ message: "Maintenance request not found" });
-    }
-
-    if (current.status !== "submitted") {
-      return res.status(409).json({ message: "Only submitted requests can be approved" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE maintenance_requests
-          SET status = 'approved',
-              approved_by = $1,
-              approved_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $2
-        RETURNING *`,
-      [approved_by || null, id],
-    );
-
-    res.json(rows[0]);
-  } catch (err) {
-    console.error("Error approving maintenance request:", err);
-    res.status(500).json({ message: "Server error approving maintenance request" });
-  }
-});
-
-app.patch("/api/maintenance_repair/:id/complete", async (req, res) => {
-  const { id } = req.params;
-  const { accomplished_by } = req.body;
-
-  try {
-    const current = await fetchMaintenanceRequestById(id);
-    if (!current) {
-      return res.status(404).json({ message: "Maintenance request not found" });
-    }
-
-    if (current.status !== "approved") {
-      return res.status(409).json({ message: "Only approved requests can be marked completed" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE maintenance_requests
-          SET status = 'completed',
-              accomplished_by = $1,
-              accomplished_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $2
-        RETURNING *`,
-      [accomplished_by || null, id],
-    );
-
-    res.json(rows[0]);
-  } catch (err) {
-    console.error("Error completing maintenance request:", err);
-    res.status(500).json({ message: "Server error completing maintenance request" });
-  }
-});
-
-/* ------------------------
-   OVERTIME REQUEST API
------------------------- */
-app.get("/api/overtime_request/next-code", async (req, res) => {
-  try {
-    const nextCode = await getNextOvertimeRequestCode();
-    res.json({ nextCode });
-  } catch (err) {
-    console.error("Error generating next overtime request code:", err);
-    res.status(500).json({ message: "Server error generating next code" });
-  }
-});
-
-const buildOvertimeResponse = async (rows) => {
-  if (!rows.length) {
-    return [];
-  }
-
-  const ids = rows.map((row) => row.id);
-  const { rows: entryRows } = await pool.query(
-    `SELECT *
-       FROM overtime_entries
-      WHERE request_id = ANY($1)
-      ORDER BY ot_date ASC, time_from ASC`,
-    [ids],
-  );
-
-  const entriesByRequest = entryRows.reduce((acc, entry) => {
-    if (!acc[entry.request_id]) {
-      acc[entry.request_id] = [];
-    }
-    acc[entry.request_id].push(entry);
-    return acc;
-  }, {});
-
-  return rows.map((row) => ({
-    ...row,
-    entries: entriesByRequest[row.id] || [],
-  }));
-};
-
-app.get("/api/overtime_request", async (req, res) => {
-  const { role, userId, status } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  try {
-    const clauses = [];
-    const params = [];
-
-    if (status) {
-      params.push(status);
-      clauses.push(`status = $${params.length}`);
-    }
-
-    if (normalizedRole === "user") {
-      if (!userId) {
-        return res.status(400).json({ message: "userId is required for user-level requests" });
-      }
-      params.push(Number(userId));
-      clauses.push(`submitted_by = $${params.length}`);
-    }
-
-    const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-    const { rows } = await pool.query(
-      `SELECT *
-         FROM overtime_requests
-        ${whereClause}
-        ORDER BY created_at DESC`,
-      params,
-    );
-
-    const response = await buildOvertimeResponse(rows);
-    res.json(response);
-  } catch (err) {
-    console.error("Error fetching overtime requests:", err);
-    res.status(500).json({ message: "Server error fetching overtime requests" });
-  }
-});
-
-app.get("/api/overtime_request/:id", async (req, res) => {
-  const { id } = req.params;
-  const { role, userId } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  try {
-    const request = await fetchOvertimeRequestById(id);
-    if (!request) {
-      return res.status(404).json({ message: "Overtime request not found" });
-    }
-
-    if (normalizedRole === "user" && Number(request.submitted_by) !== Number(userId)) {
-      return res.status(403).json({ message: "You do not have access to this record" });
-    }
-
-    res.json(request);
-  } catch (err) {
-    console.error("Error fetching overtime request:", err);
-    res.status(500).json({ message: "Server error fetching overtime request" });
-  }
-});
-
-app.post("/api/overtime_request", async (req, res) => {
-  const {
-    requester_name,
-    branch,
-    department,
-    employee_id,
-    request_date,
-    signature,
-    cutoff_start,
-    cutoff_end,
-    entries = [],
-    submitted_by,
-  } = req.body;
-
-  const status = "submitted";
-  const requestDateValue = request_date ? new Date(request_date) : new Date();
-  const cutoffStartValue = cutoff_start ? new Date(cutoff_start) : null;
-  const cutoffEndValue = cutoff_end ? new Date(cutoff_end) : null;
-  const submittedAt = new Date();
-
-  const totalHours = entries.reduce(
-    (acc, entry) => acc + calculateHoursBetween(entry.time_from, entry.time_to),
-    0,
-  );
-
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
-    const formCode = await getNextOvertimeRequestCode();
-    const insertRequest = await client.query(
-      `INSERT INTO overtime_requests
-        (form_code, status, requester_name, branch, department, employee_id, request_date,
-         signature, cutoff_start, cutoff_end, total_hours, submitted_by, submitted_at, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW(),NOW())
-       RETURNING *`,
-      [
-        formCode,
-        status,
-        requester_name || null,
-        branch || null,
-        department || null,
-        employee_id || null,
-        requestDateValue,
-        signature || null,
-        cutoffStartValue,
-        cutoffEndValue,
-        totalHours,
-        submitted_by || null,
-        submittedAt,
-      ],
-    );
-
-    const requestId = insertRequest.rows[0].id;
-    const savedEntries = [];
-
-    for (const entry of entries) {
-      const hours = calculateHoursBetween(entry.time_from, entry.time_to);
-      const { rows: entryRows } = await client.query(
-        `INSERT INTO overtime_entries
-          (request_id, ot_date, time_from, time_to, purpose, hours)
-         VALUES ($1,$2,$3,$4,$5,$6)
-         RETURNING *`,
-        [
-          requestId,
-          entry.ot_date ? new Date(entry.ot_date) : null,
-          entry.time_from || null,
-          entry.time_to || null,
-          entry.purpose || null,
-          hours,
-        ],
-      );
-      savedEntries.push(entryRows[0]);
-    }
-
-    await client.query("COMMIT");
-    res.status(201).json({ ...insertRequest.rows[0], entries: savedEntries });
-  } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("Error creating overtime request:", err);
-    res.status(500).json({ message: err?.message || "Server error creating overtime request" });
-  } finally {
-    client.release();
-  }
-});
-
-app.patch("/api/overtime_request/:id/approve", async (req, res) => {
-  const { id } = req.params;
-  const { approved_by } = req.body;
-
-  try {
-    const current = await fetchOvertimeRequestById(id);
-    if (!current) {
-      return res.status(404).json({ message: "Overtime request not found" });
-    }
-
-    if (current.status !== "submitted") {
-      return res.status(409).json({ message: "Only submitted requests can be approved" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE overtime_requests
-          SET status = 'approved',
-              approved_by = $1,
-              approved_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $2
-        RETURNING *`,
-      [approved_by || null, id],
-    );
-
-    res.json(await fetchOvertimeRequestById(rows[0].id));
-  } catch (err) {
-    console.error("Error approving overtime request:", err);
-    res.status(500).json({ message: "Server error approving overtime request" });
-  }
-});
-
-app.patch("/api/overtime_request/:id/complete", async (req, res) => {
-  const { id } = req.params;
-  const { received_by } = req.body;
-
-  try {
-    const current = await fetchOvertimeRequestById(id);
-    if (!current) {
-      return res.status(404).json({ message: "Overtime request not found" });
-    }
-
-    if (current.status !== "approved") {
-      return res.status(409).json({ message: "Only approved requests can be marked completed" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE overtime_requests
-          SET status = 'completed',
-              received_by = $1,
-              received_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $2
-        RETURNING *`,
-      [received_by || null, id],
-    );
-
-    res.json(await fetchOvertimeRequestById(rows[0].id));
-  } catch (err) {
-    console.error("Error completing overtime request:", err);
-    res.status(500).json({ message: "Server error completing overtime request" });
-  }
-});
-
-/* ------------------------
-   LEAVE APPLICATION API
------------------------- */
-app.get("/api/leave_request/next-code", async (req, res) => {
-  try {
-    const nextCode = await getNextLeaveApplicationCode();
-    res.json({ nextCode });
-  } catch (err) {
-    console.error("Error generating next leave application code:", err);
-    res.status(500).json({ message: "Server error generating next code" });
-  }
-});
-
-app.get("/api/leave_request", async (req, res) => {
-  const { role, userId, status, leave_type } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  try {
-    const clauses = [];
-    const params = [];
-
-    if (status) {
-      params.push(status);
-      clauses.push(`status = $${params.length}`);
-    }
-
-    if (leave_type) {
-      params.push(leave_type);
-      clauses.push(`leave_type = $${params.length}`);
-    }
-
-    if (normalizedRole === "user") {
-      if (!userId) {
-        return res.status(400).json({ message: "userId is required for user-level requests" });
-      }
-      params.push(Number(userId));
-      clauses.push(`submitted_by = $${params.length}`);
-    }
-
-    const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-    const { rows } = await pool.query(
-      `SELECT *
-         FROM leave_requests
-        ${whereClause}
-        ORDER BY created_at DESC`,
-      params,
-    );
-
-    res.json(rows);
-  } catch (err) {
-    console.error("Error fetching leave requests:", err);
-    res.status(500).json({ message: "Server error fetching leave requests" });
-  }
-});
-
-app.get("/api/leave_request/:id", async (req, res) => {
-  const { id } = req.params;
-  const { role, userId } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  try {
-    const request = await fetchLeaveRequestById(id);
-    if (!request) {
-      return res.status(404).json({ message: "Leave request not found" });
-    }
-
-    if (normalizedRole === "user" && Number(request.submitted_by) !== Number(userId)) {
-      return res.status(403).json({ message: "You do not have access to this record" });
-    }
-
-    res.json(request);
-  } catch (err) {
-    console.error("Error fetching leave request:", err);
-    res.status(500).json({ message: "Server error fetching leave request" });
-  }
-});
-
-app.post("/api/leave_request", async (req, res) => {
-  const {
-    requester_name,
-    employee_id,
-    branch,
-    department,
-    position,
-    request_date,
-    signature,
-    leave_type,
-    leave_start,
-    leave_end,
-    leave_hours,
-    purpose,
-    submitted_by,
-  } = req.body;
-
-  const status = "submitted";
-  const requestDateValue = request_date ? new Date(request_date) : new Date();
-  const leaveStartValue = leave_start ? new Date(leave_start) : null;
-  const leaveEndValue = leave_end ? new Date(leave_end) : null;
-  const submittedAt = new Date();
-
-  try {
-    const formCode = await getNextLeaveApplicationCode();
-    const { rows } = await pool.query(
-      `INSERT INTO leave_requests
-        (form_code, status, requester_name, branch, department, employee_id, position,
-         request_date, signature, leave_type, leave_start, leave_end, leave_hours, purpose,
-         submitted_by, submitted_at, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),NOW())
-       RETURNING *`,
-      [
-        formCode,
-        status,
-        requester_name || null,
-        branch || null,
-        department || null,
-        employee_id || null,
-        position || null,
-        requestDateValue,
-        signature || null,
-        leave_type || null,
-        leaveStartValue,
-        leaveEndValue,
-        Number(leave_hours) || 0,
-        purpose || null,
-        submitted_by || null,
-        submittedAt,
-      ],
-    );
-
-    res.status(201).json(rows[0]);
-  } catch (err) {
-    console.error("Error creating leave request:", err);
-    res.status(500).json({ message: err?.message || "Server error creating leave request" });
-  }
-});
-
-app.patch("/api/leave_request/:id/endorse", async (req, res) => {
-  const { id } = req.params;
-  const { endorsed_by } = req.body;
-
-  try {
-    const current = await fetchLeaveRequestById(id);
-    if (!current) {
-      return res.status(404).json({ message: "Leave request not found" });
-    }
-
-    if (current.status !== "submitted") {
-      return res.status(409).json({ message: "Only submitted requests can be endorsed" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE leave_requests
-          SET status = 'endorsed',
-              endorsed_by = $1,
-              endorsed_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $2
-        RETURNING *`,
-      [endorsed_by || null, id],
-    );
-
-    res.json(rows[0]);
-  } catch (err) {
-    console.error("Error endorsing leave request:", err);
-    res.status(500).json({ message: "Server error endorsing leave request" });
-  }
-});
-
-app.patch("/api/leave_request/:id/approve", async (req, res) => {
-  const { id } = req.params;
-  const { approved_by, hr_notes, available_vacation, available_sick, available_emergency } = req.body;
-
-  try {
-    const current = await fetchLeaveRequestById(id);
-    if (!current) {
-      return res.status(404).json({ message: "Leave request not found" });
-    }
-
-    if (current.status !== "endorsed") {
-      return res.status(409).json({ message: "Only endorsed requests can be approved" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE leave_requests
-          SET status = 'approved',
-              approved_by = $1,
-              approved_at = NOW(),
-              hr_notes = $2,
-              available_vacation = $3,
-              available_sick = $4,
-              available_emergency = $5,
-              updated_at = NOW()
-        WHERE id = $6
-        RETURNING *`,
-      [
-        approved_by || null,
-        hr_notes || null,
-        available_vacation !== undefined ? Number(available_vacation) : null,
-        available_sick !== undefined ? Number(available_sick) : null,
-        available_emergency !== undefined ? Number(available_emergency) : null,
-        id,
-      ],
-    );
-
-    res.json(rows[0]);
-  } catch (err) {
-    console.error("Error approving leave request:", err);
-    res.status(500).json({ message: "Server error approving leave request" });
   }
 });
 
@@ -2489,6 +1616,7 @@ app.post("/api/cash_advance", async (req, res) => {
     department,
     employee_id,
     request_date,
+    cut_off_date,
     signature,
     nature_of_activity,
     inclusive_dates,
@@ -2499,6 +1627,7 @@ app.post("/api/cash_advance", async (req, res) => {
 
   const status = "submitted";
   const requestDateValue = request_date ? new Date(request_date) : new Date();
+  const cutOffDateValue = cut_off_date ? new Date(cut_off_date) : null;
   const totalAmount = items.reduce((acc, curr) => acc + parseAmount(curr.amount), 0);
   const submittedAt = new Date();
 
@@ -2510,10 +1639,10 @@ app.post("/api/cash_advance", async (req, res) => {
     const formCode = await getNextCashAdvanceCode();
     const insertRequest = await client.query(
       `INSERT INTO cash_advance_requests
-        (form_code, status, custodian_name, branch, department, employee_id, request_date,
+        (form_code, status, custodian_name, branch, department, employee_id, request_date, cut_off_date,
          signature, nature_of_activity, inclusive_dates, purpose, total_amount, submitted_by, submitted_at,
          created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW(),NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW(),NOW())
        RETURNING *`,
       [
         formCode,
@@ -2523,6 +1652,7 @@ app.post("/api/cash_advance", async (req, res) => {
         department || null,
         employee_id || null,
         requestDateValue,
+        cutOffDateValue,
         signature || null,
         nature_of_activity || null,
         inclusive_dates || null,
@@ -2539,15 +1669,14 @@ app.post("/api/cash_advance", async (req, res) => {
     for (const item of items) {
       const { rows: itemInsertRows } = await client.query(
         `INSERT INTO cash_advance_items
-          (request_id, description, amount, expense_category, store_branch, remarks)
-         VALUES ($1,$2,$3,$4,$5,$6)
+          (request_id, description, amount, budget_account, remarks)
+         VALUES ($1,$2,$3,$4,$5)
          RETURNING *`,
         [
           requestId,
           item.description || null,
           parseAmount(item.amount),
-          item.expense_category || null,
-          item.store_branch || null,
+          item.budget_account || null,
           item.remarks || null,
         ],
       );
@@ -2573,6 +1702,7 @@ app.put("/api/cash_advance/:id", async (req, res) => {
     department,
     employee_id,
     request_date,
+    cut_off_date,
     signature,
     nature_of_activity,
     inclusive_dates,
@@ -2581,6 +1711,7 @@ app.put("/api/cash_advance/:id", async (req, res) => {
   } = req.body;
 
   const requestDateValue = request_date ? new Date(request_date) : new Date();
+  const cutOffDateValue = cut_off_date ? new Date(cut_off_date) : null;
   const totalAmount = items.reduce((acc, curr) => acc + parseAmount(curr.amount), 0);
 
   const client = await pool.connect();
@@ -2613,13 +1744,14 @@ app.put("/api/cash_advance/:id", async (req, res) => {
               department = $3,
               employee_id = $4,
               request_date = $5,
-              signature = $6,
-              nature_of_activity = $7,
-              inclusive_dates = $8,
-              purpose = $9,
-              total_amount = $10,
+              cut_off_date = $6,
+              signature = $7,
+              nature_of_activity = $8,
+              inclusive_dates = $9,
+              purpose = $10,
+              total_amount = $11,
               updated_at = NOW()
-        WHERE id = $11
+        WHERE id = $12
         RETURNING *`,
       [
         custodian_name || null,
@@ -2627,6 +1759,7 @@ app.put("/api/cash_advance/:id", async (req, res) => {
         department || null,
         employee_id || null,
         requestDateValue,
+        cutOffDateValue,
         signature || null,
         nature_of_activity || null,
         inclusive_dates || null,
@@ -2642,15 +1775,14 @@ app.put("/api/cash_advance/:id", async (req, res) => {
     for (const item of items) {
       const { rows: itemInsertRows } = await client.query(
         `INSERT INTO cash_advance_items
-          (request_id, description, amount, expense_category, store_branch, remarks)
-         VALUES ($1,$2,$3,$4,$5,$6)
+          (request_id, description, amount, budget_account, remarks)
+         VALUES ($1,$2,$3,$4,$5)
          RETURNING *`,
         [
           id,
           item.description || null,
           parseAmount(item.amount),
-          item.expense_category || null,
-          item.store_branch || null,
+          item.budget_account || null,
           item.remarks || null,
         ],
       );
