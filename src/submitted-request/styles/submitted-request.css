@@ -1,102 +1,217 @@
-import { useState, useEffect } from "react";
-import "./styles/UserSettings.css"; // Optional: create styles for this page
-
-function UserSettings() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    signature_url: "", // added field
-  });
-
-  useEffect(() => {
-    const storedName = sessionStorage.getItem("name") || "";
-    const storedEmail = sessionStorage.getItem("email") || "";
-    const storedSignature = sessionStorage.getItem("signature_url") || ""; // load signature from sessionStorage if available
-
-    setFormData((prev) => ({
-      ...prev,
-      name: storedName,
-      email: storedEmail,
-      signature_url: storedSignature,
-    }));
-  }, []);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSave = () => {
-    sessionStorage.setItem("name", formData.name);
-    sessionStorage.setItem("email", formData.email);
-    sessionStorage.setItem("signature_url", formData.signature_url); // save signature
-    alert("Profile settings saved!");
-  };
-
-  return (
-    <div className="user-settings">
-      <h2>User Profile & Settings</h2>
-
-      <div className="settings-form">
-        <label>
-          Full Name
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-          />
-        </label>
-
-        <label>
-          Email
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-          />
-        </label>
-
-        <label>
-          Signature URL
-          <input
-            type="text"
-            name="signature_url"
-            value={formData.signature_url}
-            onChange={handleChange}
-            placeholder="Enter URL to your signature image"
-          />
-        </label>
-
-        <label>
-          New Password
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-          />
-        </label>
-
-        <label>
-          Confirm Password
-          <input
-            type="password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-          />
-        </label>
-
-        <button type="button" className="btn-save" onClick={handleSave}>
-          Save Changes
-        </button>
-      </div>
-    </div>
-  );
+.submitted-requests-container {
+  padding: 1rem;
 }
 
-export default UserSettings;
+.submitted-requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.submitted-request-card {
+  border: 1px solid var(--card-border, #ddd);
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: var(--card-bg, #f9f9f9);
+  color: var(--card-text, #111);
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.submitted-request-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.approved-content {
+  margin-top: 1rem;
+}
+
+.purchase-dept-box {
+  margin-top: 2rem;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--purchase-border, #ccc);
+  background: var(--purchase-bg, #f5f5f5);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease-in-out;
+}
+
+/* .purchase-dept:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+} */
+
+.purchase-dept-box h4 {
+  margin-bottom: 0.75rem;
+  margin-top: 0rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--purchase-title, #222);
+  text-align: center;
+}
+
+.purchase-dept-family{
+  margin-top: 1rem;
+}
+.purchase-dept-content {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  /* gap: 4rem; */
+}
+
+.purchase-dept-content input {
+  background: transparent;
+  color: #000;
+  border: none;
+  border-bottom: 1px solid #444;
+  text-align: center;
+  z-index: 1;
+}
+
+.purchase-dept-content input:focus {
+  border-bottom: 1px solid #444;
+  outline: none;
+}
+
+.purchase-dept-content p {
+  margin: 0;
+  min-width: 150px;
+  text-align: center;
+}
+
+.p-items-table thead tr th {
+  background: var(--color-table-header);
+  text-transform: uppercase;
+  padding: 0.3rem .8rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.p-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  border: 1px solid var(--table-border, #aaaaaa);
+  background-color: var(--table-bg, #fff);
+  color: var(--table-text, #333);
+}
+
+.p-items-table td {
+  border: 1px solid var(--table-border, #dcdcdc);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.p-items-table tbody tr:hover {
+  background-color: var(--table-hover, #ececec);
+}
+
+.p-items-table td.text-center {
+  text-align: center !important;
+  vertical-align: middle;
+}
+
+.text-left {
+  text-align: left !important;
+  vertical-align: middle;
+}
+
+.print-btn {
+    background-color: #007bff;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    height: fit-content;
+    align-self: center;
+}
+
+.submitted-request-card b {
+  color: #4f97e4;
+  font-weight: 400;
+}
+
+.purchase-dept-content {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 4rem;
+  margin-bottom: 1.5rem;
+}
+
+.purchase-dept-content div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 30%;
+}
+
+.purchase-signature {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  min-width: 180px;
+  padding-top: 60px;
+}
+
+.signature-image {
+  position: absolute;
+  top: 0; 
+  left: 0;
+  width: 170px;
+  height: auto;
+  object-fit: contain;
+  z-index: 0;
+  transform: translate(35%, -35%);
+}
+
+.purchase-signature p {
+  border-top: 1px solid #444;
+}
+
+@media (prefers-color-scheme: dark) {
+  .p-items-table {
+    --table-bg: #1e1e1e;
+    --table-text: #e0e0e0;
+    --table-border: #444;
+    --table-header-bg: #2a2a2a;
+    --table-hover: #2f2f2f;
+  }
+}
+
+
+@media (prefers-color-scheme: dark) {
+  .purchase-dept-content {
+    --purchase-text: #ccc;
+  }
+}
+
+
+@media (prefers-color-scheme: dark) {
+  .purchase-dept-box {
+    --purchase-bg: #2a2a2a;
+    --purchase-border: #444;
+    --purchase-title: #f0f0f0;
+    --purchase-text: #bbb;
+  }
+}
+
+
+@media (prefers-color-scheme: dark) {
+  .submitted-request-card {
+    --card-bg: #1f1f1f;
+    --card-border: #333;
+    --card-text: #eee;
+  }
+
+  .submitted-requests-container {
+    color: #ddd;
+  }
+}
+

@@ -1,59 +1,71 @@
 .user-settings {
-  max-width: 600px;
-  margin: 0 auto;
+  width: 95%;
+  margin: 1% auto;
   padding: 1rem;
-  height: 80vh; /* set a fixed height or relative to viewport */
-  overflow-y: auto; /* enable vertical scroll if content overflows */
-  border: 1px solid #ddd;
+  height: 75vh;
+  overflow-y: auto;
+  color: #000;
   border-radius: 8px;
-  background-color: #fff;
+  flex-wrap: wrap;
 }
 
 .settings-form {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns */
+  gap: 20px; /* space between columns and rows */
+  align-items: start;
+}
+
+.settings-form label {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  font-weight: 500;
+  color: #333;
 }
 
 .settings-form input[type="text"],
 .settings-form input[type="email"],
 .settings-form input[type="password"],
 .settings-form input[type="file"] {
-  padding: 0.5rem;
-  font-size: 1rem;
+  margin-top: 5px;
+  padding: 8px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 6px;
+  font-size: 14px;
 }
 
-
-.user-settings h2 {
-  margin-bottom: 1rem;
+.signature-preview {
+  grid-column: span 2; /* make the image take full width */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.settings-form label {
-  display: block;
-  margin-bottom: 1rem;
-  font-weight: 500;
-}
-
-.settings-form input {
-  display: block;
-  width: 100%;
-  padding: 0.5rem;
-  margin-top: 0.25rem;
+.signature-preview img {
+  margin-top: 8px;
+  max-width: 300px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 8px;
+}
+
+.form-actions {
+  grid-column: span 2;
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
 }
 
 .btn-save {
-  padding: 0.6rem 1.2rem;
-  background-color: #24cf8e;
+  background-color: #007bff;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 15px;
   cursor: pointer;
+  transition: background 0.2s;
 }
 
 .btn-save:hover {
-  background-color: #20b77d;
+  background-color: #0056b3;
 }
