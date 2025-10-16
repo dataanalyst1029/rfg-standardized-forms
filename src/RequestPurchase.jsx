@@ -73,7 +73,6 @@ function RequestPurchase() {
     const visibleRequests = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     
-    // Filter for Pending only
     const pendingRequests = filteredRequests.filter(
         (req) => req.status?.toLowerCase() === "pending"
     );

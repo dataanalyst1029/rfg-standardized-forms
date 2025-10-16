@@ -6,7 +6,7 @@ import ManageBranches from "./ManageBranches.jsx";
 import ManageDepartments from "./ManageDepartments.jsx";
 import ThemeToggle from "./components/ThemeToggle.jsx";
 import RequestPurchase from "./RequestPurchase.jsx";
-
+import UserSettings from "./UserSettings.jsx";
 
 const STORAGE_KEY = "rfg-dashboard-active-view";
 
@@ -117,7 +117,7 @@ const navigationItems = flattenNavigation(NAVIGATION);
 
 const getInitialView = () => {
   if (typeof window === "undefined") return "overview";
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = sessionStorage.getItem(STORAGE_KEY); 
   if (stored) {
     const validIds = [
       ...navigationItems.map((item) => item.id),
@@ -213,6 +213,13 @@ function renderActiveView(view) {
         />
       );
 
+    case "profile":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <UserSettings />
+        </div>
+      );
+
     case "manage-users":
       return (
         <div className="dashboard-content dashboard-content--flush">
@@ -254,26 +261,27 @@ function Dashboard({ role, name, onLogout }) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, activeView);
+      sessionStorage.setItem(STORAGE_KEY, activeView);
     }
   }, [activeView]);
 
   useEffect(() => {
-  if (typeof window !== "undefined") {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (
-      stored &&
-      [
-        "requests",
-        "purchase-request",
-        "pending-requests",
-        "approved-requests",
-      ].includes(stored)
-    ) {
-      setRequestsOpen(true); 
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem(STORAGE_KEY); // changed
+      if (
+        stored &&
+        [
+          "requests",
+          "purchase-request",
+          "pending-requests",
+          "approved-requests",
+        ].includes(stored)
+      ) {
+        setRequestsOpen(true);
+      }
     }
-  }
-}, []);
+  }, []);
+
 
 
   const activeItem = useMemo(
@@ -320,8 +328,8 @@ function Dashboard({ role, name, onLogout }) {
               <span className="sidebar-section-title">{section.title}</span>
               <nav className="sidebar-nav">
                 {section.items.map((item) => {
-                  // Check if this is the "requests" item
                   if (item.id === "requests") {
+                    // if (role === "admin") return null;
                     return (
                       <div key={item.id} className="sidebar-dropdown">
                         <button
@@ -588,11 +596,7 @@ function Dashboard({ role, name, onLogout }) {
               </nav>
             </div>
           );
-
-          
-
         })}
-
 
         <div className="sidebar-user">
           <div className="sidebar-user-meta">
@@ -603,11 +607,21 @@ function Dashboard({ role, name, onLogout }) {
               {role ? role.toUpperCase() : "STAFF"}
             </span>
           </div>
+
+          <button
+            type="button"
+            className={`sidebar-item sidebar-item-nested${activeView === "profile" ? " underline-active" : ""}`}
+            onClick={() => setActiveView("profile")}
+            style={{ marginBottom: "0.5rem" }}
+          >
+            ⚙️ Profile & Settings
+          </button>
+
           <button
             type="button"
             className="sidebar-logout"
             onClick={() => {
-              localStorage.removeItem(STORAGE_KEY);
+              sessionStorage.removeItem(STORAGE_KEY);
               onLogout();
             }}
           >

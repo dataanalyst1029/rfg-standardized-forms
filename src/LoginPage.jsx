@@ -37,13 +37,18 @@ function LoginPage({ onLogin }) {
       if (data.success) {
         showMessage("success", "Login successful!");
 
-        // Store user data in sessionStorage instead of localStorage
+        // Store user data in sessionStorage
         sessionStorage.setItem("name", data.name || "");
         sessionStorage.setItem("role", data.role || "");
         sessionStorage.setItem("id", data.id || "");
         if (data.branch) sessionStorage.setItem("branch", data.branch);
         if (data.department) sessionStorage.setItem("department", data.department);
         if (data.employee_id) sessionStorage.setItem("employee_id", data.employee_id);
+        if (data.email) sessionStorage.setItem("email", data.email);
+
+        // Also store logged-in user specifically for RequestPurchase
+        sessionStorage.setItem("loggedInUser", data.name || "");
+
 
         // Also store logged-in user specifically for RequestPurchase
         sessionStorage.setItem("loggedInUser", data.name || "");

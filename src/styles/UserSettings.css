@@ -1,0 +1,59 @@
+.user-settings {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+  height: 80vh; /* set a fixed height or relative to viewport */
+  overflow-y: auto; /* enable vertical scroll if content overflows */
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fff;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.settings-form input[type="text"],
+.settings-form input[type="email"],
+.settings-form input[type="password"],
+.settings-form input[type="file"] {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+
+.user-settings h2 {
+  margin-bottom: 1rem;
+}
+
+.settings-form label {
+  display: block;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.settings-form input {
+  display: block;
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.btn-save {
+  padding: 0.6rem 1.2rem;
+  background-color: #24cf8e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-save:hover {
+  background-color: #20b77d;
+}
