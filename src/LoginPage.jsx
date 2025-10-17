@@ -50,9 +50,6 @@ function LoginPage({ onLogin }) {
         sessionStorage.setItem("loggedInUser", data.name || "");
 
 
-        // Also store logged-in user specifically for RequestPurchase
-        sessionStorage.setItem("loggedInUser", data.name || "");
-
         const userPayload = {
           id: data.id,
           role: data.role,

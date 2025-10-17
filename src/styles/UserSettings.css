@@ -1,238 +1,393 @@
 :root {
-  /* Light theme colors */
-  --bg-color: #ffffff;
-  --card-bg: #f9fafb;
-  --text-color: #1a1a1a;
-  --label-color: #555555;
-  --border-color: #e0e0e0;
-  --hover-bg: #f0f6ff;
-  --hover-border: #cce0ff;
-  --signature-border: #cccccc;
+  --bg-color: #fff;
+  --text-color: #222;
+  --subtext-color: #666;
+  --border-color: #ddd;
+  --input-bg: #f9f9f9;
   --shadow-color: rgba(0, 0, 0, 0.08);
+
+  --btn-primary: #007bff;
+  --btn-success: #28a745;
+  --btn-danger: #dc3545;
+  --btn-warning: #ffc107;
+  --btn-text-dark: #333;
+
+  --msg-success-bg: #d4edda;
+  --msg-success-text: #155724;
+  --msg-error-bg: #f8d7da;
+  --msg-error-text: #721c24;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-color: #121212;
-    --card-bg: #1e1e1e;
-    --text-color: #f5f5f5;
-    --label-color: #cccccc;
-    --border-color: #2a2a2a;
-    --hover-bg: #2c3442;
-    --hover-border: #3b82f6;
-    --signature-border: #444444;
-    --shadow-color: rgba(0, 0, 0, 0.3);
+    --bg-color: #1e1e1e;
+    --text-color: #f0f0f0;
+    --subtext-color: #aaa;
+    --border-color: #333;
+    --input-bg: #2c2c2c;
+    --shadow-color: rgba(255, 255, 255, 0.05);
+
+    --msg-success-bg: #243b2a;
+    --msg-success-text: #8be28b;
+    --msg-error-bg: #3b2424;
+    --msg-error-text: #ff9a9a;
   }
 }
 
-.user-settings {
-  width: 90%;
-  max-width: 900px;
-  margin: 2rem auto;
-  padding: 2rem;
-  border-radius: 16px;
-  font-family: "Inter", sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  transition: all 0.3s ease;
-}
-
-.settings-title {
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  text-align: center;
-  color: var(--text-color);
-}
-
-.settings-card {
-  background-color: var(--card-bg);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px var(--shadow-color);
-  padding: 2rem;
-  border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
-  overflow-y: auto;
-    height: 60vh;
-}
-
-.user-info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  background: var(--card-bg);
-  border-radius: 10px;
-  padding: 1rem 1.2rem;
-  border: 1px solid var(--border-color);
-  transition: all 0.2s ease-in-out;
-}
-
-.info-item:hover {
-  background: var(--hover-bg);
-  border-color: var(--hover-border);
-}
-
-.info-label {
-  font-weight: 600;
-  color: var(--label-color);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.95rem;
-}
-
-.info-value {
-  margin-top: 6px;
-  font-size: 1rem;
-  color: var(--text-color);
-  font-weight: 500;
-  word-break: break-word;
-}
-
-.signature-section {
-  text-align: center;
-  grid-column: span 2;
-  background: var(--card-bg);
-  border: 1px dashed var(--signature-border);
-  padding: 1.5rem;
-}
-
-.signature-img {
-  margin-top: 10px;
-  max-width: 250px;
-  height: auto;
-  border-radius: 6px;
-  border: 1px solid var(--signature-border);
-}
-
-.no-signature {
-  color: var(--label-color);
-  font-style: italic;
-  margin-top: 10px;
-}
-
-
-.settings-actions {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.btn-edit,
-.btn-save,
-.btn-cancel {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: none;
-  border-radius: 8px;
-  padding: 0.7rem 1.4rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-edit {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn-save {
-  background-color: #28a745;
-  color: white;
-}
-
-.btn-cancel {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-edit:hover {
-  background-color: #0056b3;
-}
-
-.btn-save:hover {
-  background-color: #218838;
-}
-
-.btn-cancel:hover {
-  background-color: #c82333;
-}
-
-/* Modal overlay (background dim) */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-/* Modal content box */
-.modal-content {
-  background: #fff;
-  padding: 20px 30px;
-  border-radius: 10px;
-  width: 400px;
-  max-width: 90%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-/* Modal animation */
-@keyframes fadeIn {
-  from {
+@keyframes modalFadeIn {
+  0% {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(-30px);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* Buttons inside modal */
-.modal-actions {
+@keyframes modalFadeOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+}
+
+.family {
+  margin: 1rem;
+}
+
+.user-profile-wrapper {
+  background: var(--bg-color);
+  border-radius: 16px;
+  padding: 2rem 2rem 5rem 2rem;
+  width: 95%;
+  margin: 1rem auto;
+  box-shadow: 0 2px 12px var(--shadow-color);
+  font-family: 'Inter', sans-serif;
+  color: var(--text-color);
+}
+
+.user-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-info h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.user-info p {
+  margin: 0;
+  color: var(--subtext-color);
+  font-size: 0.9rem;
+}
+
+.user-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem 2rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.img-modal-content input,
+.form-group input {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.95rem;
+  background: var(--input-bg);
+  color: var(--text-color);
+}
+
+.form-group input:focus {
+  outline: none;
+}
+
+.signature-preview {
+  margin-top: 8px;
+  max-width: 150px;
+}
+
+.edit-btn,
+.modal-buttons button {
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.edit-btn.top-right {
+  background: var(--btn-primary);
+  color: #fff;
+}
+
+.save-btn {
+  background: var(--btn-success);
+  color: #fff;
+}
+
+.cancel-btn {
+  background: var(--btn-danger);
+  color: #fff;
+}
+
+.change-pass-btn {
+  background: var(--btn-warning);
+  color: var(--btn-text-dark);
+}
+
+.messages {
+  padding: 1rem;
+  margin-top: 10px;
+  border-radius: 6px;
+  text-align: left;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.messages.success {
+  background-color: var(--msg-success-bg);
+  color: var(--msg-success-text);
+}
+
+.messages.error {
+  background-color: var(--msg-error-bg);
+  color: var(--msg-error-text);
+}
+
+.signature-img {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  min-width: 180px;
+  padding-top: 0px;
+}
+
+.form-group-items, 
+.form-group label {
+  z-index: 1;
+}
+
+.signature-img img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 170px;
+  height: auto;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  max-width: 25vw;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: modalFadeIn 0.3s ease forwards;
+}
+
+.modal-overlay.fade-out {
+  animation: modalFadeOut 0.3s ease forwards;
+}
+
+.modal-content {
+  background: var(--bg-color);
+  color: var(--text-color);
+  padding: 20px;
+  border-radius: 12px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 3px 12px var(--shadow-color);
+  transform: translateY(0);
+  transition: all 0.3s ease;
+}
+
+.modal-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 15px;
 }
 
-.btn-save,
-.btn-cancel {
-  padding: 8px 14px;
+.img-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  right: 0; 
+  bottom: 0;
+  animation: modalFadeIn 0.3s ease forwards;
+}
+
+.img-modal-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 90%;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: var(--text-color);
+  width: 400px;
+  box-shadow: 0 3px 12px var(--shadow-color);
+  transform: translateY(0);
+  transition: all 0.3s ease;
+}
+
+.img-modal-content button {
+  align-self: flex-start; 
+  margin-top: 15px;
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  font-weight: 500;
 }
 
-.btn-save {
-  background-color: #007bff;
+.img-modal-content .close-btn {
+  position: absolute;
+  font-weight: 800;
+  top: 0px;
+  right: 0px;
+  background: transparent;
+  color: #000000;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.img-modal-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  justify-content: flex-start;
+}
+
+.img-modal-buttons .save-btn {
+  background-color: #4CAF50;
   color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
 }
 
-.btn-cancel {
-  background-color: #dc3545;
+.img-modal-buttons .cancel-btn {
+  background-color: #dc3545; 
   color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+.img-modal-overlay.fade-out {
+  animation: modalFadeOut 0.3s ease forwards;
 }
 
-.signature-img {
-  width: 100%;
-  height: auto;
-  margin-top: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+.message-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.message-modal-content {
+  background: var(--bg-color);
+  padding: 20px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 3px 12px var(--shadow-color);
+  animation: fadeInOut 3s forwards;
+}
+
+.message-modal-content.success {
+  background-color: var(--msg-success-bg);
+  color: var(--msg-success-text);
+}
+
+.message-modal-content.error {
+  background-color: var(--msg-error-bg);
+  color: var(--msg-error-text);
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-20px); }
+  10%, 90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-20px); }
+}
+
+@media (max-width: 768px) {
+  .user-form-grid {
+    grid-template-columns: 1fr;
+  }
 }

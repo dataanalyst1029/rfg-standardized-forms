@@ -12,26 +12,53 @@ import path from "path";
 dotenv.config();
 const { Pool } = pkg;
 
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
 const app = express();
 app.use(cors());
 app.use(express.json());
+/* ------------------------
+   FILE UPLOAD SETUP
+------------------------ */
 
-const uploadDir = path.join(process.cwd(), "uploads/signatures");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log(`✅ Created directory: ${uploadDir}`);
-}
+app.use("/uploads/signatures", express.static(path.join(process.cwd(), "uploads/signatures")));
+app.use("/uploads/profile", express.static(path.join(process.cwd(), "uploads/profile")));
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const code = req.body.purchase_request_code || "";
-    cb(null, `${code}-${Date.now()}${ext}`);
-  },
+const signatureDir = path.join(process.cwd(), "uploads/signatures");
+if (!fs.existsSync(signatureDir)) fs.mkdirSync(signatureDir, { recursive: true });
+
+const profileDir = path.join(process.cwd(), "uploads/profile");
+if (!fs.existsSync(profileDir)) fs.mkdirSync(profileDir, { recursive: true });
+
+const signatureStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, signatureDir),
+  filename: (req, file, cb) => cb(null, `${Date.now()}${path.extname(file.originalname)}`),
 });
+
+const profileStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, profileDir),
+  filename: (req, file, cb) => cb(null, `${Date.now()}${path.extname(file.originalname)}`),
+});
+
+const uploadFiles = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      if (file.fieldname === "signature") cb(null, signatureDir);
+      else if (file.fieldname === "profile_img") cb(null, profileDir);
+    },
+    filename: (req, file, cb) => {
+      cb(null, `${Date.now()}${path.extname(file.originalname)}`);
+    },
+  }),
+}).fields([
+  { name: "signature", maxCount: 1 },
+  { name: "profile_img", maxCount: 1 },
+]);
+
+
+
 
 const getNextRevolvingFundCode = async () => {
   const year = new Date().getFullYear();
@@ -177,9 +204,6 @@ const fetchPaymentRequestById = async (id) => {
   return { ...request, items: itemRows };
 };
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
 
 pool.connect()
   .then(() => console.log("✅ Connected to PostgreSQL: request_system"))
@@ -243,6 +267,21 @@ app.get("/api/users", async (req, res) => {
   }
 });
 
+app.get("/users/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 app.post("/api/users", async (req, res) => {
   const { employee_id, name, email, role, password } = req.body;
 
@@ -277,35 +316,35 @@ app.post("/api/users", async (req, res) => {
   }
 });
 
-// app.put("/api/users/:id", async (req, res) => {
-//   const { id } = req.params;
-//   const { employee_id, name, email, role, password } = req.body;
+app.put("/api/users/:id", async (req, res) => {
+  const { id } = req.params;
+  const { employee_id, name, email, role, password } = req.body;
 
-//   try {
-//     let query = `UPDATE users SET employee_id=$1, name=$2, email=$3, role=$4`;
-//     const params = [employee_id, name, email, role];
+  try {
+    let query = `UPDATE users SET employee_id=$1, name=$2, email=$3, role=$4`;
+    const params = [employee_id, name, email, role];
 
-//     if (password) {
-//       const hashedPassword = await bcrypt.hash(password, 10);
-//       query += `, password=$5 WHERE id=$6 RETURNING id, employee_id, name, email, role`;
-//       params.push(hashedPassword, id);
-//     } else {
-//       query += ` WHERE id=$5 RETURNING id, employee_id, name, email, role`;
-//       params.push(id);
-//     }
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      query += `, password=$5 WHERE id=$6 RETURNING id, employee_id, name, email, role`;
+      params.push(hashedPassword, id);
+    } else {
+      query += ` WHERE id=$5 RETURNING id, employee_id, name, email, role`;
+      params.push(id);
+    }
 
-//     const result = await pool.query(query, params);
+    const result = await pool.query(query, params);
 
-//     if (result.rows.length === 0) {
-//       return res.status(404).json({ message: "User not found" });
-//     }
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-//     res.json(result.rows[0]);
-//   } catch (err) {
-//     console.error("Error updating user:", err);
-//     res.status(500).json({ message: "Server error updating user" });
-//   }
-// });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error updating user:", err);
+    res.status(500).json({ message: "Server error updating user" });
+  }
+});
 
 
 app.delete("/api/users/:id", async (req, res) => {
@@ -321,56 +360,83 @@ app.delete("/api/users/:id", async (req, res) => {
 });
 
 /* ------------------------
-   UPDATE USER (with signature upload)
+   UPDATE USER (with signature & profile_img)
 ------------------------ */
 
-
-const upload = multer({ storage });
-app.put("/api/users/:id", async (req, res) => {
+app.put("/users/update/:id", uploadFiles, async (req, res) => {
   const { id } = req.params;
-  const { employee_id, name, email, contact_no, role, password, signature_url } = req.body;
+  const { employee_id, name, email, contact_no, role, password } = req.body;
+
+  const signature = req.files?.signature ? req.files.signature[0] : null;
+  const profileImg = req.files?.profile_img ? req.files.profile_img[0] : null;
 
   try {
-    const updates = [];
+    const hashedPassword =
+      password && password.trim() !== "" ? await bcrypt.hash(password, 10) : null;
+
+    const fields = [];
     const values = [];
     let index = 1;
 
-    if (employee_id) { updates.push(`employee_id = $${index++}`); values.push(employee_id); }
-    if (name) { updates.push(`name = $${index++}`); values.push(name); }
-    if (email) { updates.push(`email = $${index++}`); values.push(email); }
-    if (contact_no) { updates.push(`contact_no = $${index++}`); values.push(contact_no); }
-    if (role) { updates.push(`role = $${index++}`); values.push(role); }
-    if (password && password.trim() !== "") {
-      const hashed = await bcrypt.hash(password, 10);
-      updates.push(`password = $${index++}`);
-      values.push(hashed);
+    if (employee_id && employee_id.trim() !== "") {
+      fields.push(`employee_id = $${index++}`);
+      values.push(employee_id);
     }
-    if (signature_url) {
-      // store base64 directly, or convert to file and save path if preferred
-      updates.push(`signature_url = $${index++}`);
-      values.push(signature_url);
+    if (name && name.trim() !== "") {
+      fields.push(`name = $${index++}`);
+      values.push(name);
+    }
+    if (email && email.trim() !== "") {
+      fields.push(`email = $${index++}`);
+      values.push(email);
+    }
+    if (contact_no && contact_no.trim() !== "") {
+      fields.push(`contact_no = $${index++}`);
+      values.push(contact_no);
+    }
+    if (role && role.trim() !== "") {
+      fields.push(`role = $${index++}`);
+      values.push(role);
+    }
+    if (hashedPassword) {
+      fields.push(`password = $${index++}`);
+      values.push(hashedPassword);
+    }
+    if (signature) {
+      fields.push(`signature = $${index++}`);
+      values.push(signature.filename);
+    }
+    if (profileImg) {
+      fields.push(`profile_img = $${index++}`);
+      values.push(profileImg.filename);
     }
 
-    if (updates.length === 0) return res.status(400).json({ message: "No fields provided to update." });
+    if (fields.length === 0) return res.json({ message: "No changes made." });
 
-    values.push(id);
+    fields.push(`updated_at = NOW()`);
+
     const query = `
       UPDATE users
-      SET ${updates.join(", ")}
+      SET ${fields.join(", ")}
       WHERE id = $${index}
-      RETURNING id, employee_id, name, email, contact_no, role, signature_url
+      RETURNING id, employee_id, name, email, contact_no, role, signature, profile_img, created_at, updated_at;
     `;
+    values.push(id);
+
     const result = await pool.query(query, values);
 
-    if (result.rows.length === 0) return res.status(404).json({ message: "User not found." });
+    if (result.rows.length === 0) return res.status(404).json({ message: "User not found" });
 
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error("Error updating user:", err);
-    res.status(500).json({ message: "Server error updating user." });
+    res.json({
+      success: true,
+      message: "User updated successfully!",
+      user: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ success: false, message: "Error updating user" });
   }
 });
-
 
 
 /* ------------------------
@@ -468,7 +534,6 @@ app.delete("/api/user_access/:id", async (req, res) => {
    PURCHASE REQUESTS
 ------------------------ */
 
-// ✅ Generate next purchase request code
 app.get("/api/purchase_request/next-code", async (req, res) => {
   try {
     const year = new Date().getFullYear();
@@ -509,7 +574,7 @@ app.post("/api/purchase_request", async (req, res) => {
     department,
     address,
     purpose,
-    user_id, // <-- add this
+    user_id,
     items = [],
   } = req.body;
 
@@ -517,7 +582,6 @@ app.post("/api/purchase_request", async (req, res) => {
   try {
     await client.query("BEGIN");
 
-    // Include user_id in INSERT
     const result = await client.query(
       `INSERT INTO purchase_request
        (purchase_request_code, request_date, request_by, contact_number, branch, department, address, purpose, user_id)
@@ -532,7 +596,7 @@ app.post("/api/purchase_request", async (req, res) => {
         department,
         address,
         purpose,
-        user_id, // <-- include in values
+        user_id, 
       ]
     );
 
@@ -605,59 +669,76 @@ app.get("/api/purchase_request_items", async (req, res) => {
   }
 });
 
-// 🗂️ Create uploads directory if it doesn't exist
 
 
-// 🖼️ Serve uploaded files publicly
-app.use("/uploads", express.static("uploads"));
-
-// ✅ Now the route comes AFTER upload is defined
-app.put("/api/update_purchase_request", upload.single("approved_signature"), async (req, res) => {
-  const { purchase_request_code, date_ordered, approved_by, po_number, status } = req.body;
-
-  try {
-    if (status === "Approved" && (!date_ordered || !approved_by || !po_number)) {
-      return res.status(400).json({ message: "Missing required fields for approval." });
-    }
-
-    const values = [];
-    let query = `
-      UPDATE purchase_request
-      SET status = $1,
-          updated_at = NOW()
-    `;
-    values.push(status);
-
-    if (status === "Approved") {
-      query += `,
-        date_ordered = $2,
-        approved_by = $3,
-        po_number = $4
-      `;
-      values.push(date_ordered, approved_by, po_number);
-    }
-
-    if (req.file) {
-      const filePath = req.file.path.replace(/\\/g, "/");
-      query += `, approved_signature = $${values.length + 1}`;
-      values.push(filePath);
-    }
-
-    query += ` WHERE purchase_request_code = $${values.length + 1} RETURNING *`;
-    values.push(purchase_request_code);
-
-    const result = await pool.query(query, values);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Purchase request not found." });
-    }
-
-    res.json({ success: true, message: "Purchase request updated successfully." });
-  } catch (err) {
-    console.error("❌ Error updating purchase request:", err);
-    res.status(500).json({ message: "Server error updating purchase request." });
-  }
+/* ------------------------
+   UPLOAD FOR APPROVED SIGNATURE
+------------------------ */
+const approvedSignatureStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(process.cwd(), "uploads/signatures");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}${path.extname(file.originalname)}`);
+  },
 });
 
+const uploadApprovedSignature = multer({ storage: approvedSignatureStorage });
+
+/* ------------------------
+   UPDATE PURCHASE REQUEST
+------------------------ */
+app.put(
+  "/api/update_purchase_request",
+  uploadApprovedSignature.single("approved_signature"),
+  async (req, res) => {
+    const { purchase_request_code, date_ordered, approved_by, po_number, status } = req.body;
+
+    try {
+      if (status === "Approved" && (!date_ordered || !approved_by || !po_number)) {
+        return res.status(400).json({ message: "Missing required fields for approval." });
+      }
+
+      const values = [status];
+      let query = `
+        UPDATE purchase_request
+        SET status = $1,
+            updated_at = NOW()
+      `;
+
+      if (status === "Approved") {
+        query += `,
+          date_ordered = $2,
+          approved_by = $3,
+          po_number = $4
+        `;
+        values.push(date_ordered, approved_by, po_number);
+      }
+
+      if (req.file) {
+        const filePath = req.file.path.replace(/\\/g, "/");
+        query += `, approved_signature = $${values.length + 1}`;
+        values.push(filePath);
+      }
+
+      query += ` WHERE purchase_request_code = $${values.length + 1} RETURNING *`;
+      values.push(purchase_request_code);
+
+      const result = await pool.query(query, values);
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: "Purchase request not found." });
+      }
+
+      res.json({ success: true, message: "Purchase request updated successfully.", data: result.rows[0] });
+    } catch (err) {
+      console.error("❌ Error updating purchase request:", err);
+      res.status(500).json({ message: "Server error updating purchase request." });
+    }
+  }
+);
 
 
 /* ------------------------

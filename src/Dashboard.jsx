@@ -122,6 +122,7 @@ const getInitialView = () => {
     const validIds = [
       ...navigationItems.map((item) => item.id),
       "purchase-request",
+      "profile"
     ];
     if (validIds.includes(stored)) {
       return stored;
@@ -267,7 +268,7 @@ function Dashboard({ role, name, onLogout }) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const stored = sessionStorage.getItem(STORAGE_KEY); // changed
+      const stored = sessionStorage.getItem(STORAGE_KEY);
       if (
         stored &&
         [
@@ -329,7 +330,7 @@ function Dashboard({ role, name, onLogout }) {
               <nav className="sidebar-nav">
                 {section.items.map((item) => {
                   if (item.id === "requests") {
-                    // if (role === "admin") return null;
+                    if (role === "admin") return null;
                     return (
                       <div key={item.id} className="sidebar-dropdown">
                         <button
@@ -443,7 +444,6 @@ function Dashboard({ role, name, onLogout }) {
                     );
                   }
 
-                  // Reports dropdown
                   if (item.id === "reports") {
                     return (
                       <div key={item.id} className="sidebar-dropdown">
@@ -452,7 +452,10 @@ function Dashboard({ role, name, onLogout }) {
                           className={`sidebar-item${
                             activeView.startsWith("reports-") ? " sidebar-item-active" : ""
                           }`}
-                          onClick={() => setReportsOpen((prev) => !prev)}
+                          onClick={() => {
+                            setReportsOpen((prev) => !prev);
+                            setRequestsOpen(false);
+                          }}
                         >
                           <span className="sidebar-item-icon">📑</span>
                           <span>{item.label}</span>
@@ -581,7 +584,8 @@ function Dashboard({ role, name, onLogout }) {
                       type="button"
                       onClick={() => {
                         setActiveView(item.id);
-                        setRequestsOpen(false);
+                        setRequestsOpen(false); 
+                        setReportsOpen(false);  
                       }}
                       className={`sidebar-item${
                         activeView === item.id ? " sidebar-item-active" : ""
@@ -610,8 +614,12 @@ function Dashboard({ role, name, onLogout }) {
 
           <button
             type="button"
-            className={`sidebar-item sidebar-item-nested${activeView === "profile" ? " underline-active" : ""}`}
-            onClick={() => setActiveView("profile")}
+            className={`sidebar-item${activeView === "profile" ? " sidebar-item-active" : ""}`}
+            onClick={() => {
+              setActiveView("profile");
+              setRequestsOpen(false);
+              setReportsOpen(false);
+            }}
             style={{ marginBottom: "0.5rem" }}
           >
             ⚙️ Profile & Settings
