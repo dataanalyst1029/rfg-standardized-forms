@@ -1,0 +1,73 @@
+.ot-alert {
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--color-border);
+}
+
+.ot-alert--success {
+  color: var(--color-accent);
+  background: rgba(36, 207, 142, 0.15);
+  border-color: rgba(36, 207, 142, 0.4);
+}
+
+.ot-alert--error {
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.ot-items-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 0.9rem;
+}
+
+.ot-total-card {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 0.8rem;
+  background: rgba(63, 140, 255, 0.1);
+  border: 1px solid rgba(63, 140, 255, 0.22);
+}
+
+.ot-total-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ot-total-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.ot-cutoff-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.ot-cutoff-separator {
+  display: none;
+}
+
+@media (min-width: 540px) {
+  .ot-cutoff-range {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  .ot-cutoff-separator {
+    display: inline-block;
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+}

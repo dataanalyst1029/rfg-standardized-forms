@@ -1,0 +1,68 @@
+.ca-items-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 0.9rem;
+}
+
+.ca-total-card {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 0.9rem 1.2rem;
+  border-radius: 0.8rem;
+  background: rgba(63, 140, 255, 0.08);
+  border: 1px solid rgba(63, 140, 255, 0.22);
+  color: var(--color-text-primary);
+}
+
+.ca-total-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.ca-total-amount {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.ca-alert {
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--color-border);
+}
+
+.ca-alert--success {
+  color: var(--color-accent);
+  background: rgba(36, 207, 142, 0.15);
+  border-color: rgba(36, 207, 142, 0.4);
+}
+
+.ca-alert--error {
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.pr-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pr-topbar h1 {
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: 600;
+}
+
+.pr-topbar-meta {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}

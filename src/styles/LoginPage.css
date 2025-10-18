@@ -1,0 +1,120 @@
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  background: radial-gradient(
+    circle at top right,
+    rgba(36, 207, 142, 0.18),
+    transparent 45%
+  ),
+  radial-gradient(
+    circle at bottom left,
+    rgba(36, 207, 142, 0.14),
+    transparent 50%
+  ),
+  var(--color-app-bg);
+  position: relative;
+}
+
+.login-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1.4rem;
+  padding: 2.4rem 2.8rem;
+  width: min(420px, 95vw);
+  text-align: center;
+  box-shadow: var(--shadow-elevation);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.logo-container {
+  display: flex;
+  justify-content: center;
+}
+
+.rfg-logo {
+  width: 82px;
+  height: auto;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.login-card input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-app-bg);
+  padding: 0.75rem 0.9rem;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.login-card input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(36, 207, 142, 0.2);
+}
+
+.login-card button {
+  border-radius: 0.85rem;
+  border: none;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
+  color: #06131f;
+  padding: 0.9rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.login-card button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(36, 207, 142, 0.28);
+}
+
+.message {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--color-accent);
+}
+
+.message.message-error {
+  color: var(--color-danger);
+}
+
+@media (max-width: 640px) {
+  .login-card {
+    padding: 2rem;
+  }
+
+  .app-title {
+    font-size: 1.35rem;
+  }
+}
