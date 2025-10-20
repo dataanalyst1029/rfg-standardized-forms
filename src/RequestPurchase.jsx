@@ -332,35 +332,33 @@ function RequestPurchase() {
                     <div className="approver-content">
                         <div>
                             <label>
-                                <span>Approved by:</span>
                                 <input
                                     type="text"
                                     name="approved_by"
                                     value={userData.name || ""}
                                     readOnly
                                 />
+                                <span>Approved by:</span>
                             </label>
                         </div>
 
-                        <div className="purchase-signature">
+                        <div className="approver-signature">
                             <label>
-                            <span>Signature:</span>
-                            {userData.signature ? (
+                                {userData.signature ? (
                                 <img
                                 src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
                                 alt="Signature"
-                                className="signature-img"
-                                style={{ width: "150px", height: "auto", border: "1px solid #ccc", borderRadius: "4px" }}
+                                className="signature-img"/>
+                                ) : (
+                                    <p>No signature available</p>
+                                )}
+                                <input
+                                    type="text"
+                                    name="approved_signature"
+                                    value={userData.signature || ""}
+                                    required
                                 />
-                            ) : (
-                                <p>No signature available</p>
-                            )}
-                            <input
-                                type="text"
-                                name="approved_signature"
-                                value={userData.signature || ""}
-                                required
-                            />
+                                <span>Signature:</span>
                             </label>
                         </div>
                     </div>
@@ -369,35 +367,33 @@ function RequestPurchase() {
                         <strong>Purchasing Department Use Only</strong>
                         </p>
                         <div className="purchase-grid">
-                        <div className="purchase-left">
-                            <label>
-                            <span>Date Ordered:</span>
-                            <input
-                                type="date"
-                                name="date_ordered"
-                                className="date"
-                                defaultValue={
-                                modalRequest.date_ordered ||
-                                new Date().toISOString().split("T")[0]
-                                }
-                                required
-                            />
-                            </label>
-
-                            <label>
-                                <span>PO Number:</span>
+                            <div className="purchase-left">
+                                <label>
+                                <span>Date Ordered:</span>
                                 <input
-                                    type="text"
-                                    name="po_number"
-                                    defaultValue={modalRequest.po_number || ""}
-                                    placeholder="Enter PO number"
+                                    type="date"
+                                    name="date_ordered"
+                                    className="date"
+                                    defaultValue={
+                                    modalRequest.date_ordered ||
+                                    new Date().toISOString().split("T")[0]
+                                    }
                                     required
                                 />
-                            </label>
+                                </label>
 
-                        </div>
+                                <label>
+                                    <span>PO Number:</span>
+                                    <input
+                                        type="text"
+                                        name="po_number"
+                                        defaultValue={modalRequest.po_number || ""}
+                                        placeholder="Enter PO number"
+                                        required
+                                    />
+                                </label>
 
-                        
+                            </div>
                         </div>
                     </div>
 

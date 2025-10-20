@@ -1,3 +1,16 @@
+:root {
+  --text-color: #ffffff;
+  --border-color: #ccc;
+  --background-color: #fff;
+}
+
+[data-theme="dark"], 
+.dark {
+  --text-color: #ffffff;
+  --border-color: #ffffff;
+  --background-color: #ffffff;
+}
+
 .request-modal {
   max-width: 600px;
   position: relative;
@@ -164,28 +177,32 @@ body.dark-mode .request-modal {
   padding-top: 60px;
 }
 
-img {
-  position: absolute;
-  top: 0%;
-  left: 50%;
-  width: 170px;
-  height: auto;
-  object-fit: contain;
-  transform: translate(-53%, -50%);
-  z-index: 0;
-  max-width: 25vw;
+
+
+:root {
+  /* Light mode colors */
+  --text-color: #222;
+  --border-color: #ccc;
+  --background-color: #fff;
+}
+
+[data-theme="dark"], 
+.dark {
+  /* Dark mode colors */
+  --text-color: #f5f5f5;
+  --border-color: #555;
+  --background-color: #1e1e1e;
 }
 
 .approver-content {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  text-align: center;
   justify-content: space-between;
   gap: 24px; 
-  border: 1px solid #ccc;
   padding: 16px;
-  border-radius: 6px;
   margin-top: 24px;
+  background-color: transparent; /* so it adapts under parent theme */
 }
 
 .approver-content label {
@@ -197,27 +214,30 @@ img {
 .approver-content input[type="text"] {
   margin-top: 4px;
   padding: 6px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 0;
+  border-bottom: 1px solid var(--border-color);
   width: 200px;
+  text-align: center;
+  background-color: transparent;
+  color: var(--text-color);
+  transition: border-color 0.3s ease, color 0.3s ease;
 }
 
-.purchase-signature {
+.approver-content input[type="text"]:focus {
+  outline: none;
+  border-bottom: 1px solid var(--text-color);
+}
+
+.approver-signature {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center; /* center image horizontally */
+  align-items: center;
 }
 
-.signature-img {
-  width: 150px;
-  height: auto;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-top: 8px;
-}
-img {
+.approver-signature .signature-img {
   position: absolute;
-  top: 50%;
+  top: 0;
   left: 50%;
   width: 170px;
   height: auto;
@@ -225,4 +245,9 @@ img {
   transform: translate(-53%, -50%);
   z-index: 0;
   max-width: 25vw;
+  margin-top: 8px;
+}
+
+.approver-content input[name="approved_signature"] {
+  color: #fff;
 }
