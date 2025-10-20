@@ -1,0 +1,47 @@
+.rf-signature-row {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 4rem;
+  flex-wrap: wrap;
+}
+
+.rf-signature-block {
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.rf-signature-line {
+  display: inline-block;
+  min-width: 220px;
+  text-align: center;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid currentColor;
+  font-weight: 600;
+}
+
+.rf-signature-line.muted {
+  font-style: italic;
+  color: var(--card-meta, #555);
+}
+
+.rf-signature-image {
+  max-width: 160px;
+  height: auto;
+  object-fit: contain;
+}
+
+.rf-no-border {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.rf-status-row {
+  margin-top: 1rem;
+}

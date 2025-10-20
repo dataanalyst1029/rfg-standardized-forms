@@ -1,0 +1,285 @@
+.pay-print-card {
+  background: #ffffff;
+  border: 1px solid #111;
+  border-radius: 10px;
+  padding: 1.15rem 1.4rem;
+  margin: 0 auto;
+  max-width: 900px;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
+  color: var(--card-text, #222);
+  display: flex;
+  flex-direction: column;
+  gap: 1.05rem;
+}
+
+.pay-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-bottom: 2px solid #111;
+  padding-bottom: 0.6rem;
+}
+
+.pay-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.pay-logo {
+  max-width: 150px;
+  height: auto;
+}
+
+.pay-header-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  text-transform: uppercase;
+}
+
+.pay-header-title {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+}
+
+.pay-form-code {
+  border: 1px solid #111;
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+}
+
+.pay-meta-date-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  border: 1px solid #111;
+  font-size: 0.9rem;
+}
+
+.pay-meta-date-row span {
+  padding: 0.45rem 0.65rem;
+  border-right: 1px solid #111;
+}
+
+.pay-meta-date-row span:last-child {
+  border-right: none;
+}
+
+.pay-meta-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #111;
+  font-size: 0.9rem;
+}
+
+.pay-meta-table th,
+.pay-meta-table td {
+  border: 1px solid #111;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+
+.pay-meta-table th {
+  width: 22%;
+  font-weight: 600;
+  background: var(--card-bg-muted, #f7f7f7);
+}
+
+.pay-purpose-section {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  border: 1px solid #111;
+  font-size: 0.9rem;
+}
+
+.pay-purpose-section span {
+  padding: 0.55rem 0.65rem;
+  border-right: 1px solid #111;
+}
+
+.pay-purpose-section span:last-child {
+  border-right: none;
+}
+
+.pay-items-table {
+  width: 100%;
+  border: 1px solid #111;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.pay-items-table th,
+.pay-items-table td {
+  border: 1px solid #111;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+}
+
+.pay-items-table th {
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  background: #f1f1f1;
+}
+
+.pay-items-table .text-center {
+  text-align: center;
+}
+
+.pay-items-total-row td {
+  font-weight: 600;
+  background: #111;
+  color: #fff;
+}
+
+.pay-footnote {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: #444;
+}
+
+.pay-signature-table {
+  width: 100%;
+  border: 1px solid #111;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.pay-signature-table th,
+.pay-signature-table td {
+  border: 1px solid #111;
+  padding: 0.8rem 0.7rem;
+  text-align: left;
+}
+
+.pay-signature-table td {
+  min-height: 3.4rem;
+  vertical-align: bottom;
+}
+
+.pay-signature-table th:nth-child(3),
+.pay-signature-table td:nth-child(3) {
+  width: 18%;
+}
+
+.pay-signature-table th:nth-child(4),
+.pay-signature-table td:nth-child(4) {
+  width: 30%;
+}
+
+.pay-signature-placeholder {
+  display: inline-block;
+  width: 100%;
+  min-height: 2.6rem;
+  border-bottom: 1px solid currentColor;
+  text-align: center;
+  font-weight: 600;
+}
+
+.pay-accounting-card {
+  border: 1px solid #111;
+  border-radius: 8px;
+  overflow: hidden;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.pay-accounting-header {
+  background: #111;
+  color: #fff;
+  padding: 0.55rem 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
+
+.pay-accounting-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.pay-accounting-table th,
+.pay-accounting-table td {
+  border: 1px solid #111;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+
+.pay-accounting-table th {
+  width: 20%;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pay-print-card {
+    background: var(--card-bg, #000000);
+    border-color: var(--card-border, #000000);
+    background-color: #ffffff;
+    box-shadow: none;
+    margin-bottom: 5rem;
+    margin-top: 2rem;
+  }
+
+  .pay-header,
+  .pay-meta-date-row,
+  .pay-meta-table,
+  .pay-purpose-section,
+  .pay-items-table,
+  .pay-signature-table,
+  .pay-accounting-card,
+  .pay-accounting-table {
+    border-color: var(--card-border, #555);
+  }
+
+  .pay-meta-table th,
+  .pay-items-table th {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .pay-form-code {
+    border-color: var(--card-border, #555);
+  }
+
+  .pay-accounting-header {
+    background: var(--color-text-primary, #eaeaea);
+    color: #111;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0.55in;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 0.9rem;
+  }
+
+  .pay-print-card {
+    box-shadow: none;
+    border-radius: 0;
+    max-width: 7.05in;
+    margin: 0 auto;
+    padding: 1in 0.75in 0.75in;
+  }
+
+  .pay-items-table th {
+    background: #e5e5e5 !important;
+  }
+
+  .pay-accounting-card {
+    border-radius: 0;
+  }
+}

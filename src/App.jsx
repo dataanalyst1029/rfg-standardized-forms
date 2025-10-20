@@ -13,6 +13,7 @@ import SubmittedPurchaseRequests from "./submitted-request/SubmittedPurchaseRequ
 import SubmittedRequests from "./submitted-request/SubmittedRequests";
 import SubmittedRevolvingFund from "./submitted-request/SubmittedRevolvingFund";
 import SubmittedCashAdvance from "./submitted-request/SubmittedCashAdvance";
+import SubmittedPaymentRequest from "./submitted-request/SubmittedPaymentRequest";
 import RevolvingFund from "./forms/RevolvingFund";
 import CashAdvanceRequest from "./forms/CashAdvanceRequest";
 import PaymentRequest from "./forms/PaymentRequest";
@@ -201,7 +202,11 @@ function App() {
           path="/forms/cash-advance-request/submitted"
           element={
             user ? (
-              <SubmittedCashAdvance />
+              <SubmittedCashAdvance
+                onLogout={handleLogout}
+                currentUserId={user.id}
+                showAll={user.role !== "user"}
+              />
             ) : (
               <Navigate to="/" replace />
             )
@@ -212,7 +217,11 @@ function App() {
           path="/forms/revolving-fund/submitted"
           element={
             user ? (
-              <SubmittedRevolvingFund />
+              <SubmittedRevolvingFund
+                onLogout={handleLogout}
+                currentUserId={user.id}
+                showAll={user.role !== "user"}
+              />
             ) : (
               <Navigate to="/" replace />
             )
@@ -223,7 +232,11 @@ function App() {
           path="/forms/payment-request-form/submitted"
           element={
             user ? (
-              <SubmittedRequests formSlug="payment-request-form" />
+              <SubmittedPaymentRequest
+                onLogout={handleLogout}
+                currentUserId={user.id}
+                showAll={user.role !== "user"}
+              />
             ) : (
               <Navigate to="/" replace />
             )

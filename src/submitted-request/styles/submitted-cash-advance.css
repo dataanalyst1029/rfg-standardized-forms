@@ -1,0 +1,190 @@
+.ca-signature-grid {
+  margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1.5rem 2.5rem;
+}
+
+.ca-signature-block {
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ca-signature-line {
+  display: inline-block;
+  min-width: 200px;
+  text-align: center;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid currentColor;
+  font-weight: 600;
+}
+
+.ca-signature-line.muted {
+  font-style: italic;
+  color: var(--card-meta, #555);
+}
+
+.ca-signature-image {
+  max-width: 160px;
+  height: auto;
+  object-fit: contain;
+}
+
+.ca-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.6rem 1.5rem;
+  margin-top: 0.75rem;
+}
+
+.ca-summary-grid p {
+  margin: 0;
+}
+
+.ca-accounting-card {
+  margin: 1.75rem auto 0;
+  border: 1px solid var(--card-border, #d0d0d0);
+  border-radius: 12px;
+  background: var(--card-bg, #ffffff);
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  max-width: 720px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.ca-accounting-header {
+  background: var(--color-text-primary, #111);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+}
+
+.ca-accounting-body {
+  padding: 1rem 1.25rem;
+  display: grid;
+  gap: 0.85rem 1.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  font-size: 0.95rem;
+  color: var(--card-text, #222);
+}
+
+.ca-accounting-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ca-accounting-subtitle {
+  margin: 0;
+  font-weight: 600;
+}
+
+.ca-accounting-line {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+.ca-accounting-line span:first-child {
+  font-weight: 500;
+}
+
+.ca-accounting-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 500;
+}
+
+.ca-accounting-checkbox mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1px solid var(--card-border, #999);
+  border-radius: 0.2rem;
+  background: transparent;
+  font-size: 0.85rem;
+}
+
+.ca-accounting-input-display {
+  min-width: 170px;
+  border-bottom: 1px solid var(--card-border, #ccc);
+  padding: 0.25rem 0;
+  font-weight: 500;
+  display: inline-flex;
+  justify-content: flex-start;
+  flex: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ca-signature-line.muted {
+    color: var(--card-meta, #bbb);
+  }
+
+  .ca-accounting-card {
+    background: var(--card-bg, #1f1f1f);
+    border-color: var(--card-border, #444);
+    box-shadow: none;
+  }
+
+  .ca-accounting-header {
+    background: var(--color-text-primary, #eaeaea);
+    color: #111;
+  }
+
+  .ca-accounting-input-display {
+    border-bottom-color: var(--card-border, #555);
+  }
+
+  .ca-accounting-checkbox mark {
+    border-color: var(--card-border, #777);
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0.6in;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 0.9rem;
+  }
+
+  .submitted-request-card {
+    padding: 0;
+    box-shadow: none;
+    max-width: 7.1in;
+    margin: 0 auto;
+  }
+
+  .ca-signature-grid {
+    margin-top: 1.1rem;
+    gap: 1rem 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .ca-signature-block {
+    min-width: 185px;
+    gap: 0.45rem;
+  }
+
+  .ca-accounting-card {
+    box-shadow: none;
+    border: 1px solid #555;
+    margin-top: 1.25rem;
+    max-width: 7.1in;
+  }
+}
