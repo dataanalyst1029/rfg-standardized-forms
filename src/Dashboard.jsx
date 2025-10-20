@@ -330,7 +330,7 @@ function Dashboard({ role, name, onLogout }) {
               <nav className="sidebar-nav">
                 {section.items.map((item) => {
                   if (item.id === "requests") {
-                    // if (role === "admin") return null;
+                    if (role === "admin") return null;
                     return (
                       <div key={item.id} className="sidebar-dropdown">
                         <button

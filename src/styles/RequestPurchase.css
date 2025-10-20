@@ -1,28 +1,53 @@
 :root {
-  --text-color: #ffffff;
+  --text-color: #222;
   --border-color: #ccc;
   --background-color: #fff;
 }
 
 [data-theme="dark"], 
 .dark {
-  --text-color: #ffffff;
-  --border-color: #ffffff;
-  --background-color: #ffffff;
+  --text-color: #f5f5f5;
+  --border-color: #555;
+  --background-color: #1e1e1e;
 }
 
-.request-modal {
+@keyframes modalFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalFadeOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+}
+
+.request-modal,
+.admin-modal-panel {
   max-width: 600px;
   position: relative;
   width: 90%;
   padding: 24px;
   border-radius: 8px;
-  background-color: var(--modal-bg, #fff);
-  color: var(--modal-text, #1f2937);
   overflow-y: auto;
+  transform: translateY(0);
+  transition: all 0.3s ease;
+  background-color: var(--modal-bg, #fff);
+  color: var(--text-color);
+  box-shadow: 0 3px 12px var(--shadow-color);
 }
 
-/* 🌙 Dark mode */
 body.dark-mode .request-modal {
   --modal-bg: #1f2937;
   --modal-text: #141414;
@@ -33,7 +58,7 @@ body.dark-mode .request-modal {
 }
 
 .request-modal p {
-  margin: 4px 0;
+  margin: 1px 0;
 }
 
 .request-modal h3 {
@@ -65,8 +90,6 @@ body.dark-mode .request-modal {
   border-radius: 6px;
   margin-top: 24px;
   font-size: 0.9rem;
-  display: flex;
-  flex-direction: column;
   align-items: center;
   text-align: left;
 }
@@ -80,41 +103,39 @@ body.dark-mode .request-modal {
 
 .purchase-grid {
   display: flex;
-  justify-content: center;
-  gap: 40px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 16px;
+  margin-top: 24px;
   flex-wrap: wrap;
 }
 
-.purchase-left,
-.purchase-right {
+.purchase-grid label {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  text-align: left;
-}
-
-.purchase-left label,
-.purchase-right label {
-  display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   font-weight: 500;
+  flex: 1;
 }
 
-/* ✅ Inputs always white, readable in dark mode */
-.purchase-left input,
-.purchase-right input {
+.purchase-grid span {
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.purchase-grid input {
+  flex: 1;
   padding: 6px;
   border: 1px solid #ccc;
   border-radius: 4px;
   background-color: #fff !important;
   color: #000 !important;
+  width: 100%;
 }
 
-/* File input consistent */
-.purchase-right input[type="file"] {
-  background-color: #fff !important;
-  color: #000 !important;
-}
 
 .admin-ghost-btn {
   background: #666666;
@@ -125,7 +146,9 @@ body.dark-mode .request-modal {
   color: #fff;
 }
 
-
+.admin-modal-footer {
+  margin-top: 1rem;
+}
 .admin-success-btn {
   background: #28a745;
   color: white;
@@ -133,17 +156,28 @@ body.dark-mode .request-modal {
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  z-index: 1;
 }
 
-.admin-danger-btn {
+.admin-success-btn:hover {
+  transform: translateY(2px);
+  box-shadow: 0 12px 28px rgba(36, 207, 142, 0.28);
+}
+
+.admin-reject-btn {
   background: #dc3545;
   color: white;
   padding: 8px 14px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  z-index: 1;
 }
 
+.admin-reject-btn:hover {
+  transform: translateY(2px);
+  box-shadow: 0 12px 28px rgba(36, 207, 142, 0.28);
+}
 
 .admin-close-btn {
   position: absolute;
@@ -165,33 +199,6 @@ body.dark-mode .request-modal {
 
 .approver-content span {
   font-weight: bold;
-
-}
-
-.purchase-signature {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-  min-width: 180px;
-  padding-top: 60px;
-}
-
-
-
-:root {
-  /* Light mode colors */
-  --text-color: #222;
-  --border-color: #ccc;
-  --background-color: #fff;
-}
-
-[data-theme="dark"], 
-.dark {
-  /* Dark mode colors */
-  --text-color: #f5f5f5;
-  --border-color: #555;
-  --background-color: #1e1e1e;
 }
 
 .approver-content {
@@ -201,8 +208,8 @@ body.dark-mode .request-modal {
   justify-content: space-between;
   gap: 24px; 
   padding: 16px;
-  margin-top: 24px;
-  background-color: transparent; /* so it adapts under parent theme */
+  margin-top: 0px;
+  background-color: transparent;
 }
 
 .approver-content label {
@@ -239,7 +246,7 @@ body.dark-mode .request-modal {
   position: absolute;
   top: 0;
   left: 50%;
-  width: 170px;
+  width: 150px;
   height: auto;
   object-fit: contain;
   transform: translate(-53%, -50%);

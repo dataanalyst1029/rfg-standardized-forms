@@ -55,7 +55,7 @@ function FormsList({ onLogout }) {
             onChange={(event) => setSelectedForm(event.target.value)}
             className="forms-select"
           >
-            <option value="">-- Choose a form --</option>
+            <option value="" disabled>-- Choose a form --</option>
             {forms.map((form) => (
               <option key={form} value={form}>
                 {form}

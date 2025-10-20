@@ -137,7 +137,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
             }
 
             .approved-content {
-              margin-top: 2rem;
+              margin-top: 3rem;
             }
 
             .purchase-dept-family{
@@ -438,7 +438,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                   <div className="approved-content">
                     <div className="purchase-dept-content">
                       <div>
-                        <input value={selectedRequest.approved_by} readOnly />
+                        <span>{selectedRequest.approved_by}</span>
                         <p>Approved by</p>
                       </div>
 
@@ -446,7 +446,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                         {selectedRequest.approved_signature ? (
                           <>
                             <img
-                              src={`${API_BASE_URL}/${selectedRequest.approved_signature}`}
+                              src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approved_signature}`}
                               alt="Signature"
                               className="signature-image"
                             />

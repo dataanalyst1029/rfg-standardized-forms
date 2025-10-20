@@ -58,9 +58,6 @@ const uploadFiles = multer({
   { name: "profile_img", maxCount: 1 },
 ]);
 
-
-
-
 const getNextRevolvingFundCode = async () => {
   const year = new Date().getFullYear();
   const prefix = `RFF-${year}-`;
@@ -675,71 +672,59 @@ app.get("/api/purchase_request_items", async (req, res) => {
 /* ------------------------
    UPLOAD FOR APPROVED SIGNATURE
 ------------------------ */
-const approvedSignatureStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(process.cwd(), "uploads/signatures");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}${path.extname(file.originalname)}`);
-  },
-});
-
-const uploadApprovedSignature = multer({ storage: approvedSignatureStorage });
 
 /* ------------------------
    UPDATE PURCHASE REQUEST
 ------------------------ */
-app.put(
-  "/api/update_purchase_request",
-  uploadApprovedSignature.single("approved_signature"),
-  async (req, res) => {
-    const { purchase_request_code, date_ordered, approved_by, po_number, status } = req.body;
+const uploadForm = multer();
 
-    try {
-      if (status === "Approved" && (!date_ordered || !approved_by || !po_number)) {
-        return res.status(400).json({ message: "Missing required fields for approval." });
-      }
+app.put("/api/update_purchase_request", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      purchase_request_code,
+      approved_by,
+      approved_signature,
+      status,
+    } = req.body;
 
-      const values = [status];
-      let query = `
-        UPDATE purchase_request
-        SET status = $1,
-            updated_at = NOW()
-      `;
-
-      if (status === "Approved") {
-        query += `,
-          date_ordered = $2,
-          approved_by = $3,
-          po_number = $4
-        `;
-        values.push(date_ordered, approved_by, po_number);
-      }
-
-      if (req.file) {
-        const filePath = req.file.path.replace(/\\/g, "/");
-        query += `, approved_signature = $${values.length + 1}`;
-        values.push(filePath);
-      }
-
-      query += ` WHERE purchase_request_code = $${values.length + 1} RETURNING *`;
-      values.push(purchase_request_code);
-
-      const result = await pool.query(query, values);
-
-      if (result.rowCount === 0) {
-        return res.status(404).json({ message: "Purchase request not found." });
-      }
-
-      res.json({ success: true, message: "Purchase request updated successfully.", data: result.rows[0] });
-    } catch (err) {
-      console.error("❌ Error updating purchase request:", err);
-      res.status(500).json({ message: "Server error updating purchase request." });
+    if (!purchase_request_code) {
+      return res.status(400).json({ message: "purchase_request_code is required." });
     }
+
+    const values = [status];
+    let query = `
+      UPDATE purchase_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    if (status === "Approved") {
+      query += `,
+        approved_by = $2,
+        approved_signature = $3
+      `;
+      values.push(approved_by, approved_signature);
+    }
+
+    query += ` WHERE purchase_request_code = $${values.length + 1} RETURNING *`;
+    values.push(purchase_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Purchase request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Purchase request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating purchase request:", err);
+    res.status(500).json({ message: "Server error updating purchase request." });
   }
-);
+});
 
 
 /* ------------------------

@@ -38,6 +38,12 @@ function RequestPurchase() {
     const storedId = sessionStorage.getItem("id");
     const [userData, setUserData] = useState({ name: "", signature: "" });
 
+    const [showLoadingModal, setShowLoadingModal] = useState(false);
+    const [showConfirmDecline, setShowConfirmDecline] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
+
+
+
     useEffect(() => {
     if (!storedId) return;
 
@@ -96,10 +102,17 @@ function RequestPurchase() {
         setModalOpen(true);
     };
 
-    const closeModal = () => {
-        setModalRequest(null);
+    const handleCloseModal = () => {
+        setIsClosing(true);
+        setTimeout(() => {
+        setIsClosing(false);
         setModalOpen(false);
+        setModalRequest(null);
+        setShowLoadingModal(false);
+        setShowConfirmDecline(false);
+        }, 300); // matches your fade-out animation
     };
+
 
     return (
         <div className="admin-view">
@@ -240,219 +253,226 @@ function RequestPurchase() {
             </div>
 
             {modalOpen && modalRequest && (
-                <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-                <div className="admin-modal-panel request-modal">
-                    <button
-                    className="admin-close-btn"
-                    onClick={closeModal}
-                    aria-label="Close"
-                    >
-                    ×
-                    </button>
+                <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
+                    <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+                        <div className="admin-modal-panel request-modal">
+                            <button
+                                className="admin-close-btn"
+                                onClick={handleCloseModal}
+                                aria-label="Close"
+                                >
+                                ×
+                            </button>
 
-                    <h2>{modalRequest.purchase_request_code}</h2>
+                            <h2>{modalRequest.purchase_request_code}</h2>
+                            <p>
+                                <strong>Requested by:</strong>{" "}
+                                <em>{modalRequest.request_by}</em>
+                            </p>
+                            <p>
+                                <strong>Date:</strong>{" "}
+                                <em>{new Date(modalRequest.request_date).toLocaleDateString()}</em>
+                            </p>
+                            <p>
+                                <strong>Branch:</strong>{" "}
+                                <em>{modalRequest.branch}</em>
+                            </p>
+                            <p>
+                                <strong>Department:</strong>{" "}
+                                <em>{modalRequest.department}</em>
+                            </p>
+                            <p>
+                                <strong>Purpose:</strong>{" "}
+                                <em>{modalRequest.purpose}</em>
+                            </p>
 
-                    <p>
-                    <strong>Requested by:</strong>{" "}
-                    <em>{modalRequest.request_by}</em>
-                    </p>
-                    <p>
-                    <strong>Date:</strong>{" "}
-                    <em>{new Date(modalRequest.request_date).toLocaleDateString()}</em>
-                    </p>
-                    <p>
-                    <strong>Branch:</strong> <em>{modalRequest.branch}</em>
-                    </p>
-                    <p>
-                    <strong>Department:</strong> <em>{modalRequest.department}</em>
-                    </p>
-                    <p>
-                    <strong>Purpose:</strong> <em>{modalRequest.purpose}</em>
-                    </p>
+                            <h3>Requested Items</h3>
+                            {modalRequest.items && modalRequest.items.length > 0 ? (
+                            <table className="request-items-table">
+                                <thead>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th style={{ textAlign: "center" }}>Quantity</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {modalRequest.items.map((item) => (
+                                    <tr key={item.id}>
+                                    <td>{item.purchase_item}</td>
+                                    <td style={{ textAlign: "center" }}>{item.quantity}</td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                            ) : (
+                            <p>—</p>
+                            )}
 
-                    <h3>Requested Items</h3>
-                    {modalRequest.items && modalRequest.items.length > 0 ? (
-                    <table className="request-items-table">
-                        <thead>
-                        <tr>
-                            <th>Item Name</th>
-                            <th style={{ textAlign: "center" }}>Quantity</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {modalRequest.items.map((item) => (
-                            <tr key={item.id}>
-                            <td>{item.purchase_item}</td>
-                            <td style={{ textAlign: "center" }}>{item.quantity}</td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                    ) : (
-                    <p>—</p>
-                    )}
+                            <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
+                                <div className="approver-content">
+                                    <div>
+                                        <label>
+                                            <input
+                                                type="text"
+                                                name="approved_by"
+                                                value={userData.name || ""}
+                                                readOnly
+                                            />
+                                            <span>Approved by:</span>
+                                        </label>
+                                    </div>
 
-                    {/* ✅ Approve/Decline Form */}
-                    <form
-                    className="request-footer-form"
-                    onSubmit={async (e) => {
-                        e.preventDefault();
-                        const form = e.target;
-                        const formData = new FormData(form);
+                                    <div className="approver-signature">
+                                        <label>
+                                            {userData.signature ? (
+                                            <img
+                                            src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                                            alt="Signature"
+                                            className="signature-img"/>
+                                            ) : (
+                                                <p>No signature available</p>
+                                            )}
+                                            <input
+                                                type="text"
+                                                name="approved_signature"
+                                                value={userData.signature || ""}
+                                                required
+                                                readOnly
+                                            />
+                                            <span>Signature:</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div className="request-footer" hidden>
+                                    <p className="purchase-header">
+                                        <strong>Purchasing Department Use Only</strong>
+                                    </p>
+                                    <div className="purchase-grid">
+                                        <label>
+                                        <span>Date Ordered:</span>
+                                        <input
+                                            type="date"
+                                            name="date_ordered"
+                                            className="date"
+                                            defaultValue={
+                                            modalRequest.date_ordered ||
+                                            new Date().toISOString().split("T")[0]
+                                            }
+                                        />
+                                        </label>
 
-                        formData.append(
-                        "purchase_request_code",
-                        modalRequest.purchase_request_code
-                        );
-                        formData.append("status", "Approved");
+                                        <label>
+                                            <span>PO Number:</span>
+                                            <input
+                                                type="text"
+                                                name="po_number"
+                                                defaultValue={modalRequest.po_number || ""}
+                                                placeholder="Enter PO number"
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
 
-                        try {
-                        const response = await fetch(
-                            `${API_BASE_URL}/api/update_purchase_request`,
-                            {
-                            method: "PUT",
-                            body: formData,
-                            }
-                        );
-                        if (!response.ok)
-                            throw new Error("Failed to approve request");
+                                <div className="admin-modal-footer">
+                                    <button
+                                    type="button"
+                                    className="admin-success-btn"
+                                    onClick={async () => {
+                                        const form = document.querySelector(".request-footer-form");
+                                        const formData = new FormData(form);
 
-                        setStatus({
-                            type: "info",
-                            message: "Purchase request approved successfully.",
-                        });
-                        closeModal();
-                        fetchRequests();
-                        } catch (err) {
-                        console.error(err);
-                        setStatus({ type: "error", message: err.message });
-                        }
-                    }}
-                    >
-                    <div className="approver-content">
-                        <div>
-                            <label>
-                                <input
-                                    type="text"
-                                    name="approved_by"
-                                    value={userData.name || ""}
-                                    readOnly
-                                />
-                                <span>Approved by:</span>
-                            </label>
-                        </div>
+                                        formData.append("purchase_request_code", modalRequest.purchase_request_code);
+                                        formData.append("status", "Approved");
 
-                        <div className="approver-signature">
-                            <label>
-                                {userData.signature ? (
-                                <img
-                                src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                                alt="Signature"
-                                className="signature-img"/>
-                                ) : (
-                                    <p>No signature available</p>
+                                        setShowLoadingModal(true);
+
+                                        try {
+                                        const response = await fetch(`${API_BASE_URL}/api/update_purchase_request`, {
+                                            method: "PUT",
+                                            body: formData,
+                                        });
+
+                                        if (!response.ok) throw new Error("Failed to approve request");
+
+                                        setStatus({ type: "info", message: "Purchase request approved successfully." });
+                                        handleCloseModal();
+                                        fetchRequests();
+                                        } catch (err) {
+                                        console.error(err);
+                                        setStatus({ type: "error", message: err.message });
+                                        } finally {
+                                        setShowLoadingModal(false);
+                                        }
+                                    }}
+                                    >
+                                    ✅ Approve
+                                    </button>
+
+                                    <button
+                                    type="button"
+                                    className="admin-reject-btn"
+                                    onClick={() => setShowConfirmDecline(true)}
+                                    >
+                                    ❌ Decline
+                                    </button>
+                                </div>
+
+                                {showConfirmDecline && (
+                                    <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
+                                        <div className="admin-modal-backdrop">
+                                            <div className="admin-modal-panel" onClick={(e) => e.stopPropagation()}>
+                                                <h3>Confirm Decline</h3>
+                                                <p>Are you sure you want to decline this purchase request?</p>
+                                                <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+                                                    <button
+                                                    className="admin-reject-btn"
+                                                    onClick={async () => {
+                                                        const formData = new FormData();
+                                                        formData.append("purchase_request_code", modalRequest.purchase_request_code);
+                                                        formData.append("status", "Declined");
+
+                                                        setShowLoadingModal(true);
+
+                                                        try {
+                                                        const response = await fetch(`${API_BASE_URL}/api/update_purchase_request`, {
+                                                            method: "PUT",
+                                                            body: formData,
+                                                        });
+
+                                                        if (!response.ok) throw new Error("Failed to decline request");
+
+                                                        setStatus({ type: "info", message: "Purchase request declined successfully." });
+                                                        handleCloseModal();
+                                                        fetchRequests();
+                                                        } catch (err) {
+                                                        console.error(err);
+                                                        setStatus({ type: "error", message: err.message });
+                                                        } finally {
+                                                        setShowConfirmDecline(false);
+                                                        setShowLoadingModal(false);
+                                                        }
+                                                    }}
+                                                    >
+                                                    Yes, Decline
+                                                    </button>
+
+                                                    <button
+                                                    className="admin-cancel-btn"
+                                                    onClick={() => setShowConfirmDecline(false)}
+                                                    >
+                                                    Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 )}
-                                <input
-                                    type="text"
-                                    name="approved_signature"
-                                    value={userData.signature || ""}
-                                    required
-                                />
-                                <span>Signature:</span>
-                            </label>
+                            </form>
                         </div>
                     </div>
-                    <div className="request-footer">
-                        <p className="purchase-header">
-                        <strong>Purchasing Department Use Only</strong>
-                        </p>
-                        <div className="purchase-grid">
-                            <div className="purchase-left">
-                                <label>
-                                <span>Date Ordered:</span>
-                                <input
-                                    type="date"
-                                    name="date_ordered"
-                                    className="date"
-                                    defaultValue={
-                                    modalRequest.date_ordered ||
-                                    new Date().toISOString().split("T")[0]
-                                    }
-                                    required
-                                />
-                                </label>
-
-                                <label>
-                                    <span>PO Number:</span>
-                                    <input
-                                        type="text"
-                                        name="po_number"
-                                        defaultValue={modalRequest.po_number || ""}
-                                        placeholder="Enter PO number"
-                                        required
-                                    />
-                                </label>
-
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="admin-modal-footer">
-                        <button type="submit" className="admin-success-btn">
-                        ✅ Approve
-                        </button>
-
-                        <button
-                        type="button"
-                        className="admin-danger-btn"
-                        onClick={async () => {
-                            if (
-                            !window.confirm(
-                                "Are you sure you want to decline this request?"
-                            )
-                            )
-                            return;
-
-                            const formData = new FormData();
-                            formData.append(
-                            "purchase_request_code",
-                            modalRequest.purchase_request_code
-                            );
-                            formData.append("status", "Declined");
-
-                            try {
-                            const response = await fetch(
-                                `${API_BASE_URL}/api/update_purchase_request`,
-                                {
-                                method: "PUT",
-                                body: formData,
-                                }
-                            );
-
-                            if (!response.ok)
-                                throw new Error("Failed to decline request");
-
-                            setStatus({
-                                type: "info",
-                                message: "Purchase request declined.",
-                            });
-                            closeModal();
-                            fetchRequests();
-                            } catch (err) {
-                            console.error(err);
-                            setStatus({ type: "error", message: err.message });
-                            }
-                        }}
-                        >
-                        ❌ Decline
-                        </button>
-                    </div>
-                    </form>
-                </div>
                 </div>
             )}
-            </div>
-        );
-    }
-
+        </div>
+    );
+}
 export default RequestPurchase;

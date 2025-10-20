@@ -238,6 +238,7 @@ useEffect(() => {
           <h2 
             onClick={() => navigate("/forms-list")} 
             style={{ cursor: "pointer", color: "#007bff" }}
+            title="Back to Forms Library"
           >
             Purchase Request
           </h2>
@@ -268,9 +269,6 @@ useEffect(() => {
       </aside>
 
       <main className="pr-main">
-        <button type="button" className="form-back-button" onClick={handleBackToForms}>
-          ← <span>Back to forms library</span>
-        </button>
         <header className="pr-topbar">
           <div>
             <h1>New purchase request</h1>
@@ -472,6 +470,7 @@ useEffect(() => {
                           value={item.quantity}
                           onChange={(event) => handleItemChange(index, event)}
                           className="pr-input"
+                          placeholder="Quantity"
                           required
                         />
                       </td>
