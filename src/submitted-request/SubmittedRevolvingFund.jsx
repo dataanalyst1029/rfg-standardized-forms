@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api.js";
-import "../forms/PurchaseRequest.css";
 import "./styles/submitted-request.css";
 import "./styles/submitted-revolving-fund.css";
 

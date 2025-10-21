@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./PurchaseRequest.css";
-import "./PaymentRequest.css";
+import "./styles/PaymentRequest.css";
 import { API_BASE_URL } from "../config/api.js";
 
 const emptyItem = () => ({

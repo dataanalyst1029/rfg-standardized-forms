@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./PurchaseRequest.css";
-import "./OvertimeApproval.css";
+import "./styles/OvertimeApproval.css";
 import { API_BASE_URL } from "../config/api.js";
 
 const emptyEntry = () => ({

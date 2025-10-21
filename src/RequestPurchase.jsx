@@ -14,6 +14,9 @@ function RequestPurchase() {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalRequest, setModalRequest] = useState(null);
+    const [isApproving, setIsApproving] = useState(false);
+    const [isDeclining, setIsDeclining] = useState(false);
+    const [declineReason, setDeclineReason] = useState("");
 
         const fetchRequests = async () => {
         setLoading(true);
@@ -68,9 +71,16 @@ function RequestPurchase() {
     }, [search, rowsPerPage]);
 
     const filteredRequests = useMemo(() => {
-        const term = search.trim().toLowerCase();
-        if (!term) return requests;
-        return requests.filter((req) =>
+    const term = search.trim().toLowerCase();
+
+    // ✅ Step 1: Filter only "Pending" requests
+    let pendingRequests = requests.filter(
+        (req) => req.status?.toLowerCase() === "pending"
+    );
+
+    // ✅ Step 2: If there’s a search term, apply search filter
+    if (term) {
+        pendingRequests = pendingRequests.filter((req) =>
         [
             "purchase_request_code",
             "request_by",
@@ -80,7 +90,11 @@ function RequestPurchase() {
             "status",
         ].some((key) => req[key]?.toString().toLowerCase().includes(term))
         );
+    }
+
+    return pendingRequests;
     }, [requests, search]);
+
 
     const totalPages = Math.max(
         1,
@@ -375,9 +389,11 @@ function RequestPurchase() {
 
                                 <div className="admin-modal-footer">
                                     <button
-                                    type="button"
-                                    className="admin-success-btn"
-                                    onClick={async () => {
+                                        type="button"
+                                        className="admin-success-btn"
+                                        disabled={isApproving} // disable while loading
+                                        onClick={async () => {
+                                        setIsApproving(true); // show "Approving..."
                                         const form = document.querySelector(".request-footer-form");
                                         const formData = new FormData(form);
 
@@ -387,86 +403,138 @@ function RequestPurchase() {
                                         setShowLoadingModal(true);
 
                                         try {
-                                        const response = await fetch(`${API_BASE_URL}/api/update_purchase_request`, {
+                                            const response = await fetch(`${API_BASE_URL}/api/update_purchase_request`, {
                                             method: "PUT",
                                             body: formData,
-                                        });
+                                            });
 
-                                        if (!response.ok) throw new Error("Failed to approve request");
+                                            if (!response.ok) throw new Error("Failed to approve request");
 
-                                        setStatus({ type: "info", message: "Purchase request approved successfully." });
-                                        handleCloseModal();
-                                        fetchRequests();
+                                            setStatus({
+                                            type: "info",
+                                            message: "Purchase request approved successfully.",
+                                            });
+                                            handleCloseModal();
+                                            fetchRequests();
                                         } catch (err) {
-                                        console.error(err);
-                                        setStatus({ type: "error", message: err.message });
+                                            console.error(err);
+                                            setStatus({ type: "error", message: err.message });
                                         } finally {
-                                        setShowLoadingModal(false);
+                                            setIsApproving(false);
+                                            setShowLoadingModal(false);
                                         }
-                                    }}
+                                        }}
                                     >
-                                    ✅ Approve
+                                        {isApproving ? "Approving..." : "✅ Approve"}
                                     </button>
 
                                     <button
-                                    type="button"
-                                    className="admin-reject-btn"
-                                    onClick={() => setShowConfirmDecline(true)}
+                                        type="button"
+                                        className="admin-reject-btn"
+                                        onClick={() => setShowConfirmDecline(true)}
                                     >
-                                    ❌ Decline
+                                        ❌ Decline
                                     </button>
                                 </div>
 
                                 {showConfirmDecline && (
                                     <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
                                         <div className="admin-modal-backdrop">
-                                            <div className="admin-modal-panel" onClick={(e) => e.stopPropagation()}>
+                                            <div
+                                                className="admin-modal-panel"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
                                                 <h3>Confirm Decline</h3>
-                                                <p>Are you sure you want to decline this purchase request?</p>
-                                                <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+                                                <p>Please provide a reason for declining this purchase request:</p>
+
+                                                <textarea
+                                                className="decline-reason-textarea"
+                                                placeholder="Enter reason for decline..."
+                                                name="declined_reason"
+                                                value={declineReason}
+                                                onChange={(e) => setDeclineReason(e.target.value)}
+                                                required
+                                                style={{
+                                                    width: "100%",
+                                                    minHeight: "80px",
+                                                    borderRadius: "6px",
+                                                    padding: "8px",
+                                                    marginTop: "8px",
+                                                    marginBottom: "16px",
+                                                    border: "1px solid #ccc",
+                                                    resize: "vertical",
+                                                }}
+                                                />
+
+                                                <div
+                                                style={{
+                                                    display: "flex",
+                                                    gap: "12px",
+                                                    justifyContent: "center",
+                                                }}
+                                                >
                                                     <button
-                                                    className="admin-reject-btn"
-                                                    onClick={async () => {
-                                                        const formData = new FormData();
-                                                        formData.append("purchase_request_code", modalRequest.purchase_request_code);
-                                                        formData.append("status", "Declined");
+                                                        className="admin-reject-btn"
+                                                        disabled={!declineReason.trim() || isDeclining} 
+                                                        onClick={async () => {
+                                                            setIsDeclining(true);
+                                                            const formData = new FormData();
+                                                            formData.append(
+                                                            "purchase_request_code",
+                                                            modalRequest.purchase_request_code
+                                                            );
+                                                            formData.append("status", "Declined");
+                                                            formData.append("declined_reason", declineReason.trim());
 
-                                                        setShowLoadingModal(true);
+                                                            setShowLoadingModal(true);
 
-                                                        try {
-                                                        const response = await fetch(`${API_BASE_URL}/api/update_purchase_request`, {
-                                                            method: "PUT",
-                                                            body: formData,
-                                                        });
+                                                            try {
+                                                            const response = await fetch(
+                                                                `${API_BASE_URL}/api/update_purchase_request`,
+                                                                {
+                                                                method: "PUT",
+                                                                body: formData,
+                                                                }
+                                                            );
 
-                                                        if (!response.ok) throw new Error("Failed to decline request");
+                                                            if (!response.ok)
+                                                                throw new Error("Failed to decline request");
 
-                                                        setStatus({ type: "info", message: "Purchase request declined successfully." });
-                                                        handleCloseModal();
-                                                        fetchRequests();
-                                                        } catch (err) {
-                                                        console.error(err);
-                                                        setStatus({ type: "error", message: err.message });
-                                                        } finally {
+                                                            setStatus({
+                                                                type: "info",
+                                                                message: "Purchase request declined successfully.",
+                                                            });
+                                                            handleCloseModal();
+                                                            fetchRequests();
+                                                            } catch (err) {
+                                                            console.error(err);
+                                                            setStatus({ type: "error", message: err.message });
+                                                            } finally {
+                                                            setIsDeclining(false);
+                                                            setShowConfirmDecline(false);
+                                                            setShowLoadingModal(false);
+                                                            setDeclineReason("");
+                                                            }
+                                                        }}
+                                                        >
+                                                        {isDeclining ? "Declining..." : "Decline"}
+                                                        </button>
+
+
+                                                    <button
+                                                        className="admin-cancel-btn"
+                                                        onClick={() => {
                                                         setShowConfirmDecline(false);
-                                                        setShowLoadingModal(false);
-                                                        }
-                                                    }}
+                                                        setDeclineReason("");
+                                                        }}
                                                     >
-                                                    Yes, Decline
-                                                    </button>
-
-                                                    <button
-                                                    className="admin-cancel-btn"
-                                                    onClick={() => setShowConfirmDecline(false)}
-                                                    >
-                                                    Cancel
+                                                        Cancel
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                )}
+                                    )}
                             </form>
                         </div>
                     </div>

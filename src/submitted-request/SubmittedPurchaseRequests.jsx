@@ -311,7 +311,13 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
     (req) => req.purchase_request_code === selectedRequestCode
   );
 
-  if (loading) return <div>Loading submitted purchase requests…</div>;
+  if (loading)
+  return (
+    <div className="loading-container">
+      <div className="spinner"></div>
+      <span>Loading submitted purchase requests…</span>
+    </div>
+  );
 
   return (
     <div className="pr-layout">
@@ -463,7 +469,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                     <div className="purchase-dept-family">
                       <div className="purchase-dept-content">
                         <div>
-                          <input value={formatDate(selectedRequest.date_ordered)} readOnly/>
+                          <input value={selectedRequest.date_ordered ? formatDate(selectedRequest.date_ordered) : ""}  readOnly/>
                             <p>Date Ordered</p>
                           </div>
                           <div>

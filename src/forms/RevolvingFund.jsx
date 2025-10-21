@@ -1,684 +1,750 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "./PurchaseRequest.css";
-import "./RevolvingFund.css";
+import "./styles/RevolvingFund.css";
 import { API_BASE_URL } from "../config/api.js";
-const emptyItem = () => ({
-  entry_date: "",
-  voucher_no: "",
-  or_ref_no: "",
-  amount: "",
-  expense_category: "",
-  gl_account: "",
-  remarks: "",
-});
-const parseNumber = (value) => {
-  if (value === null || value === undefined || value === "") {
-    return 0;
-  }
-  const parsed = Number(value);
-  return Number.isNaN(parsed) ? 0 : parsed;
+import { useNavigate } from "react-router-dom";
+
+const initialFormData = {
+  revolving_request_code: "",
+  date_request: new Date().toISOString().split("T")[0],
+  employee_id: "",
+  custodian: "",
+  branch: "",
+  department: "",
+  replenish_amount: "",
+  total: "",
+  revolving_amount: "",
+  total_exp: "",
+  cash_onhand: "",
+  submitted_by: "",
+  submitter_signature: "",
+  approved_by: "",
+  approver_signature: "",
 };
-const pesoFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-function RevolvingFund({ onLogout }) {
-  const storedUser = JSON.parse(sessionStorage.getItem("user") || "{}");
-  const navigate = useNavigate();
-  const handleBackToForms = () => {
-    navigate("/forms-list");
-  };
-  const [activeSection, setActiveSection] = useState("details");
-  const [request, setRequest] = useState(null);
-  const [formData, setFormData] = useState({
-    custodian_name: storedUser.name || "",
-    branch: storedUser.branch || "",
-    department: storedUser.department || "",
-    employee_id: storedUser.employee_id || "",
-    request_date: new Date().toISOString().split("T")[0],
-    petty_cash_amount: "",
-  });
-  const [items, setItems] = useState([emptyItem()]);
-  const [message, setMessage] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
+
+const emptyItem = { replenish_date: "", voucher_no: "", or_ref_no: "", amount: "", exp_cat: "", gl_account: "", remarks: "" };
+
+const NAV_SECTIONS = [
+  { id: "details", label: "Custodian Details" },
+  { id: "replenishment", label: "Replenishment Details" },
+  { id: "signature", label: "Signature Details" },
+  { id: "submitted", label: "View submitted requests" },
+];
+
+function RevolvingFundRequest({ onLogout }) {
+  const [formData, setFormData] = useState(initialFormData);
+  const [items, setItems] = useState([emptyItem]);
+  const [loading, setLoading] = useState(true);
   const [branches, setBranches] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [branchLocation, setBranchLocation] = useState("");
-  const [nextReferenceCode, setNextReferenceCode] = useState(null);
-  const role = (storedUser.role || "").toLowerCase();
-  const isUserAccount = role === "user";
-  const totalExpenses = useMemo(
-    () => items.reduce((sum, item) => sum + parseNumber(item.amount), 0),
-    [items],
-  );
-  const cashOnHand = useMemo(
-    () => parseNumber(formData.petty_cash_amount) - totalExpenses,
-    [formData.petty_cash_amount, totalExpenses],
-  );
-  useEffect(() => {
-    if (!isUserAccount) {
-      setMessage({
-        type: "error",
-        text: "Only user-level accounts can create revolving fund requests.",
-      });
+  const [filteredDepartments, setFilteredDepartments] = useState([]);
+  const [activeSection, setActiveSection] = useState("details");
+  const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
+  const navigate = useNavigate();
+  const [message, setMessage] = useState(null);
+  const [replenishAmount, setReplenishAmount] = useState("");
+
+  const handleReplenishAmountChange = (e) => {
+    let value = e.target.value;
+
+    value = value.replace(/[^0-9.]/g, "");
+    const parts = value.split(".");
+    
+    if (parts.length > 2) {
+      value = parts[0] + "." + parts[1];
+    } else if (parts[1]?.length > 2) {
+      value = parts[0] + "." + parts[1].slice(0, 2);
     }
-  }, [isUserAccount]);
+
+    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    const formattedValue = parts[1] !== undefined ? `${integerPart}.${parts[1]}` : integerPart;
+
+    setReplenishAmount(formattedValue);
+
+    setFormData((prev) => ({
+      ...prev,
+      replenish_amount: parseFloat(value) || 0,
+    }));
+  };
+
+  function formatWithCommas(value) {
+    if (!value) return "";
+    const [integer, decimal] = value.split(".");
+    const formattedInt = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return decimal !== undefined ? `${formattedInt}.${decimal}` : formattedInt;
+  }
+
   useEffect(() => {
-    let isMounted = true;
-    if (request) {
-      setNextReferenceCode(null);
-      return () => {
-        isMounted = false;
-      };
+    const storedId = sessionStorage.getItem("id");
+    const storedName = sessionStorage.getItem("name");
+
+    if (storedId) {
+      fetch(`${API_BASE_URL}/users/${storedId}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch user data");
+          return res.json();
+        })
+        .then((data) => {
+          setUserData(data);
+          setFormData((prev) => ({
+            ...prev,
+            custodian: data.name || storedName || "",
+            user_id: storedId,
+            employee_id: data.employee_id || "",
+          }));
+        })
+        .catch((err) => {
+          console.error("Error fetching user data:", err);
+          setFormData((prev) => ({
+            ...prev,
+            custodian: storedName || "",
+            user_id: storedId,
+          }));
+        });
     }
+  }, []);
+
+
+  useEffect(() => {
     const fetchNextCode = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/revolving_fund/next-code`);
-        if (!res.ok) {
-          throw new Error("Failed to load next reference code");
-        }
+        const res = await fetch(`${API_BASE_URL}/api/revolving_fund_request/next-code`);
+        if (!res.ok) throw new Error("Failed to retrieve next reference number");
         const data = await res.json();
-        if (isMounted) {
-          setNextReferenceCode(data.nextCode || null);
+        if (data.nextCode) {
+          setFormData((prev) => ({ ...prev, revolving_request_code: data.nextCode }));
         }
       } catch (error) {
-        console.error("Error fetching next revolving fund code:", error);
+        console.error("Error fetching next code", error);
+        setModal({
+          isOpen: true,
+          type: "error",
+          message: "Unable to load the next revolving fund reference.",
+        });
+      } finally {
+        setLoading(false);
       }
     };
     fetchNextCode();
-    return () => {
-      isMounted = false;
-    };
-  }, [request]);
+  }, []);
+
   useEffect(() => {
-    const loadLookups = async () => {
+    const fetchData = async () => {
       try {
         const [branchRes, deptRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/branches`),
           fetch(`${API_BASE_URL}/api/departments`),
         ]);
-        const branchData = branchRes.ok ? await branchRes.json() : [];
-        const deptData = deptRes.ok ? await deptRes.json() : [];
+        if (!branchRes.ok || !deptRes.ok) throw new Error("Failed to fetch data");
+        const branchData = await branchRes.json();
+        const deptData = await deptRes.json();
         setBranches(branchData);
         setDepartments(deptData);
-        if (branchData.length) {
-          const matchedBranch = branchData.find(
-            (branch) =>
-              branch.branch_name?.toLowerCase() === (storedUser.branch || "").toLowerCase(),
-          );
-          if (matchedBranch) {
-            setFormData((prev) => ({ ...prev, branch: matchedBranch.branch_name }));
-            setBranchLocation(matchedBranch.location || "");
-          }
-        }
-        if (deptData.length && storedUser.department) {
-          const matchedDept = deptData.find(
-            (dept) =>
-              dept.department_name?.toLowerCase() === storedUser.department.toLowerCase(),
-          );
-          if (matchedDept) {
-            setFormData((prev) => ({ ...prev, department: matchedDept.department_name }));
-          }
-        }
       } catch (error) {
-        console.error("Error loading revolving fund lookups:", error);
+        console.error("Error loading branch/department data:", error);
+        setModal({
+          isOpen: true,
+          type: "error",
+          message: "Unable to load branches and departments.",
+        });
       }
     };
-    loadLookups();
-  }, [storedUser.branch, storedUser.department]);
+    fetchData();
+  }, []);
+
   useEffect(() => {
-    if (!formData.branch) {
-      setBranchLocation("");
-      return;
+    if (formData.branch) {
+      const filtered = departments.filter(
+        (dept) => dept.branch_name === formData.branch
+      );
+      setFilteredDepartments(filtered);
+      setFormData((prev) => ({ ...prev, department: "" }));
+    } else {
+      setFilteredDepartments([]);
     }
-    const selected = branches.find((branch) => branch.branch_name === formData.branch);
-    setBranchLocation(selected?.location || "");
-  }, [formData.branch, branches]);
-  const showMessage = (type, text) => {
-    setMessage({ type, text });
-    if (type !== "error") {
-      setTimeout(() => setMessage(null), 2500);
-    }
-  };
-  const handleHeaderChange = (event) => {
+  }, [formData.branch, departments]);
+
+  const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-  const handleBranchChange = (event) => {
-    const value = event.target.value;
-    const selected = branches.find((branch) => branch.branch_name === value);
-    const branchDepartments = selected
-      ? departments.filter(
-          (dept) =>
-            dept.branch_id !== null &&
-            dept.branch_id !== undefined &&
-            Number(dept.branch_id) === Number(selected.id),
-        )
-      : [];
-    setFormData((prev) => ({
-      ...prev,
-      branch: value,
-      department: branchDepartments.length > 0 ? branchDepartments[0].department_name : "",
-    }));
-    setBranchLocation(selected?.location || "");
-  };
-  const handleDepartmentChange = (event) => {
-    setFormData((prev) => ({ ...prev, department: event.target.value }));
-  };
-  const handleItemChange = (index, field, value) => {
-    setItems((prev) =>
-      prev.map((item, idx) =>
-        idx === index
-          ? {
-              ...item,
-              [field]: value,
-            }
-          : item,
-      ),
-    );
-  };
-  const addItemRow = () => {
-    setItems((prev) => [...prev, emptyItem()]);
-  };
-  const removeItemRow = (index) => {
-    setItems((prev) => (prev.length === 1 ? prev : prev.filter((_, idx) => idx !== index)));
-  };
-  const resetFormState = () => {
-    setRequest(null);
-    setItems([emptyItem()]);
-    setFormData((prev) => ({
-      ...prev,
-      petty_cash_amount: "",
-      request_date: new Date().toISOString().split("T")[0],
-    }));
-    setNextReferenceCode(null);
-  };
-  const availableDepartments = useMemo(() => {
-    if (!formData.branch) {
-      return departments;
-    }
-    const branchRecord = branches.find((branch) => branch.branch_name === formData.branch);
-    if (!branchRecord) {
-      return departments;
-    }
-    return departments.filter((dept) => {
-      if (dept.branch_id === null || dept.branch_id === undefined) {
-        return true;
-      }
-      return Number(dept.branch_id) === Number(branchRecord.id);
+
+  const handleItemChange = (index, event) => {
+    const { name, value } = event.target;
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [name]: value };
+      return next;
     });
-  }, [branches, departments, formData.branch]);
-  const syncStateFromResponse = (data) => {
-    setRequest(data);
-    setFormData((prev) => ({
-      ...prev,
-      custodian_name: data.custodian_name || "",
-      branch: data.branch || "",
-      department: data.department || "",
-      employee_id: data.employee_id || "",
-      request_date: data.request_date ? data.request_date.slice(0, 10) : prev.request_date,
-      petty_cash_amount:
-        data.petty_cash_amount !== undefined && data.petty_cash_amount !== null
-          ? String(data.petty_cash_amount)
-          : "",
-    }));
-    if (Array.isArray(data.items) && data.items.length > 0) {
-      setItems(
-        data.items.map((item) => ({
-          entry_date: item.entry_date || item.date || "",
-          voucher_no: item.voucher_no || "",
-          or_ref_no: item.or_ref_no || "",
-          amount:
-            item.amount !== undefined && item.amount !== null ? String(item.amount) : "",
-          expense_category: item.expense_category || "",
-          gl_account: item.gl_account || "",
-          remarks: item.remarks || "",
-        })),
-      );
-    } else {
-      setItems([emptyItem()]);
-    }
   };
-  const saveRequest = async (action = "draft") => {
-    if (!isUserAccount) {
-      return;
-    }
-    const hasLineItems = items.some((item) => parseNumber(item.amount) > 0);
-    if (!hasLineItems) {
-      showMessage("error", "Add at least one line item with an amount.");
-      return;
-    }
-    if (!formData.petty_cash_amount) {
-      showMessage("error", "Petty cash amount is required.");
-      return;
-    }
-    setIsSaving(true);
-    const payload = {
-      custodian_name: formData.custodian_name,
-      branch: formData.branch,
-      department: formData.department,
-      employee_id: formData.employee_id,
-      petty_cash_amount: formData.petty_cash_amount,
-      request_date: formData.request_date,
-      items: items.map((item) => ({
-        entry_date: item.entry_date,
-        voucher_no: item.voucher_no,
-        or_ref_no: item.or_ref_no,
-        amount: item.amount,
-        expense_category: item.expense_category,
-        gl_account: item.gl_account,
-        remarks: item.remarks,
-      })),
-      submitted_by: storedUser.id || null,
-    };
-    try {
-      if (!request) {
-        const res = await fetch(`${API_BASE_URL}/api/revolving_fund`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...payload, action }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.message || "Failed to create request");
-        }
-        syncStateFromResponse(data);
-        showMessage("success", action === "submit" ? "Submitted for approval." : "Draft saved.");
-        return;
-      }
-      const updateRes = await fetch(`${API_BASE_URL}/api/revolving_fund/${request.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+
+  const addItemRow = () => setItems((prev) => [...prev, emptyItem]);
+  const removeItemRow = (index) =>
+    setItems((prev) =>
+      prev.length === 1 ? [emptyItem] : prev.filter((_, i) => i !== index)
+    );
+
+  const sanitizedItems = useMemo(
+    () =>
+      items
+        .map((item) => ({
+          replenish_date: item.replenish_date,
+          voucher_no: item.voucher_no.trim(),
+          or_ref_no: item.or_ref_no.trim(),
+          amount: item.amount.trim(),
+          exp_cat: item.exp_cat.trim(),
+          gl_account: item.gl_account.trim(),
+          remarks: item.remarks.trim(),
+        }))
+        .filter((item) => item.replenish_date && item.voucher_no && item.or_ref_no && item.amount && item.exp_cat && item.gl_account && item.remarks),
+    [items]
+  );
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (sanitizedItems.length === 0) {
+      return setModal({
+        isOpen: true,
+        type: "error",
+        message: "Add at least one line item before submitting.",
       });
-      const updated = await updateRes.json();
-      if (!updateRes.ok) {
-        throw new Error(updated.message || "Failed to update request");
-      }
-      let current = updated;
-      if (action === "submit" && request.status !== "submitted") {
-        const submitRes = await fetch(`${API_BASE_URL}/api/revolving_fund/${request.id}/submit`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ submitted_by: storedUser.id || null }),
-        });
-        const submitData = await submitRes.json();
-        if (!submitRes.ok) {
-          throw new Error(submitData.message || "Failed to submit request");
-        }
-        current = submitData;
-      }
-      syncStateFromResponse(current);
-      showMessage("success", action === "submit" ? "Submitted for approval." : "Changes saved.");
-    } catch (err) {
-      console.error(err);
-      showMessage("error", err.message || "Unable to save request.");
-    } finally {
-      setIsSaving(false);
     }
+
+    let currentPRCode = formData.revolving_request_code;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/revolving_fund_request/next-code`);
+      const data = await res.json();
+      if (data.nextCode) currentPRCode = data.nextCode;
+    } catch (error) {
+      return setModal({
+        isOpen: true,
+        type: "error",
+        message: "Unable to get the latest PR number.",
+      });
+    }
+
+    const payload = {
+      ...formData,
+      revolving_request_code: currentPRCode,
+      items: sanitizedItems,
+    };
+
+    try {
+  const res = await fetch(`${API_BASE_URL}/api/revolving_fund_request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to submit request");
+
+  setMessage({
+    type: "success",
+    text: `Revolving Fund ${currentPRCode} submitted successfully.`,
+  });
+
+  setTimeout(() => {
+    setMessage(null);
+    window.location.reload();
+  }, 2000);
+
+} catch (error) {
+  console.error("Error submitting revolving fund", error);
+  setMessage({
+    type: "error",
+    text: error.message || "Unable to submit revolving fund. Please try again.",
+  });
+
+  setTimeout(() => setMessage(null), 3000);
+}
+
   };
-  const currentStatus = (request && request.status) || "draft";
-  const isDraft = currentStatus === "draft" || currentStatus === "rejected";
-  const isReadOnly = !isDraft;
+
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/forms/revolving-fund/submitted");
-      return;
-    }
-    setActiveSection(sectionId);
-    const target = document.getElementById(sectionId);
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth" });
+      navigate("/submitted-requests"); 
+    } else {
+      setActiveSection(sectionId);
+      const element = document.getElementById(sectionId);
+      if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
+
+  if (loading)
+  return (
+    <div className="loading-container">
+      <div className="spinner"></div>
+      <span>Loading revolving fund replenishment form…</span>
+    </div>
+  );
+
   return (
     <div className="pr-layout">
+
+      {message && (
+        <div className="message-modal-overlay">
+          <div className={`message-modal-content ${message.type}`}>
+            {message.text}
+          </div>
+        </div>
+      )}
+      
+      {modal.isOpen && (
+        <div className="pr-modal-overlay">
+          <div className={`pr-modal ${modal.type}`}>
+            <p>{modal.message}</p>
+            <button
+              onClick={() => {
+                setModal({ ...modal, isOpen: false });
+                if (modal.type === "success") {
+                  window.location.reload();
+                }
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2>Revolving Fund</h2>
-          <span>{currentStatus.toUpperCase()}</span>
+          <h2 
+            onClick={() => navigate("/forms-list")} 
+            style={{ cursor: "pointer", color: "#007bff" }}
+            title="Back to Forms Library"
+          >
+            Revolving Fund
+          </h2>
+          <span>Standardized form</span>
         </div>
+
         <nav className="pr-sidebar-nav">
-          {[
-            { id: "details", label: "Request details" },
-            { id: "totals", label: "Fund totals" },
-            { id: "items", label: "Line items" },
-            { id: "submitted", label: "View submitted requests" },
-          ].map((section) => (
+          {NAV_SECTIONS.map((section) => (
             <button
               key={section.id}
               type="button"
-              className={activeSection === section.id ? "is-active" : ""}
+              className={section.id === activeSection ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}
             </button>
           ))}
         </nav>
+
         <div className="pr-sidebar-footer">
           <span className="pr-sidebar-meta">
             Remember to review line items before submitting.
           </span>
-          {onLogout && (
-            <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
-              Sign out
-            </button>
-          )}
+          <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
+            Sign out
+          </button>
         </div>
       </aside>
+
       <main className="pr-main">
-        <button type="button" className="form-back-button" onClick={handleBackToForms}>
-          ← <span>Back to forms library</span>
-        </button>
         <header className="pr-topbar">
           <div>
-            <h1 className="topbar-title">Revolving Fund Replenishment</h1>
-            <p className="pr-topbar-meta">Track fund usage and submit replenishment requests.</p>
+            <h1>New Revolving Fund</h1>
+            <p className="pr-topbar-meta">
+              Track fund usage and submit replenishment requests.
+            </p>
           </div>
+
           <div className="pr-reference-card">
             <span className="pr-reference-label">Reference code</span>
             <span className="pr-reference-value">
-              {request?.form_code || nextReferenceCode || "Pending assignment"}
+              {formData.revolving_request_code || "—"}
             </span>
             <span className="pr-reference-label">Request date</span>
             <span>
-              <input
-                type="date"
-                name="request_date"
-                value={formData.request_date}
-                onChange={handleHeaderChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
+              {new Date(formData.date_request).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </span>
           </div>
         </header>
-        {message && (
-          <div
-            style={{
-              borderRadius: "0.75rem",
-              padding: "0.8rem 1rem",
-              marginBottom: "1rem",
-              border: "1px solid var(--color-border)",
-              color: message.type === "error" ? "var(--color-danger)" : "var(--color-accent)",
-              background:
-                message.type === "error"
-                  ? "rgba(239,68,68,0.12)"
-                  : "rgba(36,207,142,0.12)",
-            }}
-          >
-            {message.text}
-          </div>
-        )}
-        <section className="pr-form-section" id="details">
-          <h2 className="pr-section-title">Custodian details</h2>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="custodian_name">Custodian</label>
-              <input
-                id="custodian_name"
-                name="custodian_name"
-                value={formData.custodian_name}
-                onChange={handleHeaderChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
+
+        <form onSubmit={handleSubmit}>
+          <section className="rfr-form-section" id="details">
+            <h2 className="pr-section-title">Custodian Details</h2>
+
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="custodian">
+                  Custodian
+                </label>
+                <input
+                  id="custodian"
+                  name="custodian"
+                  value={userData.name}
+                  onChange={handleChange}
+                  className="rfr-input"
+                  placeholder="Full name"
+                  readOnly
+                  required
+                />
+                <input
+                  type="hidden"
+                  id="requestById"
+                  name="user_id"
+                  value={formData.user_id} 
+                  className="rfr-input"
+                  placeholder="User ID"
+                  required
+                  readOnly
+                />
+              </div>
+                
+
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="employeeId">
+                  Employee Id
+                </label>
+                <input
+                  id="employeeId"
+                  name="employee_id"
+                  value={formData.employee_id}
+                  className="rfr-input"
+                  placeholder="Employee ID"
+                  required
+                  readOnly
+                />
+              </div>
             </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="employee_id">Employee ID</label>
-              <input
-                id="employee_id"
-                name="employee_id"
-                value={formData.employee_id}
-                className="pr-input"
-                readOnly
-              />
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="branch">Branch</label>
+                <select
+                  id="branch"
+                  name="branch"
+                  value={formData.branch}
+                  onChange={handleChange}
+                  className="rfr-input"
+                  required
+                >
+                  <option value="" disabled>Select branch</option>
+                  {branches.map((b) => (
+                    <option key={b.branch_name} value={b.branch_name}>
+                      {b.branch_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="department">Department</label>
+                <select
+                  id="department"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  className="rfr-input"
+                  required
+                >
+                  <option value="" disabled>Select department</option>
+                  {filteredDepartments.map((d) => (
+                    <option key={d.department_name} value={d.department_name}>
+                      {d.department_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="branchSelect">Branch</label>
-              <select
-                id="branchSelect"
-                value={formData.branch || ""}
-                onChange={handleBranchChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              >
-                <option value="">Select branch</option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.branch_name}>
-                    {branch.branch_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="branchLocation">Location</label>
-              <input
-                id="branchLocation"
-                value={branchLocation}
-                className="pr-input"
-                readOnly
-              />
-            </div>
-          </div>
-          <div className="pr-field">
-            <label className="pr-label" htmlFor="departmentSelect">Department</label>
-            <select
-              id="departmentSelect"
-              value={formData.department || ""}
-              onChange={handleDepartmentChange}
-              className="pr-input"
-              disabled={isReadOnly}
-            >
-              <option value="">Select department</option>
-              {availableDepartments.map((department) => (
-                <option key={department.id} value={department.department_name}>
-                  {department.department_name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </section>
-        <section className="pr-form-section" id="totals">
-          <h2 className="pr-section-title">
-            Amount for replenishment{" "}
-            <span className="rf-section-amount">{pesoFormatter.format(totalExpenses)}</span>
-          </h2>
-          <p className="pr-section-subtitle">Summarize petty cash usage and compute cash on hand.</p>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="pettyCash">Petty cash / revolving fund (₱)</label>
-              <input
-                id="pettyCash"
-                name="petty_cash_amount"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.petty_cash_amount}
-                onChange={handleHeaderChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-            <div className="pr-field">
-              <label className="pr-label">Total expenses (₱)</label>
-              <input
-                value={totalExpenses.toFixed(2)}
-                readOnly
-                className="pr-input"
-              />
-            </div>
-          </div>
-          <div className="pr-field">
-            <label className="pr-label">Cash on hand (₱)</label>
-            <input value={cashOnHand.toFixed(2)} readOnly className="pr-input" />
-          </div>
-        </section>
-        <section className="pr-items-card" id="items">
-          <div className="pr-items-header">
-            <div>
-              <h2 className="pr-items-title">Expenses summary</h2>
-              <p className="pr-section-subtitle">
-                List each voucher with the amount and accounting details.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="pr-items-add"
-              onClick={addItemRow}
-              disabled={isReadOnly}
-            >
-              Add line item
-            </button>
-          </div>
-          <div className="rf-items-wrapper">
-            <table className="pr-items-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Voucher No.</th>
-                  <th>OR Ref. No.</th>
-                  <th>Amount</th>
-                  <th>Expense category</th>
-                  <th>GL account</th>
-                  <th>Remarks</th>
-                  {!isReadOnly && <th>Action</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <tr key={index}>
-                    <td>
-                      <input
-                        type="date"
-                        value={item.entry_date}
-                        onChange={(event) =>
-                          handleItemChange(index, "entry_date", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.voucher_no}
-                        onChange={(event) =>
-                          handleItemChange(index, "voucher_no", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.or_ref_no}
-                        onChange={(event) =>
-                          handleItemChange(index, "or_ref_no", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.amount}
-                        onChange={(event) =>
-                          handleItemChange(index, "amount", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.expense_category}
-                        onChange={(event) =>
-                          handleItemChange(index, "expense_category", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.gl_account}
-                        onChange={(event) => handleItemChange(index, "gl_account", event.target.value)}
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.remarks}
-                        onChange={(event) => handleItemChange(index, "remarks", event.target.value)}
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    {!isReadOnly && (
-                      <td>
-                        <button
-                          type="button"
-                          className="pr-table-action"
-                          onClick={() => removeItemRow(index)}
-                        >
-                          Remove
-                        </button>
-                      </td>
+          </section>
+
+          <section className="rfr-form-section" id="replenishment">
+            <h2 className="pr-section-title">Replenishment Details</h2>
+
+            <div className="replenishment-field">
+              <div className="replenishment-input-wrapper">
+                <label htmlFor="replenishment-amount">
+                  <p>Amount for Replenishment:</p>
+                  <input
+                    id="replenishment-amount"
+                    className="rfr-input"
+                    type="text"
+                    value={replenishAmount}
+                    onChange={(e) => {
+                      let value = e.target.value;
+
+                      value = value.replace(/[^0-9.]/g, "");
+
+                      const parts = value.split(".");
+                      if (parts.length > 2) parts.splice(2);
+                      if (parts[1]?.length > 2) parts[1] = parts[1].slice(0, 2);
+
+                      const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                      const formattedValue = parts[1] !== undefined ? `${integerPart}.${parts[1]}` : integerPart;
+
+                      setReplenishAmount(formattedValue);
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        replenish_amount: parseFloat(value) || 0, 
+                        revolving_amount: formattedValue,
+                      }));
+                    }}
+                    placeholder="Enter amount"
+                  />
+                </label>
+
+
+
+                <button
+                  type="button"
+                  className="pr-items-add"
+                  onClick={addItemRow}
+                >
+                  Add item
+                </button>
+              </div>
+
+              <div className="table-wrapper">
+                <table className="rfr-items-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Voucher No.</th>
+                      <th>OR Ref. No.</th>
+                      <th>Amount</th>
+                      <th>Exp. Category</th>
+                      <th>GL Account</th>
+                      <th>Remarks</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="rfr-items-empty">
+                          No items yet. Add an item to get started.
+                        </td>
+                      </tr>
+                    ) : (
+                      <>
+                        {items.map((item, index) => (
+                          <tr key={index}>
+                            <td>
+                              <input
+                                type="date"
+                                name="replenish_date"
+                                value={item.replenish_date || new Date().toISOString().split("T")[0]} 
+                                onChange={(event) => handleItemChange(index, event)}
+                                className="rfr-input td-input"
+                                placeholder="Date"
+                                required
+                              />
+                            </td>
+
+                            <td>
+                              <input
+                                type="text"
+                                name="voucher_no"
+                                maxLength={14}
+                                value={item.voucher_no}
+                                onChange={(event) => {
+                                  const numericValue = event.target.value.replace(/\D/g, "");
+                                  handleItemChange(index, {
+                                    target: { name: "voucher_no", value: numericValue },
+                                  });
+                                }}
+                                className="rfr-input td-input"
+                                placeholder="Enter Voucher No."
+                                required
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                name="or_ref_no"
+                                maxLength={14}
+                                value={item.or_ref_no}
+                                onChange={(event) => {
+                                  const numericValue = event.target.value.replace(/\D/g, "");
+                                  handleItemChange(index, {
+                                    target: { name: "or_ref_no", value: numericValue },
+                                  });
+                                }}
+                                className="rfr-input td-input"
+                                placeholder="Enter OR ref. no."
+                                required
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                name="amount"
+                                value={item.amount ? formatWithCommas(item.amount) : ""}
+                                onChange={(event) => {
+                                  let value = event.target.value;
+
+                                  value = value.replace(/[^0-9.]/g, "");
+
+                                  const parts = value.split(".");
+                                  if (parts.length > 2) {
+                                    value = parts[0] + "." + parts[1];
+                                  }
+
+                                  handleItemChange(index, { target: { name: "amount", value } });
+                                }}
+                                className="rfr-input td-input"
+                                placeholder="Enter amount"
+                                required
+                              />
+                            </td>
+
+                            <td>
+                              <input
+                                type="text"
+                                name="exp_cat"
+                                value={item.exp_cat}
+                                onChange={(event) => handleItemChange(index, event)}
+                                className="rfr-input td-input"
+                                placeholder="Enter Expense Category"
+                                required
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                name="gl_account"
+                                value={item.gl_account}
+                                onChange={(event) => handleItemChange(index, event)}
+                                className="rfr-input td-input"
+                                placeholder="Enter GL Account"
+                                required
+                              />
+                            </td>
+                            <td>
+                              <textarea
+                                name="remarks"
+                                className="rfr-input"
+                                value={item.remarks || ""}
+                                onChange={(event) => handleItemChange(index, event)}
+                              ></textarea>
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className="pr-table-action"
+                                onClick={() => removeItemRow(index)}
+                              >
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+
+                        <tr className="rfr-items-total">
+                          <td colSpan={3}>
+                            Total:
+                          </td>
+                          <td>
+                            {items
+                              .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+                              .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td colSpan={4}></td>
+                        </tr>
+                      </>
                     )}
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={3} style={{ textAlign: "right", fontWeight: 600 }}>
-                    TOTAL
-                  </td>
-                  <td style={{ fontWeight: 600 }}>
-                    {"\u20B1"} {totalExpenses.toFixed(2)}
-                  </td>
-                  <td colSpan={isReadOnly ? 3 : 4} />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </section>
-        <div className="pr-form-actions">
-          <button
-            type="button"
-            className="pr-submit"
-            style={{ background: "linear-gradient(135deg,#3ecf8e,#2bb473)" }}
-            onClick={() => saveRequest("submit")}
-            disabled={isSaving || isReadOnly || !isUserAccount}
-          >
-            Submit for approval
-          </button>
-          {request && (
-            <button
-              type="button"
-              className="pr-sidebar-logout"
-              onClick={resetFormState}
-              disabled={isSaving}
-            >
-              Start new request
+                  </tbody>
+                </table>
+              </div>
+              <div className="replenishment-cash-onhand">
+                <label htmlFor="revolving-fund-amount">
+                  <p>Petty Cash/Revolving Fund Amount</p>
+                  <input
+                    id="revolving-fund-amount"
+                    type="text"
+                    name="revolving_amount"
+                    value={
+                      formData.revolving_amount
+                        ? Number(formData.revolving_amount.replace(/,/g, "")).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })
+                        : "0.00"
+                    }
+                    readOnly
+                    className="replenish-input"
+                  />
+                </label>
+
+                <label htmlFor="total-expense">
+                  <p>Less: Total Expenses per vouchers</p>
+                  <input
+                    id="total-expense"
+                    type="text"
+                    name="total_exp"
+                    value={
+                      items.length > 0
+                        ? items
+                            .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+                            .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        : "0.00"
+                    }
+                    readOnly
+                    className="replenish-input"
+                  />
+                </label>
+
+                <label htmlFor="cash-onhand">
+                  <p>Cash on Hand</p>
+                  <input
+                    id="cash-onhand"
+                    type="text"
+                    name="cash_onhand"
+                    value={
+                      (
+                        Number(formData.revolving_amount?.replace(/,/g, "") || 0) -
+                        items.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+                      ).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    }
+                    readOnly
+                    className="replenish-input"
+                  />
+                </label>
+              </div>
+            </div>
+          </section>
+          <section className="rfr-form-section" id="signature">
+              <h2 className="pr-section-title">Signature Details</h2>
+
+              <div className="signature-details">
+                <label htmlFor="submitted_by">
+                  <p>Submitted by:</p>
+                  <input type="text" name="submitted_by" value={userData.name || ""} className="rfr-input" />
+                </label>
+                <label htmlFor="submitted_by">
+                  <p>Signature:</p>
+                  {userData.signature ? (
+                  <img
+                    src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                    alt="Signature"
+                    className="signature-img"/>
+                    ) : (
+                        <p>No signature available</p>
+                  )}
+                  <input type="hidden" name="submitter_signature" value={userData.signature || ""} className="rfr-input" />
+                </label>
+              </div>
+          </section>
+          <div className="pr-form-actions">
+            <button type="submit" className="pr-submit">
+              Submit revolving fund request
             </button>
-          )}
-        </div>
+          </div>
+        </form>
       </main>
     </div>
   );
 }
-export default RevolvingFund;
+
+export default RevolvingFundRequest;

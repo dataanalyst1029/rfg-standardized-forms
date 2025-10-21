@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { API_BASE_URL } from "./config/api";
 import "./styles/Dashboard.css";
 import ManageUsers from "./ManageUsers.jsx";
 import ManageUsersAccess from "./ManageUsersAccess.jsx";
@@ -6,6 +7,7 @@ import ManageBranches from "./ManageBranches.jsx";
 import ManageDepartments from "./ManageDepartments.jsx";
 import ThemeToggle from "./components/ThemeToggle.jsx";
 import RequestPurchase from "./RequestPurchase.jsx";
+import RequestRevolvingFund from "./RequestRevolvingFund";
 import UserSettings from "./UserSettings.jsx";
 
 const STORAGE_KEY = "rfg-dashboard-active-view";
@@ -192,6 +194,13 @@ function renderActiveView(view) {
           <RequestPurchase />
         </div>
       )
+    case "revolving-fund-request":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <RequestRevolvingFund />
+        </div>
+      );
+
     case "reports-summary":
       return (
         <PlaceholderPanel
@@ -259,6 +268,28 @@ function Dashboard({ role, name, onLogout }) {
   const [activeView, setActiveView] = useState(getInitialView);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
+  const storedId = sessionStorage.getItem("id");
+  const [userAccess, setUserAccess] = useState([]);
+
+  useEffect(() => {
+    const fetchAccess = async () => {
+      if (!storedId) return;
+      try {
+        const response = await fetch(`${API_BASE_URL}/user-access/${storedId}`);
+        const data = await response.json();
+        if (response.ok) {
+          setUserAccess(data.access_forms || []);
+          setUserRole(data.role || "staff");
+        } else {
+          console.error("Failed to load access:", data.error);
+        }
+      } catch (err) {
+        console.error("Error fetching access:", err);
+      }
+    };
+
+    fetchAccess();
+  }, [storedId]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -345,99 +376,154 @@ function Dashboard({ role, name, onLogout }) {
                           <span className="sidebar-dropdown-arrow">{requestsOpen ? "▲" : "▼"}</span>
                         </button>
 
+                        <button
+                          type="button"
+                          className={`sidebar-item${
+                            activeView === "requests" || activeView === "revolving-fund-request" ? " sidebar-item-active" : ""
+                          }`}
+                          onClick={() => setRequestsOpen((prev) => !prev)}
+                        >
+                          <span className="sidebar-item-icon">{item.icon}</span>
+                          <span>{item.label}</span>
+                          <span className="sidebar-dropdown-arrow">{requestsOpen ? "▲" : "▼"}</span>
+                        </button>
+
 
                         {requestsOpen && (
                           <div className="sidebar-dropdown-items">
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "purchase-request" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("purchase-request")}
-                            >
-                              Purchase Request
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "pending-requests" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("pending-requests")}
-                            >
-                              Revolving Fund
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "approved-requests" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("approved-requests")}
-                            >
-                              Cash Advance Request
-                            </button>
-                            <button
-                              type="button"
-                              className="sidebar-item sidebar-item-nested"
-                              onClick={() => setActiveView("approved-requests")}
-                            >
-                              Cash Advance Liquidation
-                            </button>
-                            <button
-                              type="button"
-                              className="sidebar-item sidebar-item-nested"
-                              onClick={() => setActiveView("approved-requests")}
-                            >
-                              CA Receipt Form
-                            </button>
-                            <button
-                              type="button"
-                              className="sidebar-item sidebar-item-nested"
-                              onClick={() => setActiveView("approved-requests")}
-                            >
-                              Reimbursement Form
-                            </button>
-                            <button
-                              type="button"
-                              className="sidebar-item sidebar-item-nested"
-                              onClick={() => setActiveView("approved-requests")}
-                            >
-                              Payment Request Form
-                            </button>
-                            <button
-                              type="button"
-                              className="sidebar-item sidebar-item-nested"
-                              onClick={() => setActiveView("approved-requests")}
-                            >
-                              Maintenance or Repair
-                            </button>
-                            <button
-                              type="button"
-                              className="sidebar-item sidebar-item-nested"
-                              onClick={() => setActiveView("approved-requests")}
-                            >
-                              HR Overtime Approval
-                            </button>
-                            <button
-                              type="button"
-                              className="sidebar-item sidebar-item-nested"
-                              onClick={() => setActiveView("approved-requests")}
-                            >
-                              HR Leave Application
-                            </button>
-                            <button
-                              type="button"
-                              className="sidebar-item sidebar-item-nested"
-                              onClick={() => setActiveView("approved-requests")}
-                            >
-                              Interbranch Transfer Slip
-                            </button>
-                            <button
-                              type="button"
-                              className="sidebar-item sidebar-item-nested"
-                              onClick={() => setActiveView("approved-requests")}
-                            >
-                              Credit Card Acknowledgement Receipt
-                            </button>
+                            {userAccess.includes("Purchase Request") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("purchase-request")}
+                              >
+                                Purchase Request
+                              </button>
+                            )}
+
+                            {userAccess.includes("Revolving Fund") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "revolving-fund-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("revolving-fund-request")}
+                              >
+                                Revolving Fund
+                              </button>
+                            )}
+                            {userAccess.includes("Cash Advance Request") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("purchase-request")}
+                              >
+                                Cash Advance Request
+                              </button>
+                            )}
+                            {userAccess.includes("Cash Advance Liquidation") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("purchase-request")}
+                              >
+                                Cash Advance Liquidation
+                              </button>
+                            )}
+                            {userAccess.includes("CA Receipt Form") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("purchase-request")}
+                              >
+                                CA Receipt Form
+                              </button>
+                            )}
+                            {userAccess.includes("Reimbursement Form") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("purchase-request")}
+                              >
+                                Reimbursement Form
+                              </button>
+                            )}
+                            {userAccess.includes("Payment Request Form") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("purchase-request")}
+                              >
+                                Payment Request Form
+                              </button>
+                            )}
+                            {userAccess.includes("Maintenance or Repair") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("purchase-request")}
+                              >
+                                Maintenance or Repair
+                              </button>
+                            )}
+                            {userAccess.includes("HR Overtime Approval") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("purchase-request")}
+                              >
+                                HR Overtime Approval
+                              </button>
+                            )}
+                            {userAccess.includes("HR Leave Application") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("purchase-request")}
+                              >
+                                HR Leave Application
+                              </button>
+                            )}
+                            {userAccess.includes("Interbranch Transfer Slip") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("purchase-request")}
+                              >
+                                Interbranch Transfer Slip
+                              </button>
+                            )}
+                            {userAccess.includes("Credit Card Acknowledgement Receipt") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("purchase-request")}
+                              >
+                                Credit Card Acknowledgement Receipt
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>

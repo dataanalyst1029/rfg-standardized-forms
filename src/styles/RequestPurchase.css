@@ -33,6 +33,17 @@
   }
 }
 
+.admin-table-wrapper {
+  height: 60vh;
+  overflow-y: auto;
+}
+
+.admin-table-wrapper th {
+  position: sticky;
+  top: 0px;
+  background: var(--color-app-bg);
+}
+
 .request-modal,
 .admin-modal-panel {
   max-width: 600px;

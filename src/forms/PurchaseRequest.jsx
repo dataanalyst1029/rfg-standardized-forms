@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import "./PurchaseRequest.css";
+import "./styles/PurchaseRequest.css";
 import { API_BASE_URL } from "../config/api.js";
 import { useNavigate } from "react-router-dom";
 
@@ -7,15 +7,13 @@ const initialFormData = {
   purchase_request_code: "",
   request_date: new Date().toISOString().split("T")[0],
   request_by: "",
-  user_id: "", 
-  contact_number: "",
+  user_id: "",
+  contact_no: "",
   branch: "",
   department: "",
   address: "",
   purpose: "",
 };
-
-
 
 const emptyItem = { quantity: "", purchase_item: "" };
 
@@ -36,11 +34,43 @@ function PurchaseRequest({ onLogout }) {
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [activeSection, setActiveSection] = useState("details");
   const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
+  const [userData, setUserData] = useState({ name: "", contact_no: "" });
   const navigate = useNavigate();
-  const handleBackToForms = () => {
-    navigate("/forms-list");
-  };
+  const [message, setMessage] = useState(null);
 
+  // ✅ Load user info from session storage + fetch full user record
+  useEffect(() => {
+    const storedId = sessionStorage.getItem("id");
+    const storedName = sessionStorage.getItem("name");
+
+    if (storedId) {
+      fetch(`${API_BASE_URL}/users/${storedId}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch user data");
+          return res.json();
+        })
+        .then((data) => {
+          setUserData(data);
+          setFormData((prev) => ({
+            ...prev,
+            request_by: data.name || storedName || "",
+            user_id: storedId,
+            contact_no: data.contact_no || "",
+          }));
+        })
+        .catch((err) => {
+          console.error("Error fetching user data:", err);
+          // fallback to session name if API fails
+          setFormData((prev) => ({
+            ...prev,
+            request_by: storedName || "",
+            user_id: storedId,
+          }));
+        });
+    }
+  }, []);
+
+  // ✅ Fetch next PR code on mount
   useEffect(() => {
     const fetchNextCode = async () => {
       try {
@@ -52,7 +82,11 @@ function PurchaseRequest({ onLogout }) {
         }
       } catch (error) {
         console.error("Error fetching next code", error);
-        setModal({ isOpen: true, type: "error", message: "Unable to load the next purchase request reference. Please try again." });
+        setModal({
+          isOpen: true,
+          type: "error",
+          message: "Unable to load the next purchase request reference.",
+        });
       } finally {
         setLoading(false);
       }
@@ -60,6 +94,7 @@ function PurchaseRequest({ onLogout }) {
     fetchNextCode();
   }, []);
 
+  // ✅ Fetch branches and departments
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -67,23 +102,24 @@ function PurchaseRequest({ onLogout }) {
           fetch(`${API_BASE_URL}/api/branches`),
           fetch(`${API_BASE_URL}/api/departments`),
         ]);
-
         if (!branchRes.ok || !deptRes.ok) throw new Error("Failed to fetch data");
-
         const branchData = await branchRes.json();
         const deptData = await deptRes.json();
-
         setBranches(branchData);
         setDepartments(deptData);
       } catch (error) {
         console.error("Error loading branch/department data:", error);
-        setModal({ isOpen: true, type: "error", message: "Unable to load branches and departments. Please try again." });
+        setModal({
+          isOpen: true,
+          type: "error",
+          message: "Unable to load branches and departments.",
+        });
       }
     };
-
     fetchData();
   }, []);
 
+  // ✅ Filter departments based on selected branch
   useEffect(() => {
     if (formData.branch) {
       const filtered = departments.filter(
@@ -95,19 +131,6 @@ function PurchaseRequest({ onLogout }) {
       setFilteredDepartments([]);
     }
   }, [formData.branch, departments]);
-
-
-useEffect(() => {
-  const storedName = sessionStorage.getItem("name");
-  const storedId = sessionStorage.getItem("id");
-  if (storedName || storedId) {
-    setFormData((prev) => ({
-      ...prev,
-      request_by: storedName || "",
-      user_id: storedId || ""
-    }));
-  }
-}, []);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -124,10 +147,10 @@ useEffect(() => {
   };
 
   const addItemRow = () => setItems((prev) => [...prev, emptyItem]);
-
-  const removeItemRow = (index) => {
-    setItems((prev) => (prev.length === 1 ? [emptyItem] : prev.filter((_, i) => i !== index)));
-  };
+  const removeItemRow = (index) =>
+    setItems((prev) =>
+      prev.length === 1 ? [emptyItem] : prev.filter((_, i) => i !== index)
+    );
 
   const sanitizedItems = useMemo(
     () =>
@@ -144,60 +167,64 @@ useEffect(() => {
     event.preventDefault();
 
     if (sanitizedItems.length === 0) {
-      return setModal({ isOpen: true, type: "error", message: "Add at least one line item before submitting." });
+      return setModal({
+        isOpen: true,
+        type: "error",
+        message: "Add at least one line item before submitting.",
+      });
     }
 
     let currentPRCode = formData.purchase_request_code;
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/purchase_request/next-code`);
-      if (!res.ok) throw new Error("Failed to retrieve latest purchase request code");
       const data = await res.json();
-      if (data.nextCode) {
-        currentPRCode = data.nextCode;
-        setFormData((prev) => ({ ...prev, purchase_request_code: data.nextCode }));
-      }
+      if (data.nextCode) currentPRCode = data.nextCode;
     } catch (error) {
-      console.error("Error fetching latest PR code", error);
-      return setModal({ isOpen: true, type: "error", message: "Unable to get the latest PR number. Please try again." });
+      return setModal({
+        isOpen: true,
+        type: "error",
+        message: "Unable to get the latest PR number.",
+      });
     }
 
-  const payload = {
-    purchase_request_code: currentPRCode,
-    date_applied: formData.request_date,
-    request_by: formData.request_by,
-    user_id: formData.user_id,
-    contact_number: formData.contact_number,
-    branch: formData.branch,
-    department: formData.department,
-    address: formData.address,
-    purpose: formData.purpose,
-    items: sanitizedItems,
-  };
-
+    const payload = {
+      ...formData,
+      purchase_request_code: currentPRCode,
+      items: sanitizedItems,
+    };
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/purchase_request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+  const res = await fetch(`${API_BASE_URL}/api/purchase_request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to submit purchase request");
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to submit request");
 
-      setModal({
-        isOpen: true,
-        type: "success",
-        message: `Purchase Request ${currentPRCode} submitted successfully.`,
-      });
-    } catch (error) {
-      console.error("Error submitting purchase request", error);
-      setModal({ isOpen: true, type: "error", message: error.message || "Unable to submit purchase request. Please try again." });
-    }
+  setMessage({
+    type: "success",
+    text: `Purchase Request ${currentPRCode} submitted successfully.`,
+  });
+
+  setTimeout(() => {
+    setMessage(null);
+    window.location.reload();
+  }, 2000);
+
+} catch (error) {
+  console.error("Error submitting purchase request", error);
+  setMessage({
+    type: "error",
+    text: error.message || "Unable to submit purchase request. Please try again.",
+  });
+
+  setTimeout(() => setMessage(null), 3000);
+}
+
   };
-
-
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
@@ -209,12 +236,25 @@ useEffect(() => {
     }
   };
 
-  if (loading) {
-    return <div className="pr-loading">Loading purchase request form…</div>;
-  }
+  if (loading)
+  return (
+    <div className="loading-container">
+      <div className="spinner"></div>
+      <span>Loading purchase request form…</span>
+    </div>
+  );
 
   return (
     <div className="pr-layout">
+
+      {message && (
+        <div className="message-modal-overlay">
+          <div className={`message-modal-content ${message.type}`}>
+            {message.text}
+          </div>
+        </div>
+      )}
+      
       {modal.isOpen && (
         <div className="pr-modal-overlay">
           <div className={`pr-modal ${modal.type}`}>
@@ -308,7 +348,7 @@ useEffect(() => {
                 <input
                   id="requestedBy"
                   name="request_by"
-                  value={formData.request_by}
+                  value={userData.name}
                   onChange={handleChange}
                   className="pr-input"
                   placeholder="Full name"
@@ -333,8 +373,8 @@ useEffect(() => {
                 </label>
                 <input
                   id="contactNumber"
-                  name="contact_number"
-                  value={formData.contact_number}
+                  name="contact_no"
+                  value={formData.contact_no}
                   onChange={(e) => {
                     const value = e.target.value;
                     if (/^\d{0,11}$/.test(value)) {

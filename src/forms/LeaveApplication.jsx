@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./PurchaseRequest.css";
-import "./LeaveApplication.css";
+import "./styles/LeaveApplication.css";
 import { API_BASE_URL } from "../config/api.js";
 
 const LEAVE_TYPES = [

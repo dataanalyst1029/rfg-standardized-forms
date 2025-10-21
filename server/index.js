@@ -528,6 +528,26 @@ app.delete("/api/user_access/:id", async (req, res) => {
   }
 });
 
+app.get("/user-access/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      "SELECT access_forms, role FROM user_access WHERE user_id = $1 LIMIT 1",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "No access record found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error fetching user access:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 /* ------------------------
    PURCHASE REQUESTS
 ------------------------ */
@@ -567,7 +587,7 @@ app.post("/api/purchase_request", async (req, res) => {
     purchase_request_code,
     date_applied,      
     request_by,
-    contact_number,
+    contact_no,
     branch,
     department,
     address,
@@ -582,14 +602,14 @@ app.post("/api/purchase_request", async (req, res) => {
 
     const result = await client.query(
       `INSERT INTO purchase_request
-       (purchase_request_code, request_date, request_by, contact_number, branch, department, address, purpose, user_id)
+       (purchase_request_code, request_date, request_by, contact_no, branch, department, address, purpose, user_id)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
        RETURNING id`,
       [
         purchase_request_code,
         date_applied || new Date(),
         request_by,
-        contact_number,
+        contact_no,
         branch,
         department,
         address,
@@ -667,12 +687,6 @@ app.get("/api/purchase_request_items", async (req, res) => {
   }
 });
 
-
-
-/* ------------------------
-   UPLOAD FOR APPROVED SIGNATURE
------------------------- */
-
 /* ------------------------
    UPDATE PURCHASE REQUEST
 ------------------------ */
@@ -685,28 +699,38 @@ app.put("/api/update_purchase_request", uploadForm.none(), async (req, res) => {
       approved_by,
       approved_signature,
       status,
+      declined_reason,
     } = req.body;
 
     if (!purchase_request_code) {
       return res.status(400).json({ message: "purchase_request_code is required." });
     }
 
-    const values = [status];
     let query = `
       UPDATE purchase_request
       SET status = $1,
           updated_at = NOW()
     `;
 
+    const values = [status];
+    let paramIndex = 2;
+
     if (status === "Approved") {
       query += `,
-        approved_by = $2,
-        approved_signature = $3
+        approved_by = $${paramIndex++},
+        approved_signature = $${paramIndex++}
       `;
       values.push(approved_by, approved_signature);
     }
 
-    query += ` WHERE purchase_request_code = $${values.length + 1} RETURNING *`;
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE purchase_request_code = $${paramIndex} RETURNING *`;
     values.push(purchase_request_code);
 
     const result = await pool.query(query, values);
@@ -726,6 +750,153 @@ app.put("/api/update_purchase_request", uploadForm.none(), async (req, res) => {
   }
 });
 
+/* ------------------------
+   REVOLVING FUND API
+------------------------ */
+
+app.get("/api/revolving_fund_request/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const result = await pool.query(
+      `SELECT revolving_request_code 
+       FROM revolving_fund_request 
+       WHERE revolving_request_code LIKE $1 
+       ORDER BY revolving_request_code DESC 
+       LIMIT 1`,
+      [`PR-${year}-%`]
+    );
+
+    let nextCode;
+    if (result.rows.length > 0) {
+      const lastCode = result.rows[0].revolving_request_code;
+      const lastNum = parseInt(lastCode.split("-")[2]);
+      const nextNum = String(lastNum + 1).padStart(6, "0");
+      nextCode = `RFRF-${year}-${nextNum}`;
+    } else {
+      nextCode = `RFRF-${year}-000001`;
+    }
+
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("❌ Error generating next purchase request code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+app.post("/api/revolving_fund_request", async (req, res) => {
+  const {
+    revolving_request_code,
+    date_request,      
+    employee_id,
+    custodian,
+    branch,
+    department,
+    replenish_amount,
+    total,
+    revolving_amount,
+    total_exp,
+    cash_onhand,
+    submitted_by,
+    submitter_signature,
+    items = [],
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const result = await client.query(
+      `INSERT INTO revolving_fund_request
+       (revolving_request_code, date_request, employee_id, custodian, branch, department, replenish_amount, total, revolving_amount, total_exp, cash_onhand, submitted_by, submitter_signature, user_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, $10, $11, $12, $13)
+       RETURNING id`,
+      [
+        revolving_request_code,
+        date_request || new Date(),
+        employee_id,
+        custodian,
+        branch,
+        department,
+        replenish_amount,
+        total,
+        revolving_amount,
+        total_exp,
+        cash_onhand,
+        submitted_by,
+        submitter_signature,
+        user_id, 
+      ]
+    );
+
+    const requestId = result.rows[0]?.id;
+    if (!requestId) throw new Error("Failed to get revolving_request ID");
+
+    for (const item of items) {
+      if (!item.replenish_date || !item.voucher_no || !item.or_ref_no || !item.amount || !item.exp_cat || !item.gl_account || !item.remarks) continue;
+      await client.query(
+        `INSERT INTO revolving_request_items (request_id, replenish_date, voucher_no, or_ref_no, amount, exp_cat, gl_account, remarks)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [requestId, item.replenish_date, item.voucher_no, item.or_ref_no, item.amount, item.exp_cat, item.gl_account, item.remarks.trim()]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: `Revolving Fund Request ${revolving_request_code} saved successfully!`,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("❌ Error saving purchase request:", err);
+    res.status(500).json({ message: "Server error saving purchase request" });
+  } finally {
+    client.release();
+  }
+});
+
+
+app.get("/api/revolving_fund_request", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT rfr.*, json_agg(json_build_object('id', rfri.id, 'replenish_date', rfri.voucher_no, 'or_ref_no', rfri.amount, rfri.exp_cat, rfri.gl_account, rfri.remarks)) AS items
+      FROM revolving_fund_request pr
+      LEFT JOIN revolving_request_items rfri ON rfr.id = rfri.request_id
+      GROUP BY rfr.id
+      ORDER BY rfr.created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching purchase requests:", err);
+    res.status(500).json({ message: "Server error fetching purchase requests" });
+  }
+});
+
+app.get("/api/revolving_request_items", async (req, res) => {
+  const { request_id } = req.query;
+
+  try {
+    let query = `
+      SELECT id, request_id, replenish_date, voucher_no, or_ref_no, amount, exp_cat, gl_account, remarks
+      FROM revolving_request_items
+    `;
+    const params = [];
+
+    if (request_id) {
+      query += " WHERE request_id = $1";
+      params.push(request_id);
+    }
+
+    query += " ORDER BY id ASC";
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching revolving fund request items:", err);
+    res.status(500).json({ message: "Server error fetching revolving fund request items" });
+  }
+});
 
 /* ------------------------
    BRANCHES CRUD API

@@ -1,0 +1,241 @@
+.rf-items-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 0.9rem;
+}
+
+.rf-items-wrapper::-webkit-scrollbar {
+  height: 10px;
+}
+
+.rf-items-wrapper::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 9999px;
+}
+
+.rf-section-amount {
+  margin-left: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.pr-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding-bottom: 50px;
+}
+
+.pr-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pr-topbar h1 {
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: 600;
+}
+
+.pr-topbar-meta {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.replenishment-field label {
+  display: flex;
+  align-items: center; 
+  gap: 10px;
+}
+
+.replenishment-field p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.rfr-input,
+.rfr-select,
+.rfr-textarea {
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-app-bg);
+  padding: 0.75rem 0.9rem;
+  color: var(--color-text-primary);
+  font-size: 0.96rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.rfr-input:focus,
+.rfr-select:focus,
+.rfr-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(36, 207, 142, 0.2);
+}
+
+#replenishment-amount {
+  padding: 5px 10px;
+  width: 150px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.rfr-items-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1.2rem;
+  padding: 1.6rem;
+  box-shadow: var(--shadow-elevation);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2%;
+}
+
+.rfr-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--color-border);
+  border-radius: 0.9rem;
+}
+
+.rfr-items-table thead {
+  background: var(--color-table-header);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.rfr-items-table th,
+.rfr-items-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rfr-items-table tbody tr:last-of-type td {
+  border-bottom: none;
+}
+
+.table-wrapper {
+  overflow-x: auto; 
+  width: 100%; 
+  margin-top: 1rem; 
+}
+
+.rfr-items-table {
+  width: 100%;
+  min-width: 800px;
+  border-collapse: collapse;
+}
+
+.rfr-items-table th {
+  text-align: center;
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+}
+
+.rfr-items-table td {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  text-align: left;
+}
+
+.replenishment-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; 
+  margin-bottom: 1rem;
+}
+
+.pr-items-add {
+  align-self: flex-end;
+}
+
+.replenish-input {
+  border: 0px;
+  border-bottom: 1px solid #969696;
+  padding: .2rem 1rem;
+}
+
+.replenish-input:focus {
+  outline: none;
+  border-bottom: 1px solid #969696;
+}
+
+.rfr-items-total td {
+  text-align: center;
+  font-weight: 600;
+  color: #585858;
+}
+
+.td-input {
+  text-align: center;
+}
+
+.replenishment-cash-onhand {
+  margin-top: 5rem;
+  text-align: center;
+}
+
+.replenishment-cash-onhand label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 5rem;
+}
+
+.replenishment-cash-onhand label p {
+  display: inline-block; 
+  width: 300px;
+  margin: 0;
+  vertical-align: middle;
+  text-align: left;
+}
+
+.replenishment-cash-onhand label input {
+  display: inline-block; 
+  width: 150px;
+  text-align: center;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+.rfr-form-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1.2rem;
+  padding: 1.8rem;
+  box-shadow: var(--shadow-elevation);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.signature-details {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.signature-details label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.signature-img {
+  max-width: 150px;
+  height: auto;
+}

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./PurchaseRequest.css";
-import "./MaintenanceRepair.css";
+import "./styles/MaintenanceRepair.css";
 import { API_BASE_URL } from "../config/api.js";
 
 const createInitialFormState = (storedUser) => ({
