@@ -225,17 +225,78 @@
 .signature-details {
   display: flex;
   gap: 20px;
-  align-items: flex-start;
+  text-align: center;
 }
 
 .signature-details label {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   flex: 1;
+}
+
+.signature-details p {
+  margin: 0;
+  padding: 0;
+}
+
+
+.signature-details input {
+  text-align: center;
+  border: 0px;
+  border-bottom: 1px solid #969696;
+  font-size: 1rem;
+}
+
+.signature-details input:focus {
+  outline: none;
 }
 
 .signature-img {
   max-width: 150px;
   height: auto;
+}
+
+.rfr-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.signature-by {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.signature-by input {
+  color: transparent;
+}
+
+.signature-by .signature-img {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 100px;
+  height: 50px;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  max-width: 25vw;
+  margin-top: 8px;
+}
+
+.rfr-items-total input {
+  text-align: center;
+  background: transparent;
+  padding: 0.75rem 0.9rem;
+  color: #585858;
+  font-size: 0.96rem;
+  border: 0px;
+  font-weight: 600;
+}
+
+.rfr-items-total input:focus {
+  outline: none;
 }

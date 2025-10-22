@@ -91,7 +91,7 @@ function App() {
         <Route
           path="/forms-list"
           element={
-            user && user.role === "user" ? (
+            user ? (
               <FormsList onLogout={handleLogout} />
             ) : (
               <Navigate to="/" replace />
@@ -114,8 +114,9 @@ function App() {
         <Route
           path="/forms/revolving-fund"
           element={
-            user && user.role === "user" ? (
-              <RevolvingFund onLogout={handleLogout} />
+            user &&
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
+              <RevolvingFund onLogout={handleLogout} currentUserId={user.id} />
             ) : (
               <Navigate to="/" replace />
             )

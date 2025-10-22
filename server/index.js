@@ -779,7 +779,7 @@ app.get("/api/revolving_fund_request/next-code", async (req, res) => {
 
     res.json({ nextCode });
   } catch (err) {
-    console.error("❌ Error generating next purchase request code:", err);
+    console.error("❌ Error generating next revolving fund request code:", err);
     res.status(500).json({ message: "Server error generating next code" });
   }
 });
@@ -787,7 +787,7 @@ app.get("/api/revolving_fund_request/next-code", async (req, res) => {
 app.post("/api/revolving_fund_request", async (req, res) => {
   const {
     revolving_request_code,
-    date_request,      
+    date_request,
     employee_id,
     custodian,
     branch,
@@ -799,6 +799,7 @@ app.post("/api/revolving_fund_request", async (req, res) => {
     cash_onhand,
     submitted_by,
     submitter_signature,
+    user_id,
     items = [],
   } = req.body;
 
@@ -806,11 +807,12 @@ app.post("/api/revolving_fund_request", async (req, res) => {
   try {
     await client.query("BEGIN");
 
+    // Insert main request
     const result = await client.query(
       `INSERT INTO revolving_fund_request
-       (revolving_request_code, date_request, employee_id, custodian, branch, department, replenish_amount, total, revolving_amount, total_exp, cash_onhand, submitted_by, submitter_signature, user_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, $10, $11, $12, $13)
-       RETURNING id`,
+      (revolving_request_code, date_request, employee_id, custodian, branch, department, replenish_amount, total, revolving_amount, total_exp, cash_onhand, submitted_by, submitter_signature, user_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      RETURNING id`,
       [
         revolving_request_code,
         date_request || new Date(),
@@ -825,19 +827,40 @@ app.post("/api/revolving_fund_request", async (req, res) => {
         cash_onhand,
         submitted_by,
         submitter_signature,
-        user_id, 
+        user_id,
       ]
     );
 
     const requestId = result.rows[0]?.id;
-    if (!requestId) throw new Error("Failed to get revolving_request ID");
+    if (!requestId) throw new Error("Failed to get revolving request ID");
 
-    for (const item of items) {
-      if (!item.replenish_date || !item.voucher_no || !item.or_ref_no || !item.amount || !item.exp_cat || !item.gl_account || !item.remarks) continue;
+    // ✅ Batch insert items (more efficient than one-by-one)
+    if (items.length > 0) {
+      const values = [];
+      const placeholders = [];
+
+      items.forEach((item, i) => {
+        const base = i * 8;
+        placeholders.push(
+          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8})`
+        );
+        values.push(
+          requestId,
+          item.replenish_date || null,
+          item.voucher_no || null,
+          item.or_ref_no || null,
+          item.amount || null,
+          item.exp_cat || null,
+          item.gl_account || null,
+          item.remarks?.trim() || null
+        );
+      });
+
       await client.query(
-        `INSERT INTO revolving_request_items (request_id, replenish_date, voucher_no, or_ref_no, amount, exp_cat, gl_account, remarks)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [requestId, item.replenish_date, item.voucher_no, item.or_ref_no, item.amount, item.exp_cat, item.gl_account, item.remarks.trim()]
+        `INSERT INTO revolving_fund_request_items
+        (request_id, replenish_date, voucher_no, or_ref_no, amount, exp_cat, gl_account, remarks)
+        VALUES ${placeholders.join(", ")}`,
+        values
       );
     }
 
@@ -849,37 +872,50 @@ app.post("/api/revolving_fund_request", async (req, res) => {
     });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("❌ Error saving purchase request:", err);
-    res.status(500).json({ message: "Server error saving purchase request" });
+    console.error("❌ Error saving revolving fund request:", err);
+    res.status(500).json({ message: "Server error saving revolving fund request" });
   } finally {
     client.release();
   }
 });
 
 
+
 app.get("/api/revolving_fund_request", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT rfr.*, json_agg(json_build_object('id', rfri.id, 'replenish_date', rfri.voucher_no, 'or_ref_no', rfri.amount, rfri.exp_cat, rfri.gl_account, rfri.remarks)) AS items
-      FROM revolving_fund_request pr
-      LEFT JOIN revolving_request_items rfri ON rfr.id = rfri.request_id
+      SELECT rfr.*, 
+        json_agg(
+          json_build_object(
+            'id', rfri.id, 
+            'replenish_date', rfri.replenish_date, 
+            'voucher_no', rfri.voucher_no, 
+            'or_ref_no', rfri.or_ref_no, 
+            'amount', rfri.amount, 
+            'exp_cat', rfri.exp_cat, 
+            'gl_account', rfri.gl_account, 
+            'remarks', rfri.remarks
+          )
+        ) AS items
+      FROM revolving_fund_request rfr
+      LEFT JOIN revolving_fund_request_items rfri ON rfr.id = rfri.request_id
       GROUP BY rfr.id
-      ORDER BY rfr.created_at DESC
+      ORDER BY rfr.created_at DESC;
     `);
     res.json(result.rows);
   } catch (err) {
-    console.error("❌ Error fetching purchase requests:", err);
-    res.status(500).json({ message: "Server error fetching purchase requests" });
+    console.error("❌ Error fetching revolving fund requests:", err);
+    res.status(500).json({ message: "Server error fetching revolving fund requests" });
   }
 });
 
-app.get("/api/revolving_request_items", async (req, res) => {
+app.get("/api/revolving_fund_request_items", async (req, res) => {
   const { request_id } = req.query;
 
   try {
     let query = `
       SELECT id, request_id, replenish_date, voucher_no, or_ref_no, amount, exp_cat, gl_account, remarks
-      FROM revolving_request_items
+      FROM revolving_fund_request_items
     `;
     const params = [];
 

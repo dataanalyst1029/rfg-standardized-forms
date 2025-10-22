@@ -39,9 +39,11 @@ function RevolvingFundRequest({ onLogout }) {
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [activeSection, setActiveSection] = useState("details");
   const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
-  const navigate = useNavigate();
   const [message, setMessage] = useState(null);
   const [replenishAmount, setReplenishAmount] = useState("");
+  const [userData, setUserData] = useState({});
+  const navigate = useNavigate();
+
 
   const handleReplenishAmountChange = (e) => {
     let value = e.target.value;
@@ -183,19 +185,27 @@ function RevolvingFundRequest({ onLogout }) {
       prev.length === 1 ? [emptyItem] : prev.filter((_, i) => i !== index)
     );
 
-  const sanitizedItems = useMemo(
-    () =>
-      items
-        .map((item) => ({
-          replenish_date: item.replenish_date,
-          voucher_no: item.voucher_no.trim(),
-          or_ref_no: item.or_ref_no.trim(),
-          amount: item.amount.trim(),
-          exp_cat: item.exp_cat.trim(),
-          gl_account: item.gl_account.trim(),
-          remarks: item.remarks.trim(),
-        }))
-        .filter((item) => item.replenish_date && item.voucher_no && item.or_ref_no && item.amount && item.exp_cat && item.gl_account && item.remarks),
+  const sanitizedItems = useMemo(() =>
+    items
+      .map((item) => ({
+        replenish_date: item.replenish_date?.trim() || "",
+        voucher_no: item.voucher_no?.trim() || "",
+        or_ref_no: item.or_ref_no?.trim() || "",
+        amount: item.amount?.toString().replace(/,/g, "").trim() || "",
+        exp_cat: item.exp_cat?.trim() || "",
+        gl_account: item.gl_account?.trim() || "",
+        remarks: item.remarks?.trim() || "",
+      }))
+      .filter((item) => {
+        return (
+          item.replenish_date !== "" ||
+          item.voucher_no !== "" ||
+          item.or_ref_no !== "" ||
+          item.amount !== "" ||
+          item.exp_cat !== "" ||
+          item.gl_account !== ""
+        );
+      }),
     [items]
   );
 
@@ -210,12 +220,13 @@ function RevolvingFundRequest({ onLogout }) {
       });
     }
 
-    let currentPRCode = formData.revolving_request_code;
+
+    let currentRFRFCode = formData.revolving_request_code;
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/revolving_fund_request/next-code`);
       const data = await res.json();
-      if (data.nextCode) currentPRCode = data.nextCode;
+      if (data.nextCode) currentRFRFCode = data.nextCode;
     } catch (error) {
       return setModal({
         isOpen: true,
@@ -224,41 +235,51 @@ function RevolvingFundRequest({ onLogout }) {
       });
     }
 
+    const totalAmount = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const revolvingAmount = Number(formData.replenish_amount || 0);
+    const cashOnHand = revolvingAmount - totalAmount;
+
     const payload = {
       ...formData,
-      revolving_request_code: currentPRCode,
+      revolving_request_code: currentRFRFCode,
+      total: totalAmount.toFixed(2),
+      revolving_amount: revolvingAmount.toFixed(2),
+      total_exp: totalAmount.toFixed(2),
+      cash_onhand: cashOnHand.toFixed(2),
+      submitted_by: userData.name || "",
+      submitter_signature: userData.signature || "",
       items: sanitizedItems,
     };
 
     try {
-  const res = await fetch(`${API_BASE_URL}/api/revolving_fund_request`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+      const res = await fetch(`${API_BASE_URL}/api/revolving_fund_request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "Failed to submit request");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to submit request");
 
-  setMessage({
-    type: "success",
-    text: `Revolving Fund ${currentPRCode} submitted successfully.`,
-  });
+      setMessage({
+        type: "success",
+        text: `Revolving Fund ${currentRFRFCode} submitted successfully.`,
+      });
 
-  setTimeout(() => {
-    setMessage(null);
-    window.location.reload();
-  }, 2000);
+      setTimeout(() => {
+        setMessage(null);
+        window.location.reload();
+      }, 2000);
 
-} catch (error) {
-  console.error("Error submitting revolving fund", error);
-  setMessage({
-    type: "error",
-    text: error.message || "Unable to submit revolving fund. Please try again.",
-  });
+    } catch (error) {
+      console.error("Error submitting revolving fund", error);
+      setMessage({
+        type: "error",
+      text: error.message || "Unable to submit revolving fund. Please try again.",
+    });
 
-  setTimeout(() => setMessage(null), 3000);
-}
+    setTimeout(() => setMessage(null), 3000);
+  }
 
   };
 
@@ -494,8 +515,6 @@ function RevolvingFundRequest({ onLogout }) {
                   />
                 </label>
 
-
-
                 <button
                   type="button"
                   className="pr-items-add"
@@ -645,10 +664,9 @@ function RevolvingFundRequest({ onLogout }) {
                           <td colSpan={3}>
                             Total:
                           </td>
-                          <td>
-                            {items
+                          <td><input type="text" name="total" className="rfr-input-total" value={items
                               .reduce((sum, item) => sum + Number(item.amount || 0), 0)
-                              .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} readOnly />
                           </td>
                           <td colSpan={4}></td>
                         </tr>
@@ -715,15 +733,14 @@ function RevolvingFundRequest({ onLogout }) {
             </div>
           </section>
           <section className="rfr-form-section" id="signature">
-              <h2 className="pr-section-title">Signature Details</h2>
+              <h2 className="rfr-section-title">Signature Details</h2>
 
               <div className="signature-details">
                 <label htmlFor="submitted_by">
+                  <input type="text" name="submitted_by" value={userData.name || ""} />
                   <p>Submitted by:</p>
-                  <input type="text" name="submitted_by" value={userData.name || ""} className="rfr-input" />
                 </label>
-                <label htmlFor="submitted_by">
-                  <p>Signature:</p>
+                <label htmlFor="submitted_by" class="signature-by">
                   {userData.signature ? (
                   <img
                     src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
@@ -732,7 +749,9 @@ function RevolvingFundRequest({ onLogout }) {
                     ) : (
                         <p>No signature available</p>
                   )}
-                  <input type="hidden" name="submitter_signature" value={userData.signature || ""} className="rfr-input" />
+                  <input type="text" name="submitter_signature" value={userData.signature || ""} readOnly />
+                  <p>Signature:</p>
+
                 </label>
               </div>
           </section>

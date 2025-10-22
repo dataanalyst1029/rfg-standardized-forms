@@ -51,6 +51,7 @@
 }
 
 .user-profile-wrapper {
+  /* background: #fafafa; */
   background: var(--color-surface);
   border-radius: 16px;
   padding: 2rem 2rem 5rem 2rem;
@@ -58,7 +59,6 @@
   margin: 1rem auto;
   box-shadow: 0 2px 12px var(--shadow-color);
   font-family: 'Inter', sans-serif;
-  color: var(--text-color);
 }
 
 .user-header {
@@ -87,12 +87,10 @@
   margin: 0;
   font-size: 1.2rem;
   font-weight: 600;
-  color: var(--text-color);
 }
 
 .user-info p {
   margin: 0;
-  color: var(--subtext-color);
   font-size: 0.9rem;
 }
 
@@ -111,7 +109,6 @@
 .form-group label {
   font-weight: 600;
   margin-bottom: 6px;
-  color: var(--text-color);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -124,7 +121,6 @@
   padding: 10px;
   font-size: 0.95rem;
   background: var(--input-bg);
-  color: var(--text-color);
 }
 
 .form-group input:focus {
@@ -234,10 +230,14 @@
   padding: 20px;
   border-radius: 12px;
   width: 400px;
-  max-width: 90%;
+  max-width: 30%;
   box-shadow: 0 3px 12px var(--shadow-color);
   transform: translateY(0);
   transition: all 0.3s ease;
+}
+
+.modal-content input{
+  color: #000000;
 }
 
 .modal-buttons {

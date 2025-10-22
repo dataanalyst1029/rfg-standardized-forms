@@ -9,6 +9,8 @@ import ThemeToggle from "./components/ThemeToggle.jsx";
 import RequestPurchase from "./RequestPurchase.jsx";
 import RequestRevolvingFund from "./RequestRevolvingFund";
 import UserSettings from "./UserSettings.jsx";
+import FormsList from "./FormsList.jsx";
+import { useNavigate } from "react-router-dom";
 
 const STORAGE_KEY = "rfg-dashboard-active-view";
 
@@ -38,6 +40,19 @@ const NAVIGATION = [
         icon: "📑",
         headline: "Reports Center",
         description: "View and export reports for tracking and analytics.",
+      },
+    ],
+  },
+  {
+    id: "forms",
+    title: "Forms",
+    items: [
+      {
+        id: "forms-menu",
+        label: "Forms",
+        icon: "🧾",
+        headline: "Forms Library",
+        description: "Access and manage all form templates.",
       },
     ],
   },
@@ -223,6 +238,14 @@ function renderActiveView(view) {
         />
       );
 
+    case "forms-menu":
+      return (
+        <div className="dashboard-content dashboard-content--centered">
+          <FormsList />
+        </div>
+      );
+
+
     case "profile":
       return (
         <div className="dashboard-content dashboard-content--flush">
@@ -270,6 +293,7 @@ function Dashboard({ role, name, onLogout }) {
   const [reportsOpen, setReportsOpen] = useState(false);
   const storedId = sessionStorage.getItem("id");
   const [userAccess, setUserAccess] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAccess = async () => {
@@ -376,7 +400,7 @@ function Dashboard({ role, name, onLogout }) {
                           <span className="sidebar-dropdown-arrow">{requestsOpen ? "▲" : "▼"}</span>
                         </button>
 
-                        <button
+                        {/* <button
                           type="button"
                           className={`sidebar-item${
                             activeView === "requests" || activeView === "revolving-fund-request" ? " sidebar-item-active" : ""
@@ -386,7 +410,7 @@ function Dashboard({ role, name, onLogout }) {
                           <span className="sidebar-item-icon">{item.icon}</span>
                           <span>{item.label}</span>
                           <span className="sidebar-dropdown-arrow">{requestsOpen ? "▲" : "▼"}</span>
-                        </button>
+                        </button> */}
 
 
                         {requestsOpen && (
@@ -663,6 +687,22 @@ function Dashboard({ role, name, onLogout }) {
                       </div>
                     );
                   }
+
+                  if (item.id === "forms-menu") {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => navigate("/forms-list")}
+                        className="sidebar-item"
+                      >
+                        <span className="sidebar-item-icon">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  }
+
+
 
                   return (
                     <button

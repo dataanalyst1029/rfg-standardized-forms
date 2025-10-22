@@ -49,7 +49,6 @@ function FormsList({ onLogout }) {
     "Credit Card Acknowledgement Receipt",
   ];
 
-  // Fetch user info
   useEffect(() => {
     if (!storedId) return;
     fetch(`${API_BASE_URL}/users/${storedId}`)
@@ -58,13 +57,11 @@ function FormsList({ onLogout }) {
       .catch((err) => console.error("Error fetching user:", err));
   }, [storedId]);
 
-  // ✅ Check if user info is complete
   const isUserInfoIncomplete = () => {
     const { name, email, contact_no, signature, profile_img } = formData;
     return !name || !email || !contact_no || !signature || !profile_img;
   };
 
-  // Open/Close Modal
   const handleSettings = () => setShowSettingsModal(true);
   const handleCloseModal = () => {
     if (formData.profile_img_preview) {
@@ -77,7 +74,6 @@ function FormsList({ onLogout }) {
     }, 300);
   };
 
-  // Handle field updates with preview
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
@@ -94,7 +90,6 @@ function FormsList({ onLogout }) {
     }
   };
 
-  // Save user info
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -145,7 +140,6 @@ function FormsList({ onLogout }) {
     }
   };
 
-  // ✅ Prevent opening form if info incomplete
   const handleGo = () => {
     if (isUserInfoIncomplete()) {
       setMessage({
@@ -157,7 +151,11 @@ function FormsList({ onLogout }) {
     }
 
     if (!selectedForm) {
-      alert("Please select a form first.");
+      setMessage({
+        type: "error",
+        text: "Please select a form first.",
+      });
+      setTimeout(() => setMessage(null), 3000);
       return;
     }
 
@@ -231,13 +229,24 @@ function FormsList({ onLogout }) {
           >
             Open Form
           </button>
-          <button
-            type="button"
-            className="forms-button forms-button--muted"
-            onClick={onLogout}
-          >
-            Sign Out
-          </button>
+          {formData.role !== "user" && (
+            <button
+              type="button"
+              className="forms-button forms-button--muted"
+              onClick={() => navigate("/dashboard")}
+            >
+              Dashboard
+            </button>
+          )}
+          {formData.role === "user" && (
+            <button
+              type="button"
+              className="forms-button forms-button--muted"
+              onClick={onLogout}
+            >
+              Sign Out
+            </button>
+          )}
         </div>
       </div>
 
