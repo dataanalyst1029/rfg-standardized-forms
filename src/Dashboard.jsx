@@ -139,6 +139,7 @@ const getInitialView = () => {
     const validIds = [
       ...navigationItems.map((item) => item.id),
       "purchase-request",
+      "revolving-fund-request",
       "profile"
     ];
     if (validIds.includes(stored)) {
@@ -329,7 +330,7 @@ function Dashboard({ role, name, onLogout }) {
         [
           "requests",
           "purchase-request",
-          "pending-requests",
+          "revolving-fund-request",
           "approved-requests",
         ].includes(stored)
       ) {

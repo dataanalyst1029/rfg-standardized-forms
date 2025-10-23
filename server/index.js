@@ -764,7 +764,7 @@ app.get("/api/revolving_fund_request/next-code", async (req, res) => {
        WHERE revolving_request_code LIKE $1 
        ORDER BY revolving_request_code DESC 
        LIMIT 1`,
-      [`PR-${year}-%`]
+      [`RFRF-${year}-%`]
     );
 
     let nextCode;
@@ -807,7 +807,6 @@ app.post("/api/revolving_fund_request", async (req, res) => {
   try {
     await client.query("BEGIN");
 
-    // Insert main request
     const result = await client.query(
       `INSERT INTO revolving_fund_request
       (revolving_request_code, date_request, employee_id, custodian, branch, department, replenish_amount, total, revolving_amount, total_exp, cash_onhand, submitted_by, submitter_signature, user_id)
@@ -834,7 +833,6 @@ app.post("/api/revolving_fund_request", async (req, res) => {
     const requestId = result.rows[0]?.id;
     if (!requestId) throw new Error("Failed to get revolving request ID");
 
-    // ✅ Batch insert items (more efficient than one-by-one)
     if (items.length > 0) {
       const values = [];
       const placeholders = [];
@@ -931,6 +929,67 @@ app.get("/api/revolving_fund_request_items", async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching revolving fund request items:", err);
     res.status(500).json({ message: "Server error fetching revolving fund request items" });
+  }
+});
+
+/* ------------------------
+   UPDATE PURCHASE REQUEST
+------------------------ */
+app.put("/api/update_revolving_fund_request", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      revolving_request_code,
+      approved_by,
+      approver_signature,
+      status,
+      declined_reason,
+    } = req.body;
+
+    if (!revolving_request_code) {
+      return res.status(400).json({ message: "revolving_request_code is required." });
+    }
+
+    let query = `
+      UPDATE revolving_fund_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Approved") {
+      query += `,
+        approved_by = $${paramIndex++},
+        approver_signature = $${paramIndex++}
+      `;
+      values.push(approved_by, approver_signature);
+    }
+
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE revolving_request_code = $${paramIndex} RETURNING *`;
+    values.push(revolving_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Revolving fund request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Revolving fund request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating revolving fund request:", err);
+    res.status(500).json({ message: "Server error updating revolving fund request." });
   }
 });
 

@@ -21,7 +21,15 @@ const initialFormData = {
   approver_signature: "",
 };
 
-const emptyItem = { replenish_date: "", voucher_no: "", or_ref_no: "", amount: "", exp_cat: "", gl_account: "", remarks: "" };
+const emptyItem = { 
+  replenish_date: new Date().toISOString().split("T")[0],
+  voucher_no: "", 
+  or_ref_no: "", 
+  amount: "", 
+  exp_cat: "", 
+  gl_account: "", 
+  remarks: "" 
+};
 
 const NAV_SECTIONS = [
   { id: "details", label: "Custodian Details" },
@@ -231,7 +239,7 @@ function RevolvingFundRequest({ onLogout }) {
       return setModal({
         isOpen: true,
         type: "error",
-        message: "Unable to get the latest PR number.",
+        message: "Unable to get the latest RFRF number.",
       });
     }
 
@@ -285,7 +293,7 @@ function RevolvingFundRequest({ onLogout }) {
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/submitted-requests"); 
+      navigate("/submitted-revolving-fund-requests"); 
     } else {
       setActiveSection(sectionId);
       const element = document.getElementById(sectionId);
@@ -374,12 +382,12 @@ function RevolvingFundRequest({ onLogout }) {
             </p>
           </div>
 
-          <div className="pr-reference-card">
-            <span className="pr-reference-label">Reference code</span>
-            <span className="pr-reference-value">
+          <div className="rfrf-reference-card">
+            <span className="rfrf-reference-label">Reference code</span>
+            <span className="rfrf-reference-value">
               {formData.revolving_request_code || "—"}
             </span>
-            <span className="pr-reference-label">Request date</span>
+            <span className="rfrf-reference-label">Request date</span>
             <span>
               {new Date(formData.date_request).toLocaleDateString("en-US", {
                 year: "numeric",
@@ -553,8 +561,9 @@ function RevolvingFundRequest({ onLogout }) {
                               <input
                                 type="date"
                                 name="replenish_date"
-                                value={item.replenish_date || new Date().toISOString().split("T")[0]} 
+                                value={item.replenish_date}
                                 onChange={(event) => handleItemChange(index, event)}
+
                                 className="rfr-input td-input"
                                 placeholder="Date"
                                 required

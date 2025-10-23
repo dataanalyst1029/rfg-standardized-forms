@@ -189,7 +189,7 @@ function App() {
             user && user.role === "user" ? (
               <SubmittedPurchaseRequests onLogout={handleLogout} currentUserId={user.id} />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/forms/submitted-purchase-requests" replace />
             )
           }
         />
@@ -197,6 +197,22 @@ function App() {
         <Route
           path="/submitted-requests"
           element={<Navigate to="/forms/submitted-purchase-requests" replace />}
+        />
+
+        <Route
+          path="/forms/submitted-revolving-fund-requests"
+          element={
+            user && user.role === "user" ? (
+              <SubmittedRevolvingFund onLogout={handleLogout} currentUserId={user.id} />
+            ) : (
+              <Navigate to="/forms/submitted-revolving-fund-requests" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/submitted-revolving-fund-requests"
+          element={<Navigate to="/forms/submitted-revolving-fund-requests" replace />}
         />
 
         <Route

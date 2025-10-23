@@ -1,116 +1,68 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../config/api.js";
-import "./styles/submitted-request.css";
+import { useNavigate } from "react-router-dom";
 import "./styles/submitted-revolving-fund.css";
+import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
-  { id: "submitted", label: "Submitted revolving fund requests" },
-  { id: "new-request", label: "New revolving fund request" },
+  { id: "submitted", label: "Submitted Revolving Fund Requests" },
+  { id: "new-request", label: "New Revolving Fund Request" },
 ];
 
-const formatDate = (value) => {
-  if (!value) return "";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    const normalized = value.replace(" ", "T").replace(/\//g, "-");
-    const fallback = new Date(normalized);
-    if (Number.isNaN(fallback.getTime())) {
-      return value;
-    }
-    return fallback.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }
-  return parsed.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-};
-
-const pesoFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-function SubmittedRevolvingFund({ onLogout, currentUserId, showAll = false }) {
-  const navigate = useNavigate();
-  const storedUser = useMemo(
-    () => JSON.parse(sessionStorage.getItem("user") || "{}"),
-    [],
-  );
-
+function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequestCode, setSelectedRequestCode] = useState("");
   const [items, setItems] = useState([]);
   const [loadingItems, setLoadingItems] = useState(false);
   const cardRef = useRef(null);
+  const navigate = useNavigate();
 
-  const effectiveUserId = showAll
-    ? null
-    : currentUserId || storedUser.id || null;
-  const effectiveRole = storedUser.role || "";
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "—";
+    const normalized = dateValue.replace(" ", "T").replace(/\//g, "-");
+    const parsedDate = new Date(normalized);
+    if (isNaN(parsedDate)) return dateValue;
+    return parsedDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
   useEffect(() => {
     const fetchRequests = async () => {
-      setLoading(true);
       try {
-        const params = new URLSearchParams();
-        if (effectiveRole) {
-          params.append("role", effectiveRole);
-        }
-        if (effectiveUserId) {
-          params.append("userId", effectiveUserId);
-        }
-
-        const res = await fetch(
-          `${API_BASE_URL}/api/revolving_fund${
-            params.toString() ? `?${params.toString()}` : ""
-          }`,
-        );
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch submitted requests");
-        }
-
+        const res = await fetch(`${API_BASE_URL}/api/revolving_fund_request`);
+        if (!res.ok) throw new Error("Failed to fetch submitted requests");
         const data = await res.json();
-        const list = Array.isArray(data) ? data : [];
-        const filtered = effectiveUserId
-          ? list.filter(
-              (request) =>
-                String(request.submitted_by) === String(effectiveUserId),
-            )
-          : list;
 
-        setRequests(filtered);
+        const hydrated = data.map((req) => ({
+          ...req,
+          user_id: req.user_id,
+        }));
 
-        setSelectedRequestCode((prev) => {
-          if (prev && filtered.some((request) => request.form_code === prev)) {
-            return prev;
-          }
-          return filtered[0]?.form_code || "";
-        });
-      } catch (error) {
-        console.error("Error fetching revolving fund requests", error);
-        setRequests([]);
-        setSelectedRequestCode("");
+        if (showAll) {
+          setRequests(hydrated);
+        } else {
+          const userRequests = hydrated.filter(
+            (req) => Number(req.user_id) === Number(currentUserId)
+          );
+          setRequests(userRequests);
+        }
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchRequests();
-  }, [effectiveRole, effectiveUserId, showAll]);
+  }, [currentUserId, showAll]);
 
   useEffect(() => {
     const selected = requests.find(
-      (request) => request.form_code === selectedRequestCode,
+      (req) => req.revolving_request_code === selectedRequestCode
     );
 
     if (!selected) {
@@ -118,24 +70,33 @@ function SubmittedRevolvingFund({ onLogout, currentUserId, showAll = false }) {
       return;
     }
 
-    setLoadingItems(true);
-    setItems(Array.isArray(selected.items) ? selected.items : []);
-    setLoadingItems(false);
+    const fetchItems = async () => {
+      try {
+        setLoadingItems(true);
+        const res = await fetch(
+          `${API_BASE_URL}/api/revolving_fund_request_items?request_id=${selected.id}`
+        );
+        if (!res.ok) throw new Error("Failed to fetch items");
+
+        const data = await res.json();
+        setItems(data);
+      } catch (err) {
+        console.error("Error fetching items:", err);
+        setItems([]);
+      } finally {
+        setLoadingItems(false);
+      }
+    };
+
+    fetchItems();
   }, [selectedRequestCode, requests]);
 
-  const selectedRequest = requests.find(
-    (request) => request.form_code === selectedRequestCode,
-  );
-
   const handleNavigate = (sectionId) => {
-    if (sectionId === "new-request") {
-      navigate("/forms/revolving-fund");
-      return;
-    }
+    if (sectionId === "new-request") navigate("/forms/revolving-fund");
   };
 
-  const handleSelectChange = (event) => {
-    setSelectedRequestCode(event.target.value);
+  const handleSelectChange = (e) => {
+    setSelectedRequestCode(e.target.value);
   };
 
   const handlePrint = () => {
@@ -153,39 +114,87 @@ function SubmittedRevolvingFund({ onLogout, currentUserId, showAll = false }) {
               font-family: Arial, sans-serif;
               padding: 20px;
               background: #fff;
-              color: #111;
+              position: relative;
             }
-            h1, h2, h3, h4 {
-              margin-bottom: 0.75rem;
+
+            h2, h3, h4 {
+              margin-bottom: 8px;
             }
-            table {
+
+            .submitted-revolving-request-card {
+              margin-bottom: 2rem;
+              padding: 1rem;
+              background-color: var(--card-bg, #ffffff);
+              color: var(--card-text, #111);
+              transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+            }
+
+            .record-request{
+              background: #ffffff;
+              padding: 1.15rem 1.4rem;
+              margin: 0 auto;
+              box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
+              color: var(--card-text, #222);
+              display: flex;
+              flex-direction: column;
+              gap: 1.05rem;
+            }
+
+            .request-header {
+              display: flex;
+              align-items: flex-start;
+              justify-content: space-between;
+              gap: 1.5rem;
+              border-bottom: 2px solid #ddd;
+              padding-bottom: 0.6rem;
+            }
+
+            .header-brand {
+              display: flex;
+              align-items: center;
+              gap: 0.65rem;
+            }
+
+            .header-logo {
+              width: 150px; 
+            }
+            
+            .header-request-code {
+              display: flex;
+              flex-direction: column;
+              align-items: flex-end;
+            }
+
+            .table table {
               width: 100%;
               border-collapse: collapse;
-              margin-top: 1rem;
-            }
-            th, td {
+              border: 1px solid #ddd;  
+            } 
+
+            .table table th,
+            .table table td {
               border: 1px solid #ddd;
-              padding: 0.6rem 0.9rem;
+              padding: .5rem;
               text-align: left;
             }
-            th.text-center, td.text-center {
-              text-align: center;
-            }
-.rf-signature-row {
+
+            .rf-signature-row {
               margin-top: 1.5rem;
               display: flex;
               justify-content: center;
               align-items: flex-end;
-              gap: 3.5rem;
+              gap: 4rem;
               flex-wrap: wrap;
             }
+
             .rf-signature-block {
               min-width: 220px;
               display: flex;
               flex-direction: column;
               align-items: center;
-              gap: 0.35rem;
+              gap: 0.3rem;
             }
+
             .rf-signature-line {
               display: inline-block;
               min-width: 220px;
@@ -194,56 +203,163 @@ function SubmittedRevolvingFund({ onLogout, currentUserId, showAll = false }) {
               border-bottom: 1px solid currentColor;
               font-weight: 600;
             }
+
             .rf-signature-line.muted {
               font-style: italic;
-              color: #555;
+              color: var(--card-meta, #555);
             }
+
             .rf-signature-image {
               max-width: 160px;
               height: auto;
               object-fit: contain;
             }
+
             .rf-no-border {
               border: none !important;
               background: transparent !important;
               box-shadow: none !important;
               padding: 0 !important;
             }
-            .submitted-request-card {
-              border: none;
-              box-shadow: none;
-              padding: 0;
+
+            .rf-status-row {
+              margin-top: 1rem;
             }
+
+            .rfrf-items-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 0.75rem;
+              font-size: 0.95rem;
+              border: 1px solid var(--table-border, #aaaaaa);
+              background-color: var(--table-bg, #fff);
+              color: var(--table-text, #333);
+            }
+
+            .rfrf-items-table thead tr th {
+              background: var(--color-table-header);
+              text-transform: uppercase;
+              padding: 0.3rem 0.8rem;
+              font-size: 0.72rem;
+              letter-spacing: 0.08em;
+              color: var(--color-text-muted);
+            }
+
+            .rfrf-items-table td {
+              border: 1px solid var(--table-border, #dcdcdc);
+              padding: 0.5rem 0.75rem;
+              text-align: left;
+            }
+
+            .rfrf-items-table tbody tr:hover {
+              background-color: var(--table-hover, #ececec);
+            }
+
+            .rfrf-items-table td.text-center {
+              text-align: center !important;
+              vertical-align: middle;
+            }
+
+            .signature-section{
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+            }
+
+            .signature-section > div > div {
+              width: 100%;
+            }
+
+            .signature-format .s-by {
+              font-weight: bold;
+            }
+
+            .signature-format .s-name {
+              border-bottom: 1px solid #555;
+              font-size: 1rem;
+              padding: 0 1rem;
+            }
+
+            .signature-format {
+              display: flex;
+              flex-direction: row;
+              text-align: center;
+              justify-content: space-evenly;
+              padding: 16px;
+              width: 100%;
+              margin-top: 2rem;
+            }
+
+            .signature-format label {
+              display: flex;
+              flex-direction: column;
+              font-size: 0.9rem;
+            }
+
+            .submitter-signature {
+              position: relative;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+            }
+
+            .submitter-signature .sub-sign {
+              color: transparent;
+              border-bottom: 1px solid #555;
+              font-size: 1rem;
+              padding: 0 1rem;
+            }
+
+            .submitter-signature .img-sign {
+              position: absolute;
+              top: 0;
+              left: 50%;
+              width: 120px;
+              height: auto;
+              object-fit: contain;
+              transform: translate(-53%, -50%);
+              z-index: 0;
+              max-width: 25vw;
+              margin-top: 8px;
+            }
+
+
             .floating-buttons {
               position: fixed;
               bottom: 20px;
               right: 20px;
               display: flex;
-              gap: 12px;
+              gap: 10px;
               z-index: 9999;
             }
+
             .action-btn {
-              display: inline-flex;
-              align-items: center;
-              gap: 0.4rem;
+              width: 44px;
+              height: 44px;
+              border-radius: 50%;
               border: none;
-              border-radius: 9999px;
-              padding: 0.55rem 1rem;
-              font-size: 0.95rem;
-              font-weight: 600;
-              color: #fff;
-              background-color: #2563eb;
               cursor: pointer;
-              box-shadow: 0 4px 10px rgba(0,0,0,0.14);
-              transition: transform 0.2s ease, box-shadow 0.2s ease;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+              color: white;
+              font-size: 20px;
+              transition: transform 0.2s ease;
             }
+
             .action-btn:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 6px 14px rgba(0,0,0,0.16);
+              transform: scale(1.1);
             }
-            .action-btn.pdf-btn {
-              background-color: #16a34a;
+
+            .print-btn {
+              background-color: #007bff;
             }
+
+            .pdf-btn {
+              background-color: #28a745;
+            }
+
             @media print {
               .floating-buttons {
                 display: none !important;
@@ -253,18 +369,16 @@ function SubmittedRevolvingFund({ onLogout, currentUserId, showAll = false }) {
         </head>
         <body>
           <div class="floating-buttons">
-            <button class="action-btn print-btn" onclick="window.print()" title="Print">
-              Print
-            </button>
-            <button class="action-btn pdf-btn" id="downloadPDF" title="Save as PDF">
-              Save PDF
-            </button>
+            <button class="action-btn print-btn" onclick="window.print()" title="Print">🖨️</button>
+            <button class="action-btn pdf-btn" id="downloadPDF" title="Download PDF">📥</button>
           </div>
+
           ${printContents}
+
           <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
           <script>
             async function toBase64Image(img) {
-              const response = await fetch(img.src, { mode: "cors" });
+              const response = await fetch(img.src, {mode: 'cors'});
               const blob = await response.blob();
               return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -273,27 +387,27 @@ function SubmittedRevolvingFund({ onLogout, currentUserId, showAll = false }) {
               });
             }
 
-            document.getElementById("downloadPDF").addEventListener("click", async function () {
+            document.getElementById("downloadPDF").addEventListener("click", async function() {
               const element = document.body.cloneNode(true);
-              const buttons = element.querySelector(".floating-buttons");
+              const buttons = element.querySelector('.floating-buttons');
               if (buttons) buttons.remove();
 
-              const imgs = element.querySelectorAll("img");
-              for (const img of imgs) {
+              const imgs = element.querySelectorAll('img');
+              for (let img of imgs) {
                 try {
                   const base64 = await toBase64Image(img);
                   img.src = base64;
                 } catch (err) {
-                  console.warn("Could not inline image:", img.src);
+                  console.warn('Could not convert image:', img.src);
                 }
               }
 
               const opt = {
                 margin: 0.5,
-                filename: "Revolving_Fund_Request.pdf",
-                image: { type: "jpeg", quality: 0.98 },
+                filename: 'Revolving Request.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
               };
 
               html2pdf().from(element).set(opt).save();
@@ -302,212 +416,20 @@ function SubmittedRevolvingFund({ onLogout, currentUserId, showAll = false }) {
         </body>
       </html>
     `);
-
     printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
   };
 
-  const handleResolvedLogout = () => {
-    if (onLogout) {
-      onLogout();
-      return;
-    }
-    sessionStorage.removeItem("user");
-    navigate("/");
-  };
+  const selectedRequest = requests.find(
+    (req) => req.revolving_request_code === selectedRequestCode
+  );
 
-  const renderBody = () => {
-    if (loading) {
-      return <p>Loading submitted revolving fund requests...</p>;
-    }
-
-    if (requests.length === 0) {
-      return <p>No submitted requests found.</p>;
-    }
-
-    return (
-      <>
-        <div className="dropdown-section">
-          <label htmlFor="rfRequestSelect">Select Reference No: </label>
-          <select
-            id="rfRequestSelect"
-            value={selectedRequestCode}
-            onChange={handleSelectChange}
-            className="pr-input"
-          >
-            <option value="" disabled>
-              -- Choose Reference Number --
-            </option>
-            {requests.map((request) => (
-              <option key={request.form_code} value={request.form_code}>
-                {request.form_code}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {selectedRequest && (
-          <div
-            className="submitted-request-card"
-            ref={cardRef}
-            style={{ marginTop: "1rem" }}
-          >
-            <h2>{selectedRequest.form_code}</h2>
-            <p>
-              Custodian: <i>{selectedRequest.custodian_name || "N/A"}</i>
-            </p>
-            <p>
-              Submitted:{" "}
-              <i>
-                {formatDate(
-                  selectedRequest.submitted_at ||
-                    selectedRequest.request_date ||
-                    selectedRequest.created_at,
-                )}
-              </i>
-            </p>
-            <p>
-              Branch: <i>{selectedRequest.branch || "N/A"}</i>
-            </p>
-            <p>
-              Department: <i>{selectedRequest.department || "N/A"}</i>
-            </p>
-
-            <div style={{ marginTop: "1.5rem" }}>
-              <h3>Expense entries</h3>
-              {loadingItems ? (
-                <p>Loading items...</p>
-              ) : items.length === 0 ? (
-                <p>No expense entries recorded.</p>
-              ) : (
-                <table className="pr-items-table">
-                  <thead>
-                    <tr>
-                      <th>Entry date</th>
-                      <th>Voucher no.</th>
-                      <th>OR ref.</th>
-                      <th className="text-center">Amount</th>
-                      <th>Expense category</th>
-                      <th>GL account</th>
-                      <th>Remarks</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item) => (
-                      <tr key={item.id}>
-                        <td>{formatDate(item.entry_date)}</td>
-                        <td>{item.voucher_no || "N/A"}</td>
-                        <td>{item.or_ref_no || "N/A"}</td>
-                        <td className="text-center">
-                          {pesoFormatter.format(item.amount || 0)}
-                        </td>
-                        <td>{item.expense_category || "N/A"}</td>
-                        <td>{item.gl_account || "N/A"}</td>
-                        <td>{item.remarks || "N/A"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td
-                        colSpan={3}
-                        style={{ textAlign: "right", fontWeight: 600 }}
-                      >
-                        Total
-                      </td>
-                      <td className="text-center" style={{ fontWeight: 600 }}>
-                        {pesoFormatter.format(
-                          selectedRequest.total_expenses || 0,
-                        )}
-                      </td>
-                      <td colSpan={3} />
-                    </tr>
-                  </tfoot>
-                </table>
-              )}
-            </div>
-
-            <div className="submitted-request-meta-line" style={{ marginTop: "1rem" }}>
-              <span>
-                <strong>Petty cash amount:</strong>{" "}
-                {pesoFormatter.format(selectedRequest.petty_cash_amount || 0)}
-              </span>
-            </div>
-            <div className="submitted-request-meta-line">
-              <span>
-                <strong>Cash on hand:</strong>{" "}
-                {pesoFormatter.format(selectedRequest.cash_on_hand || 0)}
-              </span>
-            </div>
-            <div className="submitted-request-meta-line">
-              <span>
-                <strong>Amount for replenishment:</strong>{" "}
-                {pesoFormatter.format(selectedRequest.total_expenses || 0)}
-              </span>
-            </div>
-            <div className="approved-content rf-signature-row">
-              <div className="rf-signature-block">
-                <span className="rf-signature-line">
-                  {selectedRequest.custodian_name || ""}
-                </span>
-                <p>Submitted by</p>
-              </div>
-              <div className="rf-signature-block">
-                {selectedRequest.submitted_signature ? (
-                  <img
-                    src={`${API_BASE_URL}/${selectedRequest.submitted_signature}`}
-                    alt="Submitted signature"
-                    className="rf-signature-image"
-                  />
-                ) : (
-                  <span className="rf-signature-line muted">No signature available</span>
-                )}
-                <p>Signature</p>
-              </div>
-            </div>
-
-            <div className="approved-content rf-signature-row">
-              <div className="rf-signature-block">
-                <span className="rf-signature-line">
-                  {selectedRequest.approved_by || ""}
-                </span>
-                <p>Approved by</p>
-              </div>
-              <div className="rf-signature-block">
-                {selectedRequest.approved_signature ? (
-                  <img
-                    src={`${API_BASE_URL}/${selectedRequest.approved_signature}`}
-                    alt="Approved signature"
-                    className="rf-signature-image"
-                  />
-                ) : (
-                  <span className="rf-signature-line muted">No signature available</span>
-                )}
-                <p>Signature</p>
-              </div>
-            </div>
-
-            <div className="purchase-dept-box rf-signature-row rf-no-border rf-status-row">
-              <div className="rf-signature-block">
-                <span className="rf-signature-line">
-                  {formatDate(selectedRequest.approved_at)}
-                </span>
-                <p>Date Approved</p>
-              </div>
-              <div className="rf-signature-block">
-                <span className="rf-signature-line">
-                  {(selectedRequest.status || "").toUpperCase()}
-                </span>
-                <p>Status</p>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  };
+  if (loading)
+  return (
+    <div className="loading-container">
+      <div className="spinner"></div>
+      <span>Loading submitted revolving fund requests…</span>
+    </div>
+  );
 
   return (
     <div className="pr-layout">
@@ -517,7 +439,7 @@ function SubmittedRevolvingFund({ onLogout, currentUserId, showAll = false }) {
             onClick={() => navigate("/forms-list")}
             style={{ cursor: "pointer", color: "#007bff" }}
           >
-            Revolving Fund
+            Revolving Fund Request
           </h2>
           <span>Standardized form</span>
         </div>
@@ -537,13 +459,9 @@ function SubmittedRevolvingFund({ onLogout, currentUserId, showAll = false }) {
 
         <div className="pr-sidebar-footer">
           <span className="pr-sidebar-meta">
-            Review your revolving fund submissions.
+            Review your submitted revolving fund requests.
           </span>
-          <button
-            type="button"
-            className="pr-sidebar-logout"
-            onClick={handleResolvedLogout}
-          >
+          <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
             Sign out
           </button>
         </div>
@@ -559,33 +477,205 @@ function SubmittedRevolvingFund({ onLogout, currentUserId, showAll = false }) {
           </div>
 
           {selectedRequest && (
-            <button type="button" className="print-btn" onClick={handlePrint}>
-              Print
+            <button
+              onClick={handlePrint}
+              className="print-btn"
+              style={{
+                
+              }}
+            >
+              🖨️ Print
             </button>
           )}
         </header>
 
-        <div className="submitted-requests-container">{renderBody()}</div>
+        <div className="submitted-requests-container">
+          {requests.length === 0 ? (
+            <p>No submitted requests found.</p>
+            ) : (
+            <>
+              <div className="dropdown-section">
+                <label htmlFor="requestSelect">Select Reference No: </label>
+                <select
+                  id="requestSelect"
+                  value={selectedRequestCode}
+                  onChange={handleSelectChange}
+                  className="pr-input"
+                >
+                  <option value="" disabled>-- Choose Reference Number --</option>
+                  {requests.map((req) => (
+                    <option
+                      key={req.revolving_request_code}
+                      value={req.revolving_request_code}
+                    >
+                      {req.revolving_request_code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedRequest && (
+                <div
+                  className="submitted-revolving-request-card"
+                  ref={cardRef}
+                  style={{ marginTop: "1rem" }} >
+
+                  <div class="record-request">
+                    <header className="request-header">
+                      <div class="header-brand">
+                        <img src={rfgLogo} alt="Ribshack Food Group" className="header-logo" />
+                      </div>
+                      <div className="header-request-code">
+                        <i className="request-code">{selectedRequest.revolving_request_code}</i>
+                      </div>
+                    </header>
+
+                    <div className="table">
+                      <p hidden>ID: {selectedRequest.id}</p>
+                      <table>
+                        <tr>
+                          <th>Date Request</th>
+                          <td>{formatDate(selectedRequest.date_request)}</td>
+                        </tr>
+                        <tr>
+                          <th>Employee ID</th>
+                          <td>{selectedRequest.employee_id}</td>
+                          <th>Custodian</th>
+                          <td>{selectedRequest.custodian}</td>
+                        </tr>
+                        <tr>
+                          <th>Branch</th>
+                          <td>{selectedRequest.branch}</td>
+                          <th>Department</th>
+                          <td>{selectedRequest.department}</td>
+                        </tr>
+                      </table>
+                    </div>
+                    <div className="replenish">
+                      <p>
+                        <b>Amount for Replenishment:</b>{" "}
+                        <i>
+                          {selectedRequest.replenish_amount
+                            ? Number(selectedRequest.replenish_amount).toLocaleString("en-PH", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : "0.00"}
+                        </i>
+                      </p>
+                    </div>
+                    <div>
+                      {/* <h3>Requested Items</h3> */}
+                      {loadingItems ? (
+                        <p>Loading items…</p>
+                      ) : items.length === 0 ? (
+                        <p>No items found for this request.</p>
+                      ) : (
+                        <table className="rfrf-items-table">
+                          <thead>
+                            <tr>
+                              <th className="text-left">Date</th>
+                              <th className="text-center">Voucher No.</th>
+                              <th className="text-center">OR Ref. No.</th>
+                              <th className="text-center">Amount</th>
+                              <th className="text-left">Exp. Category</th>
+                              <th className="text-center">GL Account	</th>
+                              <th className="text-left">Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((item) => (
+                              <tr key={item.id}>
+                                <td className="text-left">
+                                  {new Date(item.replenish_date).toLocaleDateString()}
+                                </td>
+                                <td>{item.voucher_no}</td>
+                                <td>{item.or_ref_no}</td>
+                                <td>
+                                  {item.amount
+                                    ? Number(item.amount).toLocaleString("en-PH", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      })
+                                    : ""}
+                                </td>
+                                <td className="text-left">{item.exp_cat}</td>
+                                <td>{item.gl_account}</td>
+                                <td className="text-left">{item.remarks}</td>
+                              </tr>
+                            ))}
+                            <tr>
+                              <td colSpan={3} className="text-center">Total</td>
+                              <td>
+                                {selectedRequest.total
+                                  ? Number(selectedRequest.total).toLocaleString("en-PH", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })
+                                  : "0.00"}
+                              </td>
+                              <td colSpan={3}></td>
+                            </tr>
+                          </tbody>
+
+                        </table>
+                      )}
+                    </div>
+                    <div className="signature-section">
+                      <div className="signature-format">
+                        <div className="submitter-signature">
+                          <label htmlFor="submitted-by">
+                            <span className="s-name">{selectedRequest.submitted_by}</span>
+                            <span className="s-by">Submitted by</span>
+                          </label>
+                        </div>
+                        <div className="submitter-signature">
+                          <label htmlFor="submitted-signature">
+                            <span className="sub-sign">{selectedRequest.submitter_signature}</span>
+                            {selectedRequest.submitter_signature ? (
+                              <img
+                              src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.submitter_signature}`}
+                              alt="Signature"
+                              className="img-sign"/>
+                              ) : (
+                                  <p>No signature available</p>
+                              )}
+                            <span className="s-by">Signature</span>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="signature-format">
+                        <div className="submitter-signature">
+                          <label htmlFor="submitted-by">
+                            <span className="s-name">{selectedRequest.approved_by}</span>
+                            <span className="s-by">Approved by</span>
+                          </label>
+                        </div>
+                        <div className="submitter-signature">
+                          <label htmlFor="submitted-signature">
+                            <span className="sub-sign">{selectedRequest.approver_signature}</span>
+                            {selectedRequest.approver_signature ? (
+                              <img
+                              src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approver_signature}`}
+                              alt="Signature"
+                              className="img-sign"/>
+                              ) : (
+                                  <p>No signature available</p>
+                              )}
+                            <span className="s-by">Signature</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>                
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </main>
     </div>
   );
 }
 
-export default SubmittedRevolvingFund;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+export default SubmittedPurchaseRequests;

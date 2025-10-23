@@ -391,9 +391,9 @@ function RequestPurchase() {
                                     <button
                                         type="button"
                                         className="admin-success-btn"
-                                        disabled={isApproving} // disable while loading
+                                        disabled={isApproving}
                                         onClick={async () => {
-                                        setIsApproving(true); // show "Approving..."
+                                        setIsApproving(true);
                                         const form = document.querySelector(".request-footer-form");
                                         const formData = new FormData(form);
 

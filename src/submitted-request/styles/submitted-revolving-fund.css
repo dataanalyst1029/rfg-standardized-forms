@@ -1,3 +1,62 @@
+.submitted-revolving-request-card {
+  border: 1px solid var(--card-border, #ddd);
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: var(--card-bg, #ffffff);
+  color: var(--card-text, #111);
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.record-request{
+  background: #ffffff;
+  padding: 1.15rem 1.4rem;
+  margin: 0 auto;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
+  color: var(--card-text, #222);
+  display: flex;
+  flex-direction: column;
+  gap: 1.05rem;
+}
+
+.request-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 0.6rem;
+}
+
+.header-logo {
+  max-width: 150px;
+} 
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.header-request-code {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.table table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #ddd;  
+} 
+
+.table table th,
+.table table td {
+  border: 1px solid #ddd;
+  padding: .5rem;
+  text-align: left;
+}
+
 .rf-signature-row {
   margin-top: 1.5rem;
   display: flex;
@@ -44,4 +103,112 @@
 
 .rf-status-row {
   margin-top: 1rem;
+}
+
+.rfrf-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  border: 1px solid var(--table-border, #aaaaaa);
+  background-color: var(--table-bg, #fff);
+  color: var(--table-text, #333);
+}
+
+.rfrf-items-table thead tr th {
+  background: var(--color-table-header);
+  text-transform: uppercase;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.rfrf-items-table td {
+  border: 1px solid var(--table-border, #dcdcdc);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.rfrf-items-table tbody tr:hover {
+  background-color: var(--table-hover, #ececec);
+}
+
+.rfrf-items-table td.text-center {
+  text-align: center !important;
+  vertical-align: middle;
+}
+
+.signature-section{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.signature-section > div > div {
+  width: 100%;
+}
+
+.signature-format .s-by {
+  font-weight: bold;
+}
+
+.signature-format .s-name {
+  border-bottom: 1px solid #555;
+  font-size: 1rem;
+  padding: 0 1rem;
+}
+
+.signature-format {
+  display: flex;
+  flex-direction: row;
+  text-align: center;
+  justify-content: space-evenly;
+  padding: 16px;
+  width: 100%;
+  margin-top: 2rem;
+}
+
+.signature-format label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+}
+
+.submitter-signature {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.submitter-signature .sub-sign {
+  color: transparent;
+  border-bottom: 1px solid #555;
+  font-size: 1rem;
+  padding: 0 1rem;
+}
+
+.submitter-signature .img-sign {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 120px;
+  height: auto;
+  object-fit: contain;
+  transform: translate(-53%, -50%);
+  z-index: 0;
+  max-width: 25vw;
+  margin-top: 8px;
+}
+
+.replenish {
+  margin-top: 1rem;
+}
+
+
+@media (max-width: 700px) {
+  .submitted-revolving-request-card {
+    grid-template-columns: 1fr;
+  }
 }
