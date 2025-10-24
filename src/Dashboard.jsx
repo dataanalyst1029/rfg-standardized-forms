@@ -8,6 +8,7 @@ import ManageDepartments from "./ManageDepartments.jsx";
 import ThemeToggle from "./components/ThemeToggle.jsx";
 import RequestPurchase from "./RequestPurchase.jsx";
 import RequestRevolvingFund from "./RequestRevolvingFund";
+import RequestCashAdvance from "./RequestCashAdvance";
 import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
 import { useNavigate } from "react-router-dom";
@@ -217,6 +218,13 @@ function renderActiveView(view) {
         </div>
       );
 
+    case "cash-advance-budget-request":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <RequestCashAdvance />
+        </div>
+      );
+
     case "reports-summary":
       return (
         <PlaceholderPanel
@@ -331,6 +339,7 @@ function Dashboard({ role, name, onLogout }) {
           "requests",
           "purchase-request",
           "revolving-fund-request",
+          "cash-advance-budget-request",
           "approved-requests",
         ].includes(stored)
       ) {
@@ -338,8 +347,6 @@ function Dashboard({ role, name, onLogout }) {
       }
     }
   }, []);
-
-
 
   const activeItem = useMemo(
     () =>
@@ -443,9 +450,9 @@ function Dashboard({ role, name, onLogout }) {
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
-                                  activeView === "purchase-request" ? " underline-active" : ""
+                                  activeView === "cash-advance-budget-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("purchase-request")}
+                                onClick={() => setActiveView("cash-advance-budget-request")}
                               >
                                 Cash Advance Request
                               </button>

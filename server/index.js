@@ -1129,7 +1129,7 @@ app.post("/api/cash_advance_request", async (req, res) => {
 app.get("/api/cash_advance_request", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT cabri.*, 
+      SELECT cabr.*,
         json_agg(
           json_build_object(
             'id', cabri.id, 
@@ -1144,6 +1144,7 @@ app.get("/api/cash_advance_request", async (req, res) => {
       LEFT JOIN cash_advance_request_item cabri ON cabr.id = cabri.request_id
       GROUP BY cabr.id
       ORDER BY cabr.created_at DESC;
+
     `);
     res.json(result.rows);
   } catch (err) {
@@ -1174,6 +1175,67 @@ app.get("/api/cash_advance_request_item", async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching revolving fund request items:", err);
     res.status(500).json({ message: "Server error fetching revolving fund request items" });
+  }
+});
+
+/* ------------------------
+   UPDATE CASH ADVANCE BUDGET REQUEST
+------------------------ */
+app.put("/api/update_cash_advance_request", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      ca_request_code,
+      approved_by,
+      approve_signature,
+      status,
+      declined_reason,
+    } = req.body;
+
+    if (!ca_request_code) {
+      return res.status(400).json({ message: "ca_request_code is required." });
+    }
+
+    let query = `
+      UPDATE cash_advance_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Approved") {
+      query += `,
+        approved_by = $${paramIndex++},
+        approve_signature = $${paramIndex++}
+      `;
+      values.push(approved_by, approve_signature);
+    }
+
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE ca_request_code = $${paramIndex} RETURNING *`;
+    values.push(ca_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Cash advance budget request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Cash advance budget request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating cash advance budget request:", err);
+    res.status(500).json({ message: "Server error updating cash advance budget request." });
   }
 });
 
