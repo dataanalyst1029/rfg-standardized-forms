@@ -330,10 +330,10 @@ function RevolvingFundRequest() {
                             <table className="request-items-table">
                                 <thead>
                                 <tr>
-                                    <th>DATE</th>
-                                    <th>VOUCHER NO.</th>
-                                    <th>OR REF. NO.</th>
-                                    <th>AMOUNT</th>
+                                    <th className="text-center">DATE</th>
+                                    <th className="text-center">VOUCHER NO.</th>
+                                    <th className="text-center">OR REF. NO.</th>
+                                    <th className="text-center">AMOUNT</th>
                                     <th>EXP. CATEGORY</th>
                                     <th>GL ACCOUNT</th>
                                     <th>REMARKS</th>
@@ -342,20 +342,72 @@ function RevolvingFundRequest() {
                                 <tbody>
                                 {modalRequest.items.map((item) => (
                                     <tr key={item.id}>
-                                    <td>{new Date(modalRequest.date_request).toLocaleDateString()}</td>
-                                    <td>{item.voucher_no}</td>
-                                    <td>{item.or_ref_no}</td>
-                                    <td>{item.amount}</td>
-                                    <td>{item.exp_cat}</td>
-                                    <td>{item.gl_account}</td>
-                                    <td>{item.remarks}</td>
+                                        <td className="text-center">{new Date(modalRequest.date_request).toLocaleDateString()}</td>
+                                        <td className="text-center">{item.voucher_no}</td>
+                                        <td className="text-center">{item.or_ref_no}</td>
+                                        <td className="text-center">
+                                            {item.amount
+                                                ? Number(item.amount).toLocaleString("en-PH", {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })
+                                            : "0.00"}</td>
+                                        <td>{item.exp_cat}</td>
+                                        <td>{item.gl_account}</td>
+                                        <td>{item.remarks}</td>
                                     </tr>
+    
                                 ))}
+                                <tr>
+                                    <td className="text-center" colSpan={3}>Total</td>
+                                    <td className="text-center">{modalRequest.total
+                                            ? Number(modalRequest.total).toLocaleString("en-PH", {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })
+                                        : "0.00"}
+                                    </td>
+                                    <td colSpan={3}></td>
+                                </tr>
                                 </tbody>
                             </table>
                             ) : (
                             <p>—</p>
                             )}
+
+                            <div className="replenishment-cash">
+                                <label htmlFor="revolving-fund-amount">
+                                    <p>Petty Cash/Revolving Fund Amount:</p>
+                                    <em>{modalRequest.revolving_amount
+                                            ? Number(modalRequest.revolving_amount).toLocaleString("en-PH", {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })
+                                        : "0.00"}
+                                    </em>
+                                </label>
+                                <label htmlFor="total-expense">
+                                    <p>Less: Total Expenses per vouchers:</p>
+                                    <em>{modalRequest.total_exp
+                                            ? Number(modalRequest.total_exp).toLocaleString("en-PH", {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })
+                                        : "0.00"}
+                                    </em>
+                                    
+                                </label>
+                                <label htmlFor="cash-onhand">
+                                    <p>Cash on Hand:</p>
+                                    <em>{modalRequest.cash_onhand
+                                            ? Number(modalRequest.cash_onhand).toLocaleString("en-PH", {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })
+                                        : "0.00"}
+                                    </em>
+                                </label>
+                            </div>
 
                             <div className="submit-content">
                               <div className="submit-by-content">
@@ -473,7 +525,7 @@ function RevolvingFundRequest() {
                               </div>
 
                               {showConfirmDecline && (
-                                  <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
+                                  <div className={`confirm-modal-overlay ${isClosing ? "fade-out" : ""}`}>
                                       <div className="admin-modal-backdrop">
                                           <div
                                               className="admin-modal-panel"
@@ -537,7 +589,7 @@ function RevolvingFundRequest() {
 
                                                           setStatus({
                                                               type: "info",
-                                                              message: "Purchase request declined successfully.",
+                                                              message: "Revolving Fund request declined successfully.",
                                                           });
                                                           handleCloseModal();
                                                           fetchRequests();

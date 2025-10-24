@@ -1,722 +1,669 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import "./styles/PurchaseRequest.css";
 import "./styles/CashAdvanceRequest.css";
 import { API_BASE_URL } from "../config/api.js";
+import { useNavigate } from "react-router-dom";
 
-const emptyItem = () => ({
-  description: "",
-  amount: "",
-  expense_category: "",
-  store_branch: "",
-  remarks: "",
-});
-
-const parseNumber = (value) => {
-  if (value === null || value === undefined || value === "") {
-    return 0;
-  }
-  const parsed = Number(value);
-  return Number.isNaN(parsed) ? 0 : parsed;
+const initialFormData = {
+  ca_request_code: "",
+  request_date: new Date().toISOString().split("T")[0],
+  employee_id: "",
+  name: "",
+  user_id: "",
+  branch: "",
+  department: "",
+  nature_activity: "",
+  inclusive_date_from: new Date().toISOString().split("T")[0], 
+  inclusive_date_to: new Date().toISOString().split("T")[0], 
+  total_amount: "",
+  purpose: "",
+  requested_by: "",
+  request_signature: "",
 };
 
-function CashAdvanceRequest({ onLogout }) {
-  const storedUser = JSON.parse(sessionStorage.getItem("user") || "{}");
-  const navigate = useNavigate();
-  const handleBackToForms = () => {
-    navigate("/forms-list");
-  };
-  const [activeSection, setActiveSection] = useState("details");
-  const role = (storedUser.role || "").toLowerCase();
-  const isUserAccount = role === "user";
+const emptyItem = { 
+  description: "", 
+  amount: "", 
+  exp_cat: "", 
+  store_branch: "", 
+  remarks: "" 
+};
 
-  const createInitialFormState = () => ({
-    custodian_name: storedUser.name || "",
-    branch: storedUser.branch || "",
-    department: storedUser.department || "",
-    employee_id: storedUser.employee_id || "",
-    request_date: new Date().toISOString().split("T")[0],
-    signature: storedUser.name || "",
-    nature_of_activity: "",
-    inclusive_dates: "",
-    purpose: "",
-  });
+const NAV_SECTIONS = [
+  { id: "details", label: "Request details" },
+  { id: "activity", label: "Nature Activity" },
+  { id: "items", label: "CABR Details" },
+  { id: "purpose", label: "Purpose" },
+  { id: "signature", label: "Signature" },
+  { id: "submitted", label: "View submitted requests" },
+];
 
-  const [request, setRequest] = useState(null);
-  const [formData, setFormData] = useState(createInitialFormState);
-  const [items, setItems] = useState([emptyItem()]);
+function PurchaseRequest({ onLogout }) {
+  const [formData, setFormData] = useState(initialFormData);
+  const [items, setItems] = useState([emptyItem]);
+  const [loading, setLoading] = useState(true);
   const [branches, setBranches] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [branchLocation, setBranchLocation] = useState("");
+  const [filteredDepartments, setFilteredDepartments] = useState([]);
+  const [activeSection, setActiveSection] = useState("details");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
+  const [userData, setUserData] = useState({ name: "", contact_no: "" });
+  const navigate = useNavigate();
   const [message, setMessage] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [nextReferenceCode, setNextReferenceCode] = useState(null);
-
-  const availableDepartments = useMemo(() => {
-    if (!formData.branch) {
-      return departments;
-    }
-    const selected = branches.find((branch) => branch.branch_name === formData.branch);
-    if (!selected) {
-      return departments;
-    }
-    const filtered = departments.filter(
-      (dept) =>
-        dept.branch_id !== null &&
-        dept.branch_id !== undefined &&
-        Number(dept.branch_id) === Number(selected.id),
-    );
-    return filtered.length > 0 ? filtered : departments;
-  }, [branches, departments, formData.branch]);
-
-  const grandTotal = useMemo(
-    () => items.reduce((sum, item) => sum + parseNumber(item.amount), 0),
-    [items],
-  );
 
   useEffect(() => {
-    if (!isUserAccount) {
-      setMessage({
-        type: "error",
-        text: "Only user-level accounts can create cash advance requests.",
-      });
+    const storedId = sessionStorage.getItem("id");
+    const storedName = sessionStorage.getItem("name");
+
+    if (storedId) {
+      fetch(`${API_BASE_URL}/users/${storedId}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch user data");
+          return res.json();
+        })
+        .then((data) => {
+          setUserData(data);
+          setFormData((prev) => ({
+            ...prev,
+            name: data.name || storedName || "",
+            user_id: storedId,
+            contact_no: data.contact_no || "",
+            employee_id: data.employee_id || "",
+            requested_by: data.name || "",
+            request_signature: data.signature || "",
+
+          }));
+        })
+        .catch((err) => {
+          console.error("Error fetching user data:", err);
+          setFormData((prev) => ({
+            ...prev,
+            employee_id: data.employee_id || "",
+            name: storedName || "",
+            user_id: storedId,
+          }));
+        });
     }
-  }, [isUserAccount]);
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-    if (request) {
-      setNextReferenceCode(null);
-      return () => {
-        isMounted = false;
-      };
-    }
     const fetchNextCode = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/cash_advance/next-code`);
-        if (!res.ok) {
-          throw new Error("Failed to load next reference code");
-        }
+        const res = await fetch(`${API_BASE_URL}/api/cash_advance_request/next-code`);
+        if (!res.ok) throw new Error("Failed to retrieve next reference number");
         const data = await res.json();
-        if (isMounted) {
-          setNextReferenceCode(data.nextCode || null);
+        if (data.nextCode) {
+          setFormData((prev) => ({ ...prev, ca_request_code: data.nextCode }));
         }
       } catch (error) {
-        console.error("Error fetching next cash advance code:", error);
+        console.error("Error fetching next code", error);
+        setModal({
+          isOpen: true,
+          type: "error",
+          message: "Unable to load the next ca request reference.",
+        });
+      } finally {
+        setLoading(false);
       }
     };
     fetchNextCode();
-    return () => {
-      isMounted = false;
-    };
-  }, [request]);
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadLookups = async () => {
+    const fetchData = async () => {
       try {
         const [branchRes, deptRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/branches`),
           fetch(`${API_BASE_URL}/api/departments`),
         ]);
-        const branchData = branchRes.ok ? await branchRes.json() : [];
-        const deptData = deptRes.ok ? await deptRes.json() : [];
-        if (!isMounted) {
-          return;
-        }
+        if (!branchRes.ok || !deptRes.ok) throw new Error("Failed to fetch data");
+        const branchData = await branchRes.json();
+        const deptData = await deptRes.json();
         setBranches(branchData);
         setDepartments(deptData);
-        if (branchData.length) {
-          const baseBranch = (storedUser.branch || formData.branch || "").toLowerCase();
-          const matchedBranch = branchData.find(
-            (branch) => (branch.branch_name || "").toLowerCase() === baseBranch,
-          );
-          if (matchedBranch) {
-            setFormData((prev) => ({ ...prev, branch: matchedBranch.branch_name }));
-            setBranchLocation(matchedBranch.location || "");
-          }
-        }
-        if (deptData.length) {
-          const baseDepartment = (storedUser.department || formData.department || "").toLowerCase();
-          if (baseDepartment) {
-            const matchedDepartment = deptData.find(
-              (dept) => (dept.department_name || "").toLowerCase() === baseDepartment,
-            );
-            if (matchedDepartment) {
-              setFormData((prev) => ({ ...prev, department: matchedDepartment.department_name }));
-            }
-          }
-        }
       } catch (error) {
-        console.error("Error loading cash advance lookups:", error);
+        console.error("Error loading branch/department data:", error);
+        setModal({
+          isOpen: true,
+          type: "error",
+          message: "Unable to load branches and departments.",
+        });
       }
     };
-
-    loadLookups();
-
-    return () => {
-      isMounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storedUser.branch, storedUser.department]);
+    fetchData();
+  }, []);
 
   useEffect(() => {
-    if (!formData.branch) {
-      setBranchLocation("");
-      return;
+    if (formData.branch) {
+      const filtered = departments.filter(
+        (dept) => dept.branch_name === formData.branch
+      );
+      setFilteredDepartments(filtered);
+      setFormData((prev) => ({ ...prev, department: "" }));
+    } else {
+      setFilteredDepartments([]);
     }
-    const selected = branches.find((branch) => branch.branch_name === formData.branch);
-    setBranchLocation(selected?.location || "");
-  }, [formData.branch, branches]);
+  }, [formData.branch, departments]);
 
-  const showMessage = (type, text) => {
-    setMessage({ type, text });
-    if (type !== "error") {
-      setTimeout(() => setMessage(null), 2500);
-    }
-  };
-
-  const handleFieldChange = (event) => {
+  const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleBranchChange = (event) => {
-    const value = event.target.value;
-    const selected = branches.find((branch) => branch.branch_name === value);
-    const branchDepartments = selected
-      ? departments.filter(
-          (dept) =>
-            dept.branch_id !== null &&
-            dept.branch_id !== undefined &&
-            Number(dept.branch_id) === Number(selected.id),
-        )
-      : [];
-    setFormData((prev) => ({
-      ...prev,
-      branch: value,
-      department: branchDepartments.length > 0 ? branchDepartments[0].department_name : "",
-    }));
-    setBranchLocation(selected?.location || "");
-  };
-
-  const handleDepartmentChange = (event) => {
-    setFormData((prev) => ({ ...prev, department: event.target.value }));
-  };
-
-  const handleItemChange = (index, field, value) => {
-    setItems((prev) =>
-      prev.map((item, idx) =>
-        idx === index
-          ? {
-              ...item,
-              [field]: value,
-            }
-          : item,
-      ),
-    );
-  };
-
-  const addItemRow = () => {
-    setItems((prev) => [...prev, emptyItem()]);
-  };
-
-  const removeItemRow = (index) => {
+  const handleItemChange = (index, event) => {
+    const { name, value } = event.target;
     setItems((prev) => {
-      if (prev.length === 1) {
-        return [emptyItem()];
-      }
-      return prev.filter((_, idx) => idx !== index);
+      const next = [...prev];
+      next[index] = { ...next[index], [name]: value };
+      return next;
     });
   };
 
-  const syncStateFromResponse = (data) => {
-    setRequest(data);
-    setNextReferenceCode(null);
-    setFormData({
-      custodian_name: data.custodian_name || "",
-      branch: data.branch || "",
-      department: data.department || "",
-      employee_id: data.employee_id || "",
-      request_date: data.request_date ? data.request_date.slice(0, 10) : new Date().toISOString().split("T")[0],
-      signature: data.signature || storedUser.name || "",
-      nature_of_activity: data.nature_of_activity || "",
-      inclusive_dates: data.inclusive_dates || "",
-      purpose: data.purpose || "",
-    });
-    const normalizedItems =
-      Array.isArray(data.items) && data.items.length > 0
-        ? data.items.map((item) => ({
-            description: item.description || "",
-            amount:
-              item.amount !== undefined && item.amount !== null
-                ? String(item.amount)
-                : "",
-            expense_category: item.expense_category || "",
-            store_branch: item.store_branch || "",
-            remarks: item.remarks || "",
-          }))
-        : [emptyItem()];
-    setItems(normalizedItems);
-  };
+  const addItemRow = () => setItems((prev) => [...prev, emptyItem]);
+  const removeItemRow = (index) =>
+    setItems((prev) =>
+      prev.length === 1 ? [emptyItem] : prev.filter((_, i) => i !== index)
+    );
 
-  const resetFormState = () => {
-    setRequest(null);
-    setFormData(createInitialFormState());
-    setItems([emptyItem()]);
-    setMessage(null);
-    setNextReferenceCode(null);
-  };
+  const sanitizedItems = useMemo(
+    () =>
+      items
+        .map((item) => ({
+          description: item.description?.trim(),
+          amount: item.amount,
+          exp_cat: item.exp_cat?.trim(),
+          store_branch: item.store_branch?.trim(),
+          remarks: item.remarks?.trim() || "",
+        }))
+        .filter((item) => item.description && item.amount),
+    [items]
+  );
 
-  const submitRequest = async () => {
-    if (!isUserAccount) {
-      return;
-    }
-    if (!formData.custodian_name.trim()) {
-      showMessage("error", "Custodian name is required.");
-      return;
-    }
-    if (!formData.branch) {
-      showMessage("error", "Select the branch handling this request.");
-      return;
-    }
-    if (!formData.department) {
-      showMessage("error", "Select the requesting department.");
-      return;
-    }
-    if (!formData.purpose.trim()) {
-      showMessage("error", "Describe the purpose for the cash advance.");
-      return;
-    }
-    const cleanedItems = items
-      .map((item) => ({
-        description: (item.description || "").trim(),
-        amount: item.amount,
-        expense_category: (item.expense_category || "").trim(),
-        store_branch: (item.store_branch || "").trim(),
-        remarks: (item.remarks || "").trim(),
-      }))
-      .filter(
-        (item) =>
-          item.description ||
-          parseNumber(item.amount) > 0 ||
-          item.expense_category ||
-          item.store_branch ||
-          item.remarks,
-      );
-    if (cleanedItems.length === 0) {
-      showMessage("error", "Add at least one cash advance line with an amount.");
-      return;
-    }
-    if (!cleanedItems.some((item) => parseNumber(item.amount) > 0)) {
-      showMessage("error", "Provide an amount greater than zero on at least one line.");
-      return;
+  const totalAmount = sanitizedItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    if (sanitizedItems.length === 0) {
+      return setModal({
+        isOpen: true,
+        type: "error",
+        message: "Add at least one line item before submitting.",
+      });
     }
 
-    setIsSaving(true);
+    let currentPRCode = formData.ca_request_code;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/cash_advance_request/next-code`);
+      const data = await res.json();
+      if (data.nextCode) currentPRCode = data.nextCode;
+    } catch (error) {
+      return setModal({
+        isOpen: true,
+        type: "error",
+        message: "Unable to get the latest PR number.",
+      });
+    }
 
     const payload = {
-      custodian_name: formData.custodian_name,
-      branch: formData.branch,
-      department: formData.department,
-      employee_id: formData.employee_id,
-      request_date: formData.request_date,
-      signature: formData.signature,
-      nature_of_activity: formData.nature_of_activity,
-      inclusive_dates: formData.inclusive_dates,
-      purpose: formData.purpose,
-      items: cleanedItems,
-      submitted_by: storedUser.id || null,
+      ...formData,
+      ca_request_code: currentPRCode,
+      total_amount: totalAmount,
+      items: sanitizedItems,
     };
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cash_advance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to submit cash advance request.");
-      }
-      syncStateFromResponse(data);
-      showMessage("success", "Cash advance request submitted for approval.");
-    } catch (error) {
-      console.error("Error submitting cash advance request:", error);
-      showMessage("error", error.message || "Unable to submit cash advance request.");
-    } finally {
-      setIsSaving(false);
-    }
+  const res = await fetch(`${API_BASE_URL}/api/cash_advance_request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to submit request");
+
+  setMessage({
+    type: "success",
+    text: `Cash Advance Budget Request ${currentPRCode} submitted successfully.`,
+  });
+
+  setTimeout(() => {
+    setMessage(null);
+    window.location.reload();
+  }, 2000);
+
+} catch (error) {
+  console.error("Error submitting purchase request", error);
+  setMessage({
+    type: "error",
+    text: error.message || "Unable to submit purchase request. Please try again.",
+  });
+
+  setTimeout(() => setMessage(null), 3000);
+}
+
   };
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/forms/cash-advance-request/submitted");
-      return;
-    }
-    setActiveSection(sectionId);
-    const target = document.getElementById(sectionId);
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      navigate("/submitted-requests"); 
+    } else {
+      setActiveSection(sectionId);
+      const element = document.getElementById(sectionId);
+      if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
-  const currentStatus = request?.status || "draft";
-  const isReadOnly = currentStatus !== "draft";
+  if (loading)
+  return (
+    <div className="loading-container">
+      <div className="spinner"></div>
+      <span>Loading Cash Advance Budget Request Form…</span>
+    </div>
+  );
 
   return (
     <div className="pr-layout">
+
+      {message && (
+        <div className="message-modal-overlay">
+          <div className={`message-modal-content ${message.type}`}>
+            {message.text}
+          </div>
+        </div>
+      )}
+      
+      {modal.isOpen && (
+        <div className="pr-modal-overlay">
+          <div className={`pr-modal ${modal.type}`}>
+            <p>{modal.message}</p>
+            <button
+              onClick={() => {
+                setModal({ ...modal, isOpen: false });
+                if (modal.type === "success") {
+                  window.location.reload();
+                }
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2>Cash Advance</h2>
-          <span>{currentStatus.toUpperCase()}</span>
+          <h2 
+            onClick={() => navigate("/forms-list")} 
+            style={{ cursor: "pointer", color: "#007bff" }}
+            title="Back to Forms Library"
+          >
+            Cash Advance Budget Request
+          </h2>
+          <span>Standardized form</span>
         </div>
+
         <nav className="pr-sidebar-nav">
-          {[
-            { id: "details", label: "Request details" },
-            { id: "activity", label: "Activity info" },
-            { id: "items", label: "Line items" },
-            { id: "purpose", label: "Purpose" },
-            { id: "submitted", label: "View submitted requests" },
-          ].map((section) => (
+          {NAV_SECTIONS.map((section) => (
             <button
               key={section.id}
               type="button"
-              className={activeSection === section.id ? "is-active" : ""}
+              className={section.id === activeSection ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}
             </button>
           ))}
         </nav>
+
         <div className="pr-sidebar-footer">
           <span className="pr-sidebar-meta">
             Remember to review line items before submitting.
           </span>
-          {onLogout && (
-            <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
-              Sign out
-            </button>
-          )}
+          <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
+            Sign out
+          </button>
         </div>
       </aside>
+
       <main className="pr-main">
-        <button type="button" className="form-back-button" onClick={handleBackToForms}>
-          ← <span>Back to forms library</span>
-        </button>
         <header className="pr-topbar">
           <div>
-            <h1 className="topbar-title">Cash Advance Request</h1>
+            <h1>New Cash Advance Budget Request</h1>
             <p className="pr-topbar-meta">
-              Submit an advance for upcoming initiatives and track the approval status.
+              Request for advance project funds.
             </p>
           </div>
+
           <div className="pr-reference-card">
             <span className="pr-reference-label">Reference code</span>
             <span className="pr-reference-value">
-              {request?.form_code || nextReferenceCode || "Pending assignment"}
+              {formData.ca_request_code || "—"}
             </span>
             <span className="pr-reference-label">Request date</span>
             <span>
-              <input
-                type="date"
-                name="request_date"
-                value={formData.request_date}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
+              {new Date(formData.request_date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </span>
           </div>
         </header>
 
-        {message && (
-          <div
-            className={`ca-alert ca-alert--${message.type}`}
-          >
-            {message.text}
-          </div>
-        )}
+        <form onSubmit={handleSubmit}>
+          <section className="pr-form-section" id="details">
+            <h2 className="pr-section-title">Request Details</h2>
+            <p className="pr-section-subtitle">
+              Who is requesting and how we can keep in touch.
+            </p>
 
-        <section className="pr-form-section" id="details">
-          <h2 className="pr-section-title">Custodian profile</h2>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="custodian_name">Custodian</label>
-              <input
-                id="custodian_name"
-                name="custodian_name"
-                value={formData.custodian_name}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="employee_id">Employee ID</label>
-              <input
-                id="employee_id"
-                name="employee_id"
-                value={formData.employee_id}
-                className="pr-input"
-                readOnly
-              />
-            </div>
-          </div>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="branchSelect">Branch</label>
-              <select
-                id="branchSelect"
-                value={formData.branch || ""}
-                onChange={handleBranchChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              >
-                <option value="">Select branch</option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.branch_name}>
-                    {branch.branch_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="branchLocation">Location</label>
-              <input
-                id="branchLocation"
-                value={branchLocation}
-                className="pr-input"
-                readOnly
-              />
-            </div>
-          </div>
-          <div className="pr-field">
-            <label className="pr-label" htmlFor="departmentSelect">Department</label>
-            <select
-              id="departmentSelect"
-              value={formData.department || ""}
-              onChange={handleDepartmentChange}
-              className="pr-input"
-              disabled={isReadOnly}
-            >
-              <option value="">Select department</option>
-              {availableDepartments.map((department) => (
-                <option key={department.id} value={department.department_name}>
-                  {department.department_name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </section>
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="name">
+                  Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  value={userData.name}
+                  onChange={handleChange}
+                  className="pr-input"
+                  placeholder="Full name"
+                  readOnly
+                  required
+                />
+                <input
+                  type="hidden"
+                  id="requestById"
+                  name="user_id"
+                  value={formData.user_id} 
+                  className="pr-input"
+                  placeholder="User ID"
+                  readOnly
+                />
+              </div>
+                
 
-        <section className="pr-form-section" id="activity">
-          <h2 className="pr-section-title">Activity details</h2>
-          <p className="pr-section-subtitle">
-            Tell finance when the advance is needed and what it will cover.
-          </p>
-          <div className="pr-field">
-            <label className="pr-label" htmlFor="signature">Signature</label>
-            <input
-              type="text"
-              id="signature"
-              name="signature"
-              value={formData.signature}
-              onChange={handleFieldChange}
-              className="pr-input"
-              disabled={isReadOnly}
-            />
-          </div>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="nature_of_activity">Nature of activity</label>
-              <textarea
-                id="nature_of_activity"
-                name="nature_of_activity"
-                value={formData.nature_of_activity}
-                onChange={handleFieldChange}
-                className="pr-textarea"
-                rows={3}
-                disabled={isReadOnly}
-              />
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="employeeID">
+                  Employee ID
+                </label>
+                <input
+                  id="employeeID"
+                  name="employee_id"
+                  value={userData.employee_id}
+                  className="pr-input"
+                  readOnly
+                  required
+                />
+              </div>
             </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="inclusive_dates">Inclusive dates</label>
-              <input
-                type="text"
-                id="inclusive_dates"
-                name="inclusive_dates"
-                value={formData.inclusive_dates}
-                onChange={handleFieldChange}
-                className="pr-input"
-                placeholder="e.g. March 4-6, 2026"
-                disabled={isReadOnly}
-              />
-            </div>
-          </div>
-        </section>
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="branch">Branch</label>
+                <select
+                  id="branch"
+                  name="branch"
+                  value={formData.branch}
+                  onChange={handleChange}
+                  className="pr-input"
+                  required
+                >
+                  <option value="" disabled>Select branch</option>
+                  {branches.map((b) => (
+                    <option key={b.branch_name} value={b.branch_name}>
+                      {b.branch_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-        <section className="pr-items-card" id="items">
-          <div className="pr-items-header">
+
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="department">Department</label>
+                <select
+                  id="department"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  className="pr-input"
+                  required
+                >
+                  <option value="" disabled>Select department</option>
+                  {filteredDepartments.map((d) => (
+                    <option key={d.department_name} value={d.department_name}>
+                      {d.department_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+            </div>
+          </section>
+
+          <section className="pr-form-section" id="activity">
+            <h2 className="pr-section-title">Nature Activity</h2>
             <div>
-              <h2 className="pr-items-title">Requested amounts</h2>
-              <p className="pr-section-subtitle">
-                Break down each requested advance with the expense category and store assignment.
-              </p>
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="nature-activity">Nature of Activity</label>
+                <input
+                  type="text"
+                  name="nature_activity"
+                  value={formData.nature_activity}
+                  onChange={handleChange}
+                  className="pr-input"
+                  required
+                />
+              </div>
+
+              <div className="pr-field" style={{marginTop: "1rem"}}>
+                <label className="pr-label" htmlFor="inclusive-date">Inclusive date(s)</label>
+                <div className="inclusive-date-group">
+                  <input
+                    type="date"
+                    name="inclusive_date_from"
+                    className="pr-input"
+                    value={formData.inclusive_date_from || new Date().toISOString().split("T")[0]}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, inclusive_date_from: e.target.value }))
+                    }
+                  />
+                  <span className="date-separator">to</span>
+                  <input
+                    type="date"
+                    name="inclusive_date_to"
+                    className="pr-input"
+                    value={formData.inclusive_date_to || new Date().toISOString().split("T")[0]}
+                    min={formData.inclusive_date_from || new Date().toISOString().split("T")[0]}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, inclusive_date_to: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
             </div>
-            <button
-              type="button"
-              className="pr-items-add"
-              onClick={addItemRow}
-              disabled={isReadOnly}
-            >
-              Add line item
-            </button>
-          </div>
-          <div className="ca-items-wrapper">
-            <table className="pr-items-table">
-              <thead>
-                <tr>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Expense category</th>
-                  <th>Store / branch</th>
-                  <th>Remarks</th>
-                  {!isReadOnly && <th>Action</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <tr key={index}>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.description}
-                        onChange={(event) =>
-                          handleItemChange(index, "description", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.amount}
-                        onChange={(event) =>
-                          handleItemChange(index, "amount", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.expense_category}
-                        onChange={(event) =>
-                          handleItemChange(index, "expense_category", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.store_branch}
-                        onChange={(event) =>
-                          handleItemChange(index, "store_branch", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.remarks}
-                        onChange={(event) => handleItemChange(index, "remarks", event.target.value)}
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    {!isReadOnly && (
-                      <td>
-                        <button
-                          type="button"
-                          className="pr-table-action"
-                          onClick={() => removeItemRow(index)}
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    )}
+          </section>
+
+          <section className="pr-items-card" id="items">
+            <div className="pr-items-header">
+              <h2 className="pr-items-title">CABR Details</h2>
+              <p className="pr-section-subtitle">
+              </p>
+              <button type="button" className="pr-items-add" onClick={addItemRow}>
+                Add item
+              </button>
+            </div>
+
+            <div className="table-wrapper">
+              <table className="pr-items-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Expense Category</th>
+                    <th>Store/Branch</th>
+                    <th>Remarks</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={1} style={{ textAlign: "right", fontWeight: 600 }}>
-                    TOTAL
-                  </td>
-                  <td style={{ fontWeight: 600 }}>
-                    {"\u20B1"} {grandTotal.toFixed(2)}
-                  </td>
-                  <td colSpan={isReadOnly ? 3 : 4} />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-          <div className="ca-total-card">
-            <span className="ca-total-label">Grand total</span>
-            <span className="ca-total-amount">{"\u20B1"} {grandTotal.toFixed(2)}</span>
-          </div>
-        </section>
+                </thead>
+                <tbody>
+                  {items.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="pr-items-empty">
+                        No items yet. Add an item to get started.
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map((item, index) => (
+                      <tr key={index}>
+                        <td>
+                          <input
+                            type="text"
+                            name="description"
+                            value={item.description}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            placeholder="Description"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="1"
+                            name="amount"
+                            value={item.amount}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            placeholder="Amount"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            name="exp_cat"
+                            value={item.exp_cat}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            placeholder="Expense Category"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            name="store_branch"
+                            value={item.store_branch}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            placeholder="Store / Branch"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <textarea
+                            name="remarks"
+                            className="rfr-input"
+                            value={item.remarks || ""}
+                            onChange={(event) => handleItemChange(index, event)}
+                          ></textarea>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="pr-table-action"
+                            onClick={() => removeItemRow(index)}
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                  <tr className="rfr-items-total">
+                    <td>
+                      Total:
+                    </td>
+                    <td><input type="text" name="total_amount" className="rfr-input-total" value={items
+                        .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+                        .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} readOnly />
+                    </td>
+                    <td colSpan={4}></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-        <section className="pr-form-section" id="purpose">
-          <h2 className="pr-section-title">Purpose for cash advance</h2>
-          <p className="pr-section-subtitle">
-            Provide the context for this request so approvers can validate the need.
-          </p>
-          <div className="pr-field">
-            <textarea
-              id="purpose"
-              name="purpose"
-              value={formData.purpose}
-              onChange={handleFieldChange}
-              className="pr-textarea"
-              rows={4}
-              disabled={isReadOnly}
-            />
-          </div>
-        </section>
+          <section className="pr-items-card" id="purpose">
+            <h2 className="pr-section-title">Purpose</h2>
 
-        <div className="pr-form-actions">
-          <button
-            type="button"
-            className="pr-submit"
-            onClick={submitRequest}
-            disabled={isSaving || isReadOnly || !isUserAccount}
-          >
-            Submit for approval
-          </button>
-          {request && (
-            <button
-              type="button"
-              className="pr-sidebar-logout"
-              onClick={resetFormState}
-              disabled={isSaving}
-            >
-              Start new request
+            <div className="pr-field">
+              <textarea
+                id="purposeText"
+                name="purpose"
+                value={formData.purpose}
+                onChange={handleChange}
+                className="cabr-textarea"
+                placeholder="Purpose of the cash advance budget request"
+                rows={4}
+                required
+              />
+            </div>
+          </section>
+
+          <section className="rfr-form-section" id="signature">
+              <h2 className="rfr-section-title">Signature Details</h2>
+
+              <div className="signature-details">
+                <label htmlFor="requested_by">
+                  <input
+                    type="text"
+                    name="requested_by"
+                    value={formData.requested_by || userData.name || ""}
+                    onChange={handleChange}
+                  />
+                  <p>Requested by:</p>
+                </label>
+                <label htmlFor="submitted-signature" class="signature-by">
+                  {userData.signature ? (
+                    <img
+                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                      alt="Signature"
+                      className="signature-img"
+                    />
+                  ) : (
+                    <p>No signature available</p>
+                  )}
+                  <input
+                    type="text"
+                    name="request_signature"
+                    value={formData.request_signature || userData.signature || ""}
+                    onChange={handleChange}
+                    readOnly
+                  />
+                  <p>Signature:</p>
+
+                </label>
+              </div>
+          </section>
+
+          <div className="pr-form-actions">
+            <button type="submit" className="pr-submit" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit cash advance budget request"}
             </button>
-          )}
-        </div>
+          </div>
+        </form>
       </main>
     </div>
   );
 }
 
-export default CashAdvanceRequest;
+export default PurchaseRequest;

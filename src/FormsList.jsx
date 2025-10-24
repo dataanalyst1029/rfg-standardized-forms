@@ -40,7 +40,10 @@ function FormsList({ onLogout }) {
   const forms = [
     "Purchase Request",
     "Revolving Fund",
-    "Cash Advance Request",
+    "Cash Advance Budget Request Form",
+    "Cash Advance Liquidation Form",
+    "CA Receipt Form",
+    "Reimbursement Form",
     "Payment Request Form",
     "Maintenance or Repair",
     "HR Overtime Approval",
@@ -213,7 +216,15 @@ function FormsList({ onLogout }) {
             <option value="" disabled>
               -- Choose a form --
             </option>
-            {forms.map((form) => (
+            {forms
+            .filter(
+              (form) =>
+                !(
+                  formData.role === "user" &&
+                  (form === "Revolving Fund" || form === "Cash Advance Liquidation Form")
+                )
+            )
+            .map((form) => (
               <option key={form} value={form}>
                 {form}
               </option>

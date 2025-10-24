@@ -479,6 +479,14 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                       </div>
                     </div>
                   </div>
+                  {selectedRequest.declined_reason && (
+                    <div>
+                      <label htmlFor="declined-reason">
+                        <strong>Declined Reason: </strong>
+                        <em>{selectedRequest.declined_reason}</em>
+                      </label>
+                    </div>
+                  )}
                 </div>
               )}
             </>

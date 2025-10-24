@@ -124,10 +124,11 @@ function App() {
         />
 
         <Route
-          path="/forms/cash-advance-request"
+          path="/forms/cash-advance-budget-request-form"
           element={
-            user && user.role === "user" ? (
-              <CashAdvanceRequest onLogout={handleLogout} />
+            user &&
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
+              <CashAdvanceRequest onLogout={handleLogout} currentUserId={user.id} />
             ) : (
               <Navigate to="/" replace />
             )
@@ -186,10 +187,10 @@ function App() {
         <Route
           path="/forms/submitted-purchase-requests"
           element={
-            user && user.role === "user" ? (
+            user ? (
               <SubmittedPurchaseRequests onLogout={handleLogout} currentUserId={user.id} />
             ) : (
-              <Navigate to="/forms/submitted-purchase-requests" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -202,10 +203,10 @@ function App() {
         <Route
           path="/forms/submitted-revolving-fund-requests"
           element={
-            user && user.role === "user" ? (
+            user ? (
               <SubmittedRevolvingFund onLogout={handleLogout} currentUserId={user.id} />
             ) : (
-              <Navigate to="/forms/submitted-revolving-fund-requests" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -216,7 +217,7 @@ function App() {
         />
 
         <Route
-          path="/forms/cash-advance-request/submitted"
+          path="/forms/cash-advance-budget-request-form"
           element={
             user ? (
               <SubmittedCashAdvance

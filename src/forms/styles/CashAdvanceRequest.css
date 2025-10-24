@@ -66,3 +66,42 @@
   color: var(--color-text-muted);
   font-size: 0.95rem;
 }
+
+.inclusive-date-group {
+  display: flex;
+  align-items: center;
+  gap: 8px; 
+}
+
+.inclusive-date-group input[type="date"] {
+  flex: 1;
+  padding: 0.75rem 0.9rem;
+  font-size: 14px;
+}
+
+.date-separator {
+  font-weight: 500;
+  color: #444;
+}
+
+.cabr-textarea {
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-app-bg);
+  padding: 0.75rem 0.9rem;
+  color: var(--color-text-primary);
+  font-size: 0.96rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.cabr-textarea {
+  resize: vertical;
+}
+
+.cabr-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(36, 207, 142, 0.2);
+}

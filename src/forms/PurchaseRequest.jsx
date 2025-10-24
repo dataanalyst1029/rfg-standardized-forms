@@ -33,6 +33,7 @@ function PurchaseRequest({ onLogout }) {
   const [departments, setDepartments] = useState([]);
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [activeSection, setActiveSection] = useState("details");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
   const [userData, setUserData] = useState({ name: "", contact_no: "" });
   const navigate = useNavigate();
@@ -165,6 +166,9 @@ function PurchaseRequest({ onLogout }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     if (sanitizedItems.length === 0) {
       return setModal({
@@ -542,8 +546,8 @@ function PurchaseRequest({ onLogout }) {
           </section>
 
           <div className="pr-form-actions">
-            <button type="submit" className="pr-submit">
-              Submit purchase request
+            <button type="submit" className="pr-submit" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit purchase request"}
             </button>
           </div>
         </form>

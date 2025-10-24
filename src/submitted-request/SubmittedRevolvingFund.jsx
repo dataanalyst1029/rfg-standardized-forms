@@ -638,7 +638,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                               alt="Signature"
                               className="img-sign"/>
                               ) : (
-                                  <p>No signature available</p>
+                                  <div className="img-sign empty-sign"></div>
                               )}
                             <span className="s-by">Signature</span>
                           </label>
@@ -660,13 +660,21 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                               alt="Signature"
                               className="img-sign"/>
                               ) : (
-                                  <p>No signature available</p>
+                                  <div className="img-sign empty-sign"></div>
                               )}
                             <span className="s-by">Signature</span>
                           </label>
                         </div>
                       </div>
                     </div>
+                    {selectedRequest.declined_reason && (
+                      <div>
+                        <label htmlFor="declined-reason">
+                          <strong>Declined Reason: </strong>
+                          <em>{selectedRequest.declined_reason}</em>
+                        </label>
+                      </div>
+                    )}
                   </div>                
                 </div>
               )}

@@ -46,6 +46,7 @@ function RevolvingFundRequest({ onLogout }) {
   const [departments, setDepartments] = useState([]);
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [activeSection, setActiveSection] = useState("details");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
   const [message, setMessage] = useState(null);
   const [replenishAmount, setReplenishAmount] = useState("");
@@ -82,6 +83,11 @@ function RevolvingFundRequest({ onLogout }) {
     const formattedInt = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return decimal !== undefined ? `${formattedInt}.${decimal}` : formattedInt;
   }
+
+  useEffect(() => {
+    const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    setFormData((prev) => ({ ...prev, replenish_amount: total }));
+  }, [items]);
 
   useEffect(() => {
     const storedId = sessionStorage.getItem("id");
@@ -220,6 +226,9 @@ function RevolvingFundRequest({ onLogout }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     if (sanitizedItems.length === 0) {
       return setModal({
         isOpen: true,
@@ -244,12 +253,14 @@ function RevolvingFundRequest({ onLogout }) {
     }
 
     const totalAmount = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const revolvingAmount = Number(formData.replenish_amount || 0);
+    const revolvingAmount = Number(formData.revolving_amount?.replace(/,/g, "") || 0);
+    const replenishAmount = totalAmount;
     const cashOnHand = revolvingAmount - totalAmount;
 
     const payload = {
       ...formData,
       revolving_request_code: currentRFRFCode,
+      replenish_amount: replenishAmount.toFixed(2),
       total: totalAmount.toFixed(2),
       revolving_amount: revolvingAmount.toFixed(2),
       total_exp: totalAmount.toFixed(2),
@@ -497,31 +508,20 @@ function RevolvingFundRequest({ onLogout }) {
                   <input
                     id="replenishment-amount"
                     className="rfr-input"
-                    type="text"
-                    value={replenishAmount}
-                    onChange={(e) => {
-                      let value = e.target.value;
-
-                      value = value.replace(/[^0-9.]/g, "");
-
-                      const parts = value.split(".");
-                      if (parts.length > 2) parts.splice(2);
-                      if (parts[1]?.length > 2) parts[1] = parts[1].slice(0, 2);
-
-                      const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                      const formattedValue = parts[1] !== undefined ? `${integerPart}.${parts[1]}` : integerPart;
-
-                      setReplenishAmount(formattedValue);
-
-                      setFormData((prev) => ({
-                        ...prev,
-                        replenish_amount: parseFloat(value) || 0, 
-                        revolving_amount: formattedValue,
-                      }));
-                    }}
+                    type="number"
+                    name="replenish_amount"
+                    value={
+                      items.length > 0
+                        ? items
+                            .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+                            .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        : "0.00"
+                    }
+                    readOnly
                     placeholder="Enter amount"
                   />
                 </label>
+
 
                 <button
                   type="button"
@@ -574,34 +574,20 @@ function RevolvingFundRequest({ onLogout }) {
                               <input
                                 type="text"
                                 name="voucher_no"
-                                maxLength={14}
                                 value={item.voucher_no}
-                                onChange={(event) => {
-                                  const numericValue = event.target.value.replace(/\D/g, "");
-                                  handleItemChange(index, {
-                                    target: { name: "voucher_no", value: numericValue },
-                                  });
-                                }}
+                                onChange={(event) => handleItemChange(index, event)}
                                 className="rfr-input td-input"
                                 placeholder="Enter Voucher No."
-                                required
                               />
                             </td>
                             <td>
                               <input
                                 type="text"
                                 name="or_ref_no"
-                                maxLength={14}
                                 value={item.or_ref_no}
-                                onChange={(event) => {
-                                  const numericValue = event.target.value.replace(/\D/g, "");
-                                  handleItemChange(index, {
-                                    target: { name: "or_ref_no", value: numericValue },
-                                  });
-                                }}
+                                onChange={(event) => handleItemChange(index, event)}
                                 className="rfr-input td-input"
                                 placeholder="Enter OR ref. no."
-                                required
                               />
                             </td>
                             <td>
@@ -691,18 +677,34 @@ function RevolvingFundRequest({ onLogout }) {
                     id="revolving-fund-amount"
                     type="text"
                     name="revolving_amount"
-                    value={
-                      formData.revolving_amount
-                        ? Number(formData.revolving_amount.replace(/,/g, "")).toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })
-                        : "0.00"
-                    }
-                    readOnly
+                    value={formData.revolving_amount || ""}
+                    onChange={(e) => {
+                      let value = e.target.value;
+
+                      value = value.replace(/[^0-9.]/g, "");
+
+                      const parts = value.split(".");
+                      if (parts.length > 2) value = parts[0] + "." + parts[1];
+
+                      let formattedValue;
+                      if (parts.length === 1) {
+                        formattedValue = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                      } else {
+                        const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                        formattedValue = `${intPart}.${parts[1]}`;
+                      }
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        revolving_amount: formattedValue,
+                      }));
+                    }}
                     className="replenish-input"
+                    placeholder="Enter revolving fund amount"
+                    required
                   />
                 </label>
+
 
                 <label htmlFor="total-expense">
                   <p>Less: Total Expenses per vouchers</p>
@@ -765,8 +767,8 @@ function RevolvingFundRequest({ onLogout }) {
               </div>
           </section>
           <div className="pr-form-actions">
-            <button type="submit" className="pr-submit">
-              Submit revolving fund request
+            <button type="submit" className="pr-submit" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit revolving fund request"}
             </button>
           </div>
         </form>

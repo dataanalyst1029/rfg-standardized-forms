@@ -933,7 +933,7 @@ app.get("/api/revolving_fund_request_items", async (req, res) => {
 });
 
 /* ------------------------
-   UPDATE PURCHASE REQUEST
+   UPDATE REVOLVING FUND REQUEST
 ------------------------ */
 app.put("/api/update_revolving_fund_request", uploadForm.none(), async (req, res) => {
   try {
@@ -992,6 +992,191 @@ app.put("/api/update_revolving_fund_request", uploadForm.none(), async (req, res
     res.status(500).json({ message: "Server error updating revolving fund request." });
   }
 });
+
+/* ------------------------
+   CASH ADVANCE API
+------------------------ */
+
+app.get("/api/cash_advance_request/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const result = await pool.query(
+      `SELECT ca_request_code 
+       FROM cash_advance_request 
+       WHERE ca_request_code LIKE $1 
+       ORDER BY ca_request_code DESC 
+       LIMIT 1`,
+      [`CABR-${year}-%`]
+    );
+
+    let nextCode;
+    if (result.rows.length > 0) {
+      const lastCode = result.rows[0].ca_request_code;
+      const lastNum = parseInt(lastCode.split("-")[2]);
+      const nextNum = String(lastNum + 1).padStart(6, "0");
+      nextCode = `CABR-${year}-${nextNum}`;
+    } else {
+      nextCode = `CABR-${year}-000001`;
+    }
+
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("❌ Error generating next cash advance budget request code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+app.post("/api/cash_advance_request", async (req, res) => {
+  const {
+    ca_request_code,
+    request_date,
+    employee_id,
+    name,
+    branch,
+    department,
+    nature_activity,
+    inclusive_date_from,
+    inclusive_date_to,
+    total_amount,
+    purpose,
+    requested_by,
+    request_signature,
+    user_id,
+    items = [],
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const safeTotalAmount =
+      total_amount === "" || total_amount === undefined || total_amount === null
+        ? null
+        : Number(total_amount);
+
+    const result = await client.query(
+      `INSERT INTO cash_advance_request
+      (ca_request_code, request_date, employee_id, name, branch, department, nature_activity, inclusive_date_from, inclusive_date_to, total_amount, purpose, requested_by, request_signature, user_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      RETURNING id`,
+      [
+        ca_request_code,
+        request_date || new Date(),
+        employee_id,
+        name,
+        branch,
+        department,
+        nature_activity,
+        inclusive_date_from === "" ? null : inclusive_date_from,
+        inclusive_date_to === "" ? null : inclusive_date_to,
+        safeTotalAmount,
+        purpose,
+        requested_by,
+        request_signature,
+        user_id,
+      ]
+    );
+
+
+    const requestId = result.rows[0]?.id;
+    if (!requestId) throw new Error("Failed to get cash advance budget request ID");
+
+    if (items.length > 0) {
+      const values = [];
+      const placeholders = [];
+
+      items.forEach((item, i) => {
+        const base = i * 6;
+        placeholders.push(
+          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`
+        );
+        values.push(
+          requestId,
+          item.description || null,
+          item.amount || null,
+          item.exp_cat || null,
+          item.store_branch || null,
+          item.remarks?.trim() || null
+        );
+      });
+
+      await client.query(
+        `INSERT INTO cash_advance_request_item
+        (request_id, description, amount, exp_cat, store_branch, remarks)
+        VALUES ${placeholders.join(", ")}`,
+        values
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: `Cash Advance Budget Request ${ca_request_code} saved successfully!`,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("❌ Error saving cash advance budget request:", err);
+    res.status(500).json({ message: "Server error saving cash advance budget request" });
+  } finally {
+    client.release();
+  }
+});
+
+
+
+app.get("/api/cash_advance_request", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT cabri.*, 
+        json_agg(
+          json_build_object(
+            'id', cabri.id, 
+            'description', cabri.description, 
+            'amount', cabri.amount, 
+            'exp_cat', cabri.exp_cat,
+            'store_branch', cabri.store_branch, 
+            'remarks', cabri.remarks
+          )
+        ) AS items
+      FROM cash_advance_request cabr
+      LEFT JOIN cash_advance_request_item cabri ON cabr.id = cabri.request_id
+      GROUP BY cabr.id
+      ORDER BY cabr.created_at DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching cash advance budget requests:", err);
+    res.status(500).json({ message: "Server error fetching cash advance budget requests" });
+  }
+});
+
+app.get("/api/cash_advance_request_item", async (req, res) => {
+  const { request_id } = req.query;
+
+  try {
+    let query = `
+      SELECT id, request_id, description, amount, exp_cat, store_branch, remarks
+      FROM cash_advance_request_item
+    `;
+    const params = [];
+
+    if (request_id) {
+      query += " WHERE request_id = $1";
+      params.push(request_id);
+    }
+
+    query += " ORDER BY id ASC";
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching revolving fund request items:", err);
+    res.status(500).json({ message: "Server error fetching revolving fund request items" });
+  }
+});
+
 
 /* ------------------------
    BRANCHES CRUD API
@@ -1434,424 +1619,12 @@ app.patch("/api/payment_request/:id/release", async (req, res) => {
 });
 
 /* ------------------------
-   REVOLVING FUND API
------------------------- */
-app.get("/api/revolving_fund/next-code", async (req, res) => {
-  try {
-    const nextCode = await getNextRevolvingFundCode();
-    res.json({ nextCode });
-  } catch (err) {
-    console.error("Error generating next revolving fund code:", err);
-    res.status(500).json({ message: "Server error generating next code" });
-  }
-});
-
-app.get("/api/cash_advance/next-code", async (req, res) => {
-  try {
-    const nextCode = await getNextCashAdvanceCode();
-    res.json({ nextCode });
-  } catch (err) {
-    console.error("Error generating next cash advance code:", err);
-    res.status(500).json({ message: "Server error generating next code" });
-  }
-});
-
-const normalizeRole = (role = "") => role.toString().trim().toLowerCase();
-
-const isUserRole = (role) => normalizeRole(role) === "user";
-
-const buildRevolvingFundResponse = async (requests) => {
-  if (!requests.length) {
-    return [];
-  }
-
-  const ids = requests.map((req) => req.id);
-  const { rows: items } = await pool.query(
-    `SELECT *
-       FROM revolving_fund_items
-      WHERE request_id = ANY($1)
-      ORDER BY entry_date ASC, created_at ASC`,
-    [ids],
-  );
-
-  const itemsByRequest = items.reduce((acc, item) => {
-    if (!acc[item.request_id]) {
-      acc[item.request_id] = [];
-    }
-    acc[item.request_id].push(item);
-    return acc;
-  }, {});
-
-  return requests.map((request) => ({
-    ...request,
-    items: itemsByRequest[request.id] || [],
-  }));
-};
-
-app.get("/api/revolving_fund", async (req, res) => {
-  const { role, userId, status } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  if (normalizedRole === "staff") {
-    return res.status(403).json({ message: "Staff accounts cannot access revolving fund requests" });
-  }
-
-  try {
-    const clauses = [];
-    const params = [];
-
-    if (status) {
-      params.push(status);
-      clauses.push(`status = $${params.length}`);
-    }
-
-    if (isUserRole(role)) {
-      if (!userId) {
-        return res.status(400).json({ message: "userId is required for staff-level users" });
-      }
-      params.push(Number(userId));
-      clauses.push(`submitted_by = $${params.length}`);
-    }
-
-    const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-    const { rows } = await pool.query(
-      `SELECT *
-         FROM revolving_fund_requests
-        ${whereClause}
-        ORDER BY created_at DESC`,
-      params,
-    );
-
-    const response = await buildRevolvingFundResponse(rows);
-    res.json(response);
-  } catch (err) {
-    console.error("Error fetching revolving fund requests:", err);
-    res.status(500).json({ message: "Server error fetching revolving fund requests" });
-  }
-});
-
-app.get("/api/revolving_fund/:id", async (req, res) => {
-  const { id } = req.params;
-  const { role, userId } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  if (normalizedRole === "staff") {
-    return res.status(403).json({ message: "Staff accounts cannot access revolving fund requests" });
-  }
-
-  try {
-    const request = await fetchRevolvingFundById(id);
-
-    if (!request) {
-      return res.status(404).json({ message: "Revolving fund request not found" });
-    }
-
-    if (isUserRole(role) && Number(request.submitted_by) !== Number(userId)) {
-      return res.status(403).json({ message: "You do not have access to this record" });
-    }
-
-    res.json(request);
-  } catch (err) {
-    console.error("Error fetching revolving fund request:", err);
-    res.status(500).json({ message: "Server error fetching revolving fund request" });
-  }
-});
-
-app.post("/api/revolving_fund", async (req, res) => {
-  const {
-    custodian_name,
-    branch,
-    department,
-    employee_id,
-    petty_cash_amount,
-    items = [],
-    submitted_by,
-    action = "draft",
-    request_date,
-  } = req.body;
-
-  const status = action === "submit" ? "submitted" : "draft";
-  const pettyCash = parseAmount(petty_cash_amount);
-  const totalExpenses = items.reduce((acc, curr) => acc + parseAmount(curr.amount), 0);
-  const cashOnHand = pettyCash - totalExpenses;
-  const submittedAt = status === "submitted" ? new Date() : null;
-  const requestDateValue = request_date ? new Date(request_date) : new Date();
-
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
-    const formCode = await getNextRevolvingFundCode();
-    const insertRequest = await client.query(
-      `INSERT INTO revolving_fund_requests
-        (form_code, status, custodian_name, branch, department, employee_id, petty_cash_amount,
-         total_expenses, cash_on_hand, submitted_by, submitted_at, request_date, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())
-       RETURNING *`,
-      [
-        formCode,
-        status,
-        custodian_name || null,
-        branch || null,
-        department || null,
-        employee_id || null,
-        pettyCash,
-        totalExpenses,
-        cashOnHand,
-        submitted_by || null,
-        submittedAt,
-        requestDateValue,
-      ],
-    );
-
-    const requestId = insertRequest.rows[0].id;
-    const savedItems = [];
-
-    for (const item of items) {
-      const { rows: itemInsertRows } = await client.query(
-        `INSERT INTO revolving_fund_items
-          (request_id, entry_date, voucher_no, or_ref_no, amount, expense_category, gl_account, remarks)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-         RETURNING *`,
-        [
-          requestId,
-          item.entry_date || item.date || null,
-          item.voucher_no || null,
-          item.or_ref_no || null,
-          parseAmount(item.amount),
-          item.expense_category || null,
-          item.gl_account || null,
-          item.remarks || null,
-        ],
-      );
-      savedItems.push(itemInsertRows[0]);
-    }
-
-    await client.query("COMMIT");
-
-    res.status(201).json({ ...insertRequest.rows[0], items: savedItems });
-  } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("Error creating revolving fund request:", err);
-    res.status(500).json({
-      message: err?.message || "Server error creating revolving fund request",
-    });
-  } finally {
-    client.release();
-  }
-});
-
-app.put("/api/revolving_fund/:id", async (req, res) => {
-  const { id } = req.params;
-  const {
-    custodian_name,
-    branch,
-    department,
-    employee_id,
-    petty_cash_amount,
-    items = [],
-  } = req.body;
-
-  const pettyCash = parseAmount(petty_cash_amount);
-  const totalExpenses = items.reduce((acc, curr) => acc + parseAmount(curr.amount), 0);
-  const cashOnHand = pettyCash - totalExpenses;
-  const requestDateValue = req.body.request_date ? new Date(req.body.request_date) : new Date();
-
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
-    const existing = await client.query(
-      `SELECT *
-         FROM revolving_fund_requests
-        WHERE id = $1`,
-      [id],
-    );
-
-    if (existing.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Revolving fund request not found" });
-    }
-
-    const currentStatus = existing.rows[0].status;
-    if (!["draft", "rejected"].includes(currentStatus)) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ message: "Only draft or rejected requests can be edited" });
-    }
-
-    const updatedRequest = await client.query(
-      `UPDATE revolving_fund_requests
-          SET custodian_name = $1,
-              branch = $2,
-              department = $3,
-              employee_id = $4,
-              petty_cash_amount = $5,
-              total_expenses = $6,
-              cash_on_hand = $7,
-              request_date = $8,
-              updated_at = NOW()
-        WHERE id = $9
-        RETURNING *`,
-      [
-        custodian_name || null,
-        branch || null,
-        department || null,
-        employee_id || null,
-        pettyCash,
-        totalExpenses,
-        cashOnHand,
-        requestDateValue,
-        id,
-      ],
-    );
-
-    await client.query("DELETE FROM revolving_fund_items WHERE request_id = $1", [id]);
-    const savedItems = [];
-
-    for (const item of items) {
-      const { rows: itemInsertRows } = await client.query(
-        `INSERT INTO revolving_fund_items
-          (request_id, entry_date, voucher_no, or_ref_no, amount, expense_category, gl_account, remarks)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-         RETURNING *`,
-        [
-          id,
-          item.entry_date || item.date || null,
-          item.voucher_no || null,
-          item.or_ref_no || null,
-          parseAmount(item.amount),
-          item.expense_category || null,
-          item.gl_account || null,
-          item.remarks || null,
-        ],
-      );
-      savedItems.push(itemInsertRows[0]);
-    }
-
-    await client.query("COMMIT");
-    res.json({ ...updatedRequest.rows[0], items: savedItems });
-  } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("Error updating revolving fund request:", err);
-    res.status(500).json({ message: "Server error updating revolving fund request" });
-  } finally {
-    client.release();
-  }
-});
-
-app.patch("/api/revolving_fund/:id/submit", async (req, res) => {
-  const { id } = req.params;
-  const { submitted_by } = req.body;
-
-  try {
-    const request = await fetchRevolvingFundById(id);
-    if (!request) {
-      return res.status(404).json({ message: "Revolving fund request not found" });
-    }
-
-    if (!["draft", "rejected"].includes(request.status)) {
-      return res.status(409).json({ message: "Only draft or rejected requests can be submitted" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE revolving_fund_requests
-          SET status = 'submitted',
-              submitted_by = COALESCE($1, submitted_by),
-              submitted_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $2
-        RETURNING *`,
-      [submitted_by || request.submitted_by || null, id],
-    );
-
-    const response = await fetchRevolvingFundById(rows[0].id);
-    res.json(response);
-  } catch (err) {
-    console.error("Error submitting revolving fund request:", err);
-    res.status(500).json({ message: "Server error submitting revolving fund request" });
-  }
-});
-
-app.patch("/api/revolving_fund/:id/approve", async (req, res) => {
-  const { id } = req.params;
-  const { approved_by } = req.body;
-
-  try {
-    const request = await fetchRevolvingFundById(id);
-    if (!request) {
-      return res.status(404).json({ message: "Revolving fund request not found" });
-    }
-
-    if (request.status !== "submitted") {
-      return res.status(409).json({ message: "Only submitted requests can be approved" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE revolving_fund_requests
-          SET status = 'approved',
-              approved_by = $1,
-              approved_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $2
-        RETURNING *`,
-      [approved_by || null, id],
-    );
-
-    const response = await fetchRevolvingFundById(rows[0].id);
-    res.json(response);
-  } catch (err) {
-    console.error("Error approving revolving fund request:", err);
-    res.status(500).json({ message: "Server error approving revolving fund request" });
-  }
-});
-
-app.patch("/api/revolving_fund/:id/reject", async (req, res) => {
-  const { id } = req.params;
-  const { rejected_by, reason = null } = req.body;
-
-  try {
-    const request = await fetchRevolvingFundById(id);
-    if (!request) {
-      return res.status(404).json({ message: "Revolving fund request not found" });
-    }
-
-    if (request.status !== "submitted") {
-      return res.status(409).json({ message: "Only submitted requests can be rejected" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE revolving_fund_requests
-          SET status = 'rejected',
-              rejected_by = $1,
-              rejected_reason = $2,
-              rejected_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $3
-        RETURNING *`,
-      [rejected_by || null, reason || null, id],
-    );
-
-    const response = await fetchRevolvingFundById(rows[0].id);
-    res.json(response);
-  } catch (err) {
-    console.error("Error rejecting revolving fund request:", err);
-    res.status(500).json({ message: "Server error rejecting revolving fund request" });
-  }
-});
-
-
-/* ------------------------
    START SERVER
 ------------------------ */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
-
-
-
 
 
 /* ------------------------
@@ -2206,9 +1979,3 @@ app.patch("/api/cash_advance/:id/release", async (req, res) => {
     res.status(500).json({ message: "Server error releasing cash advance request" });
   }
 });
-
-
-/* ------------------------
-   REVOLVING FUND API
------------------------- */
-
