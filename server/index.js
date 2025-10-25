@@ -531,8 +531,9 @@ app.delete("/api/user_access/:id", async (req, res) => {
 app.get("/user-access/:id", async (req, res) => {
   try {
     const { id } = req.params;
+
     const result = await pool.query(
-      "SELECT access_forms, role FROM user_access WHERE user_id = $1 LIMIT 1",
+      "SELECT access_forms, role FROM user_access WHERE user_id = $1",
       [id]
     );
 
@@ -540,12 +541,20 @@ app.get("/user-access/:id", async (req, res) => {
       return res.status(404).json({ error: "No access record found" });
     }
 
-    res.json(result.rows[0]);
+    const accessForms = result.rows.map((row) => row.access_forms);
+
+    const role = result.rows[0].role;
+
+    res.json({
+      access_forms: accessForms,
+      role,
+    });
   } catch (err) {
     console.error("Error fetching user access:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 
 /* ------------------------

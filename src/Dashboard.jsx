@@ -461,9 +461,9 @@ function Dashboard({ role, name, onLogout }) {
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
-                                  activeView === "purchase-request" ? " underline-active" : ""
+                                  activeView === "cash-advance-liquidation" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("purchase-request")}
+                                onClick={() => setActiveView("cash-advance-liquidation")}
                               >
                                 Cash Advance Liquidation
                               </button>
