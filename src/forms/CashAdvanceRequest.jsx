@@ -3,6 +3,8 @@ import "./styles/PurchaseRequest.css";
 import "./styles/CashAdvanceRequest.css";
 import { API_BASE_URL } from "../config/api.js";
 import { useNavigate } from "react-router-dom";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const initialFormData = {
   ca_request_code: "",
@@ -12,6 +14,7 @@ const initialFormData = {
   user_id: "",
   branch: "",
   department: "",
+  cutoff_date: "",
   nature_activity: "",
   inclusive_date_from: new Date().toISOString().split("T")[0], 
   inclusive_date_to: new Date().toISOString().split("T")[0], 
@@ -180,6 +183,27 @@ function PurchaseRequest({ onLogout }) {
     [items]
   );
 
+  const handleCutoffChange = (date) => {
+    if (!date) return;
+
+    const formattedDate = new Date(
+      date.getTime() - date.getTimezoneOffset() * 60000
+    ).toISOString().split("T")[0];
+
+    setFormData((prev) => ({
+      ...prev,
+      cutoff_date: formattedDate,
+    }));
+  };
+
+  const isValidCutoffDate = (date) => {
+    const day = date.getDate();
+    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    return day === 15 || day === lastDay;
+  };
+
+
+
   const totalAmount = sanitizedItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
   const handleSubmit = async (event) => {
@@ -251,7 +275,7 @@ function PurchaseRequest({ onLogout }) {
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/submitted-requests"); 
+      navigate("/submitted-cash-advance-budget-request"); 
     } else {
       setActiveSection(sectionId);
       const element = document.getElementById(sectionId);
@@ -450,6 +474,19 @@ function PurchaseRequest({ onLogout }) {
           <section className="pr-form-section" id="activity">
             <h2 className="pr-section-title">Nature Activity</h2>
             <div>
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="cutoff_date">Cut-off Date</label>
+                <DatePicker
+                  selected={formData.cutoff_date ? new Date(formData.cutoff_date) : null}
+                  onChange={handleCutoffChange}
+                  filterDate={isValidCutoffDate}
+                  dateFormat="yyyy-MM-dd"
+                  placeholderText="Select Cut-off Date"
+                  className="pr-input"
+                  required
+                />
+              </div>
+
               <div className="pr-field">
                 <label className="pr-label" htmlFor="nature-activity">Nature of Activity</label>
                 <input

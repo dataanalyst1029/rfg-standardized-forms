@@ -61,7 +61,6 @@ function PurchaseRequest({ onLogout }) {
         })
         .catch((err) => {
           console.error("Error fetching user data:", err);
-          // fallback to session name if API fails
           setFormData((prev) => ({
             ...prev,
             request_by: storedName || "",
@@ -71,7 +70,6 @@ function PurchaseRequest({ onLogout }) {
     }
   }, []);
 
-  // ✅ Fetch next PR code on mount
   useEffect(() => {
     const fetchNextCode = async () => {
       try {
@@ -95,7 +93,6 @@ function PurchaseRequest({ onLogout }) {
     fetchNextCode();
   }, []);
 
-  // ✅ Fetch branches and departments
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -120,7 +117,6 @@ function PurchaseRequest({ onLogout }) {
     fetchData();
   }, []);
 
-  // ✅ Filter departments based on selected branch
   useEffect(() => {
     if (formData.branch) {
       const filtered = departments.filter(

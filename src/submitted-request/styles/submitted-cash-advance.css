@@ -126,6 +126,11 @@
   flex: 1;
 }
 
+.decline-reason strong,
+.decline-reason em {
+  color: rgb(250, 141, 141);
+}
+
 @media (prefers-color-scheme: dark) {
   .ca-signature-line.muted {
     color: var(--card-meta, #bbb);

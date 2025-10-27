@@ -1044,6 +1044,7 @@ app.post("/api/cash_advance_request", async (req, res) => {
     name,
     branch,
     department,
+    cutoff_date,
     nature_activity,
     inclusive_date_from,
     inclusive_date_to,
@@ -1066,8 +1067,8 @@ app.post("/api/cash_advance_request", async (req, res) => {
 
     const result = await client.query(
       `INSERT INTO cash_advance_request
-      (ca_request_code, request_date, employee_id, name, branch, department, nature_activity, inclusive_date_from, inclusive_date_to, total_amount, purpose, requested_by, request_signature, user_id)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      (ca_request_code, request_date, employee_id, name, branch, department, cutoff_date, nature_activity, inclusive_date_from, inclusive_date_to, total_amount, purpose, requested_by, request_signature, user_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
       RETURNING id`,
       [
         ca_request_code,
@@ -1076,6 +1077,7 @@ app.post("/api/cash_advance_request", async (req, res) => {
         name,
         branch,
         department,
+        cutoff_date,
         nature_activity,
         inclusive_date_from === "" ? null : inclusive_date_from,
         inclusive_date_to === "" ? null : inclusive_date_to,
@@ -1248,6 +1250,294 @@ app.put("/api/update_cash_advance_request", uploadForm.none(), async (req, res) 
   }
 });
 
+
+/* ------------------------
+   CASH ADVANCE LIQUIDATION API
+------------------------ */
+
+app.get("/api/cash_advance_request/:code", async (req, res) => {
+  try {
+    const { code } = req.params;
+    const result = await pool.query(
+      `SELECT *
+       FROM cash_advance_request 
+       WHERE ca_request_code = $1 
+       LIMIT 1`,
+      [code]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Cash advance not found" });
+    }
+
+    const data = result.rows[0];
+    res.json({
+      cash_advance_no: data.ca_request_code,
+      employee_id: data.employee_id,
+      name: data.name,
+      branch: data.branch,
+      department: data.department,
+      nature_activity: data.nature_activity,
+      check_pcv_no: data.voucher_petty_cash,
+      cutoff_date: data.cutoff_date,
+      inclusive_date_from: data.inclusive_date_from,
+      inclusive_date_to: data.inclusive_date_to,
+      total_amount: data.total_amount,
+    });
+  } catch (err) {
+    console.error("Error fetching cash advance details:", err);
+    res.status(500).json({ error: "Server error fetching cash advance details" });
+  }
+});
+
+
+app.get("/api/cash_advance_liquidation/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const result = await pool.query(
+      `SELECT cal_request_code 
+       FROM cash_advance_liquidation 
+       WHERE cal_request_code LIKE $1 
+       ORDER BY cal_request_code DESC 
+       LIMIT 1`,
+      [`CAL-${year}-%`]
+    );
+
+    let nextCode;
+    if (result.rows.length > 0) {
+      const lastCode = result.rows[0].cal_request_code;
+      const lastNum = parseInt(lastCode.split("-")[2]);
+      const nextNum = String(lastNum + 1).padStart(6, "0");
+      nextCode = `CAL-${year}-${nextNum}`;
+    } else {
+      nextCode = `CAL-${year}-000001`;
+    }
+
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("❌ Error generating next revolving fund request code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+app.post("/api/cash_advance_liquidation", async (req, res) => {
+  const {
+    cal_request_code,
+    request_date,
+    employee_id,
+    name,
+    branch,
+    department,
+    cash_advance_no,
+    check_pcv_no,
+    cutoff_date,
+    nature_activity,
+    inclusive_date_from,
+    inclusive_date_to,
+    total_expense,
+    budgeted,
+    actual,
+    difference,
+    excess_deposit,
+    date_excess,
+    ack_rcpt_no,
+    exceed_amount,
+    prepared_by,
+    prepared_signature,
+    user_id,
+    items = [],
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const result = await client.query(
+      `INSERT INTO cash_advance_liquidation
+      (cal_request_code, date_request, employee_id, custodian, branch, department, replenish_amount, total, revolving_amount, total_exp, cash_onhand, submitted_by, submitter_signature, user_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      RETURNING id`,
+      [
+        cal_request_code,
+        date_request || new Date(),
+        employee_id,
+        custodian,
+        branch,
+        department,
+        replenish_amount,
+        total,
+        revolving_amount,
+        total_exp,
+        cash_onhand,
+        submitted_by,
+        submitter_signature,
+        user_id,
+      ]
+    );
+
+    const requestId = result.rows[0]?.id;
+    if (!requestId) throw new Error("Failed to get revolving request ID");
+
+    if (items.length > 0) {
+      const values = [];
+      const placeholders = [];
+
+      items.forEach((item, i) => {
+        const base = i * 8;
+        placeholders.push(
+          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8})`
+        );
+        values.push(
+          requestId,
+          item.replenish_date || null,
+          item.voucher_no || null,
+          item.or_ref_no || null,
+          item.amount || null,
+          item.exp_cat || null,
+          item.gl_account || null,
+          item.remarks?.trim() || null
+        );
+      });
+
+      await client.query(
+        `INSERT INTO cash_advance_liquidation_items
+        (request_id, replenish_date, voucher_no, or_ref_no, amount, exp_cat, gl_account, remarks)
+        VALUES ${placeholders.join(", ")}`,
+        values
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: `Revolving Fund Request ${cal_request_code} saved successfully!`,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("❌ Error saving revolving fund request:", err);
+    res.status(500).json({ message: "Server error saving revolving fund request" });
+  } finally {
+    client.release();
+  }
+});
+
+
+
+app.get("/api/cash_advance_liquidation", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT rfr.*, 
+        json_agg(
+          json_build_object(
+            'id', rfri.id, 
+            'replenish_date', rfri.replenish_date, 
+            'voucher_no', rfri.voucher_no, 
+            'or_ref_no', rfri.or_ref_no, 
+            'amount', rfri.amount, 
+            'exp_cat', rfri.exp_cat, 
+            'gl_account', rfri.gl_account, 
+            'remarks', rfri.remarks
+          )
+        ) AS items
+      FROM cash_advance_liquidation rfr
+      LEFT JOIN cash_advance_liquidation_items rfri ON rfr.id = rfri.request_id
+      GROUP BY rfr.id
+      ORDER BY rfr.created_at DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching revolving fund requests:", err);
+    res.status(500).json({ message: "Server error fetching revolving fund requests" });
+  }
+});
+
+app.get("/api/cash_advance_liquidation_items", async (req, res) => {
+  const { request_id } = req.query;
+
+  try {
+    let query = `
+      SELECT id, request_id, replenish_date, voucher_no, or_ref_no, amount, exp_cat, gl_account, remarks
+      FROM cash_advance_liquidation_items
+    `;
+    const params = [];
+
+    if (request_id) {
+      query += " WHERE request_id = $1";
+      params.push(request_id);
+    }
+
+    query += " ORDER BY id ASC";
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching revolving fund request items:", err);
+    res.status(500).json({ message: "Server error fetching revolving fund request items" });
+  }
+});
+
+/* ------------------------
+   UPDATE CASH ADVANCE LIQUIDATION
+------------------------ */
+app.put("/api/update_cash_advance_request", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      cal_request_code,
+      approved_by,
+      approve_signature,
+      status,
+      declined_reason,
+    } = req.body;
+
+    if (!cal_request_code) {
+      return res.status(400).json({ message: "cal_request_code is required." });
+    }
+
+    let query = `
+      UPDATE cash_advance_liquidation
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Approved") {
+      query += `,
+        approved_by = $${paramIndex++},
+        approve_signature = $${paramIndex++}
+      `;
+      values.push(approved_by, approve_signature);
+    }
+
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE cal_request_code = $${paramIndex} RETURNING *`;
+    values.push(cal_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Cash advance budget request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Cash advance budget request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating cash advance budget request:", err);
+    res.status(500).json({ message: "Server error updating cash advance budget request." });
+  }
+});
 
 /* ------------------------
    BRANCHES CRUD API
