@@ -9,6 +9,7 @@ import ThemeToggle from "./components/ThemeToggle.jsx";
 import RequestPurchase from "./RequestPurchase.jsx";
 import RequestRevolvingFund from "./RequestRevolvingFund";
 import RequestCashAdvance from "./RequestCashAdvance";
+import RequestCashAdvanceLiquidation from "./RequestCashAdvanceLiquidation";
 import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
 import { useNavigate } from "react-router-dom";
@@ -225,6 +226,13 @@ function renderActiveView(view) {
         </div>
       );
 
+    case "cash-advance-liquidation":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <RequestCashAdvanceLiquidation />
+        </div>
+      );
+
     case "reports-summary":
       return (
         <PlaceholderPanel
@@ -340,6 +348,7 @@ function Dashboard({ role, name, onLogout }) {
           "purchase-request",
           "revolving-fund-request",
           "cash-advance-budget-request",
+          "cash-advance-liquidation",
           "approved-requests",
         ].includes(stored)
       ) {

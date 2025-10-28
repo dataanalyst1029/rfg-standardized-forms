@@ -13,10 +13,12 @@ import SubmittedPurchaseRequests from "./submitted-request/SubmittedPurchaseRequ
 import SubmittedRequests from "./submitted-request/SubmittedRequests";
 import SubmittedRevolvingFund from "./submitted-request/SubmittedRevolvingFund";
 import SubmittedCashAdvance from "./submitted-request/SubmittedCashAdvance";
+import SubmittedCashAdvanceLiquidation from "./submitted-request/SubmittedCashAdvanceLiquidation";
 import SubmittedPaymentRequest from "./submitted-request/SubmittedPaymentRequest";
 import RevolvingFund from "./forms/RevolvingFund";
 import CashAdvanceRequest from "./forms/CashAdvanceRequest";
 import CashAdvanceLiquidation from "./forms/CashAdvanceLiquidation";
+import CAReceipt from "./forms/CAReceipt";
 import PaymentRequest from "./forms/PaymentRequest";
 import MaintenanceRepair from "./forms/MaintenanceRepair";
 import OvertimeApproval from "./forms/OvertimeApproval";
@@ -149,6 +151,18 @@ function App() {
         />
 
         <Route
+          path="/forms/ca-receipt-form"
+          element={
+            user &&
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
+              <CAReceipt onLogout={handleLogout} currentUserId={user.id} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
           path="/forms/payment-request-form"
           element={
             user && user.role === "user" ? (
@@ -243,6 +257,22 @@ function App() {
         <Route
           path="/submitted-cash-advance-budget-request"
           element={<Navigate to="/forms/submitted-cash-advance-budget-request" replace />}
+        />
+
+        <Route
+          path="/forms/submitted-cash-advance-liquidation"
+          element={
+            user ? (
+              <SubmittedCashAdvanceLiquidation onLogout={handleLogout} currentUserId={user.id} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/submitted-cash-advance-liquidation"
+          element={<Navigate to="/forms/submitted-cash-advance-liquidation" replace />}
         />
 
         <Route

@@ -6,8 +6,8 @@ import "./styles/submitted-cash-advance.css";
 import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
-  { id: "submitted", label: "Submitted cash advance requests" },
-  { id: "new-request", label: "New cash advance request" },
+  { id: "submitted", label: "Submitted cash advance liquidation" },
+  { id: "new-request", label: "New cash advance liquidation" },
 ];
 
 function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false }) {
@@ -34,7 +34,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/cash_advance_request`);
+        const res = await fetch(`${API_BASE_URL}/api/cash_advance_liquidation`);
         if (!res.ok) throw new Error("Failed to fetch submitted requests");
         const data = await res.json();
 
@@ -63,7 +63,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
   useEffect(() => {
     const selected = requests.find(
-      (req) => req.ca_request_code === selectedRequestCode
+      (req) => req.cal_request_code === selectedRequestCode
     );
 
     if (!selected) {
@@ -75,7 +75,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
       try {
         setLoadingItems(true);
         const res = await fetch(
-          `${API_BASE_URL}/api/cash_advance_request_item?request_id=${selected.id}`
+          `${API_BASE_URL}/api/cash_advance_liquidation_items?request_id=${selected.id}`
         );
         if (!res.ok) throw new Error("Failed to fetch items");
 
@@ -93,7 +93,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
   }, [selectedRequestCode, requests]);
 
   const handleNavigate = (sectionId) => {
-    if (sectionId === "new-request") navigate("/forms/cash-advance-budget-request-form");
+    if (sectionId === "new-request") navigate("/forms/cash-advance-liquidation-form");
   };
 
   const handleSelectChange = (e) => {
@@ -109,7 +109,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
     printWindow.document.write(`
       <html>
         <head>
-          <title>Print Cash Advance Budget Request</title>
+          <title>Print Cash Advance Liquidation</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -421,14 +421,14 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
   };
 
   const selectedRequest = requests.find(
-    (req) => req.ca_request_code === selectedRequestCode
+    (req) => req.cal_request_code === selectedRequestCode
   );
 
   if (loading)
   return (
     <div className="loading-container">
       <div className="spinner"></div>
-      <span>Loading submitted cash advance budget requests…</span>
+      <span>Loading submitted cash advance liquidation…</span>
     </div>
   );
 
@@ -440,7 +440,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
             onClick={() => navigate("/forms-list")}
             style={{ cursor: "pointer", color: "#007bff" }}
           >
-            Cash Advance Budget Request
+            Cash Advance Liquidation
           </h2>
           <span>Standardized form</span>
         </div>
@@ -460,7 +460,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
         <div className="pr-sidebar-footer">
           <span className="pr-sidebar-meta">
-            Review your submitted cash advance budget requests.
+            Review your submitted cash advance liquidation.
           </span>
           <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
             Sign out
@@ -471,7 +471,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
       <main className="pr-main">
         <header className="pr-topbar">
           <div>
-            <h1>Cash Advance Budget Request Reports</h1>
+            <h1>Cash Advance Liquidation Reports</h1>
             <p className="pr-topbar-meta">
               Select a reference number to view details.
             </p>
@@ -506,10 +506,10 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                   <option value="" disabled>-- Choose Reference Number --</option>
                   {requests.map((req) => (
                     <option
-                      key={req.ca_request_code}
-                      value={req.ca_request_code}
+                      key={req.cal_request_code}
+                      value={req.cal_request_code}
                     >
-                      {req.ca_request_code}
+                      {req.cal_request_code}
                     </option>
                   ))}
                 </select>
@@ -527,7 +527,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                         <img src={rfgLogo} alt="Ribshack Food Group" className="header-logo" />
                       </div>
                       <div className="header-request-code">
-                        <i className="request-code">{selectedRequest.ca_request_code}</i>
+                        <i className="request-code">{selectedRequest.cal_request_code}</i>
                       </div>
                     </header>
 
@@ -553,14 +553,22 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                       </table>
                     </div>
                     <div class="replenish-amount">
-                        <p>
-                            <strong>Nature of Activity:</strong>{" "}
-                            <em>{selectedRequest.nature_activity}</em>
-                        </p>
-                        <p>
-                            <strong>Inclusive date(s):</strong>{" "}
-                            <em>{new Date(selectedRequest.inclusive_date_from).toLocaleDateString()} - {new Date(selectedRequest.inclusive_date_to).toLocaleDateString()}</em>
-                        </p>
+                      <p>
+                          <strong>Check / PCV No:</strong>{" "}
+                          <em>{selectedRequest.check_pcv_no}</em>
+                      </p>
+                      <p>
+                          <strong>Cut-off Date:</strong>{" "}
+                          <em>{new Date(selectedRequest.cutoff_date).toLocaleDateString()}</em>
+                      </p>
+                      <p>
+                          <strong>Nature of Activity:</strong>{" "}
+                          <em>{selectedRequest.nature_activity}</em>
+                      </p>
+                      <p>
+                          <strong>Inclusive date(s):</strong>{" "}
+                          <em>{new Date(selectedRequest.inclusive_date_from).toLocaleDateString()} - {new Date(selectedRequest.inclusive_date_to).toLocaleDateString()}</em>
+                      </p>
                     </div>
                     <div>
                       {loadingItems ? (
@@ -571,27 +579,35 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                         <table className="rfrf-items-table">
                           <thead>
                             <tr>
-                              <th className="text-center">DESCRIPTION</th>
-                              <th className="text-center">AMOUNT</th>
-                              <th className="text-center">EXPENSE CATEGORY</th>
-                              <th className="text-center">STORE / BRANCH</th>
-                              <th>REMARKS</th>
+                              <th className="text-center">Date of Transaction</th>
+                              <th className="text-center">Description</th>
+                              <th className="text-center">OR No.</th>
+                              <th className="text-center">Amount</th>
+                              <th className="text-center">Expense Charges</th>
+                              <th className="text-center">Store/Branch</th>
                             </tr>
                           </thead>
                           <tbody>
                             {items.map((item) => (
                               <tr key={item.id}>
+                                <td className="text-center">{new Date(item.transaction_date).toLocaleDateString()}</td>
                                 <td className="text-center">{item.description}</td>
-                                <td className="text-center">{item.amount}</td>
-                                <td className="text-center">{item.exp_cat}</td>
+                                <td className="text-center">{item.or_no}</td>
+                                <td className="text-center">{item.amount
+                                  ? Number(item.amount).toLocaleString("en-PH", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                  })
+                                  : "0.00"}
+                                </td>
+                                <td className="text-center">{item.exp_charges}</td>
                                 <td className="text-center">{item.store_branch}</td>
-                                <td>{item.remarks}</td>
                               </tr>
                             ))}
                             <tr>
-                              <td className="text-center">Grand Total</td>
-                              <td className="text-center">{selectedRequest.total_amount
-                                      ? Number(selectedRequest.total_amount).toLocaleString("en-PH", {
+                              <td className="text-center" colSpan={3}><strong>Total Expenses</strong></td>
+                              <td className="text-center">{selectedRequest.total_expense
+                                      ? Number(selectedRequest.total_expense).toLocaleString("en-PH", {
                                       minimumFractionDigits: 2,
                                       maximumFractionDigits: 2,
                                   })
@@ -605,26 +621,103 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                       )}
                     </div>
 
-                    <div className="pr-items-card">
-                      <label htmlFor="purpose">
-                        <strong>Purpose:</strong>{" "}
-                        <em>{selectedRequest.purpose}</em>
-                      </label>
+                    <div>
+                      <h2 className="pr-section-title">Expenses Breakdown</h2>
+                        <table className="rfrf-items-table">
+                          <thead>
+                            <tr>
+                              <th className="text-center">Budgeted</th>
+                              <th className="text-center">Actual</th>
+                              <th className="text-center">Difference</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                              <tr>
+                                <td className="text-center">{selectedRequest.budgeted
+                                  ? Number(selectedRequest.budgeted).toLocaleString("en-PH", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                  })
+                                  : "0.00"}
+                                </td>
+                                <td className="text-center">{selectedRequest.actual
+                                  ? Number(selectedRequest.actual).toLocaleString("en-PH", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                  })
+                                  : "0.00"}
+                                </td>
+                                <td className="text-center">{selectedRequest.difference
+                                  ? Number(selectedRequest.difference).toLocaleString("en-PH", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                  })
+                                  : "0.00"}
+                                </td>
+                              </tr>
+                          </tbody>
+                        </table>
+                    </div>
+
+                    <div>
+                      <div className="pr-flex-container">
+                          <div className="pr-section">
+                            <h2 className="pr-section-title">When Budgeted Exceeds Actual</h2>
+                            <div>
+                              <span>Deposit of Excess</span>
+                              <input
+                                value={selectedRequest.excess_deposit || ""}
+                                readOnly
+                              />
+                            </div>
+                            <div>
+                              <span>Date</span>
+                              <input
+                                value={new Date(selectedRequest.date_excess).toLocaleDateString()}
+                                readOnly
+                              />
+                            </div>
+                            <div>
+                              <span>Acknowledgement Receipt No.</span>
+                              <input
+                                value={selectedRequest.ack_rcpt_no || ""}
+                                readOnly
+                              />
+                            </div>
+                            <div>
+                                <span>Amount</span>
+                                <input
+                                  value={selectedRequest.exceed_amount || ""}
+                                  readOnly
+                                />
+                            </div>
+                          </div>
+                          <div className="pr-section" >
+                              <h2 className="pr-section-title">When Actual Exceeds Budgeted</h2>
+                              <div>
+                                  <span>Reimbursable Amount</span>
+                                  <input
+                                  value={selectedRequest.rb_amount || ""}
+                                  readOnly
+                                  />
+                              </div>
+                            </div>
+                      </div>
                     </div>
                     <div className="signature-section">
                       <div className="signature-format">
                         <div className="submitter-signature">
                           <label htmlFor="submitted-by">
-                            <span className="s-name">{selectedRequest.requested_by}</span>
+                            <span className="s-name">{selectedRequest.prepared_by}</span>
                             <span className="s-by">Submitted by</span>
                           </label>
                         </div>
                         <div className="submitter-signature">
                           <label htmlFor="submitted-signature">
-                            <span className="sub-sign">{selectedRequest.request_signature}</span>
-                            {selectedRequest.request_signature ? (
+                            <span className="sub-sign">{selectedRequest.prepared_signature}</span>
+                            {selectedRequest.prepared_signature ? (
                               <img
-                              src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.request_signature}`}
+                              src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.prepared_signature}`}
                               alt="Signature"
                               className="img-sign"/>
                               ) : (
@@ -657,12 +750,21 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                         </div>
                       </div>
                     </div>
-                    {selectedRequest.declined_reason && (
-                      <div className="decline-reason">
-                        <label htmlFor="declined-reason">
-                          <strong>Declined Reason: </strong>
-                          <em>{selectedRequest.declined_reason}</em>
-                        </label>
+                    {(selectedRequest.status || selectedRequest.declined_reason) && (
+                      <div className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}>
+                        <div className="floating-decline-content">
+                          {selectedRequest.status && (
+                            <p className="status-text">
+                              <strong>Status:</strong> {selectedRequest.status}
+                            </p>
+                          )}
+                          {selectedRequest.declined_reason && (
+                            <>
+                              <strong>Declined Reason:</strong>
+                              <p>{selectedRequest.declined_reason}</p>
+                            </>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>                

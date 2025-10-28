@@ -348,6 +348,96 @@
 .purchase-signature p {
   border-top: 1px solid #444;
 }
+/* Floating Box Base */
+.floating-decline-reason {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  z-index: 9999;
+  animation: fadeIn 0.4s ease;
+  color: #fff;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  max-width: 350px;
+  backdrop-filter: blur(4px);
+  transition: background-color 0.3s ease;
+}
+
+/* Color variants based on status */
+.floating-decline-reason.approved {
+  background-color: rgba(46, 204, 113, 0.95); /* Green */
+}
+
+.floating-decline-reason.pending {
+  background-color: rgba(255, 165, 0, 0.95); /* Orange */
+}
+
+.floating-decline-reason.declined {
+  background-color: rgba(231, 76, 60, 0.95); /* Red */
+}
+
+/* Content */
+.floating-decline-content strong {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
+}
+
+.floating-decline-content p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  word-wrap: break-word;
+}
+
+.replenish-amount {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem 2rem;
+  margin-top: 1rem;
+  align-items: start;
+}
+
+.replenish-amount p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.replenish-amount strong {
+  color: #333;
+}
+
+.replenish-amount em {
+  color: #555;
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  .replenish-amount {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media print {
+  .floating-decline-reason {
+    display: none !important;
+  }
+}
+
 
 @media (prefers-color-scheme: dark) {
   .p-items-table {
