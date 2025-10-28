@@ -2362,3 +2362,45 @@ app.patch("/api/cash_advance/:id/release", async (req, res) => {
     res.status(500).json({ message: "Server error releasing cash advance request" });
   }
 });
+
+//ENDPOINT FOR AUDIT REPORTS
+app.get("/api/reports_audit", async (req, res) => {
+  try {
+    const tablesResult = await pool.query(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_type = 'BASE TABLE'
+        AND (table_name LIKE '%request' OR table_name LIKE '%requests');
+    `);
+
+    const allData = {};
+    const errors = [];
+
+    for (const row of tablesResult.rows) {
+      const tableName = row.table_name;
+      try {
+        const result = await pool.query(`SELECT * FROM "${tableName}" LIMIT 50`);
+        allData[tableName] = result.rows;
+      } catch (err) {
+        console.warn(`⚠️ Skipping table ${tableName}: ${err.message}`);
+        errors.push({ table: tableName, error: err.message });
+        allData[tableName] = [];
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Database tables fetched successfully",
+      tables: allData,
+      skippedTables: errors,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching all database data:", error);
+    res.status(200).json({
+      success: false,
+      message: "Error retrieving data",
+      error: error.message,
+    });
+  }
+});

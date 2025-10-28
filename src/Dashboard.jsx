@@ -13,6 +13,11 @@ import RequestCashAdvanceLiquidation from "./RequestCashAdvanceLiquidation";
 import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
 import { useNavigate } from "react-router-dom";
+import ReportsAudit from "./reports/ReportsAudit.jsx";
+import ReportsPurchaseRequest from "./reports/ReportsPurchaseRequest.jsx";
+import ReportsRevolvingFund from "./reports/ReportsRevolvingFund.jsx";
+import ReportsCashAdvance from "./reports/ReportsCashAdvance.jsx";
+import ReportsCashAdvanceLiquidation from "./reports/ReportsCashAdvanceLiquidation.jsx";
 
 const STORAGE_KEY = "rfg-dashboard-active-view";
 
@@ -240,19 +245,35 @@ function renderActiveView(view) {
           description="Overview of system activity and form submissions."
         />
       );
-    case "reports-detailed":
+    case "reports-revolving-fund":
       return (
-        <PlaceholderPanel
-          title="Detailed Report"
-          description="Drill down into request details and metrics."
-        />
+        <ReportsRevolvingFund/>
       );
+
+    case "reports-purchase-request":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ReportsPurchaseRequest />
+        </div>
+      );
+
+    case "reports-cash-advance":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ReportsCashAdvance />
+        </div>
+      );
+
+    case "reports-cash-advance-liquidation":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ReportsCashAdvanceLiquidation />
+        </div>
+      );
+
     case "reports-audit":
       return (
-        <PlaceholderPanel
-          title="Audit Trail"
-          description="View a complete log of system actions."
-        />
+        <ReportsAudit/>
       );
 
     case "forms-menu":
@@ -591,39 +612,39 @@ function Dashboard({ role, name, onLogout }) {
 
                         {reportsOpen && (
                           <div className="sidebar-dropdown-items">
-                            <button
+                              <button
                               type="button"
                               className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-summary" ? " underline-active" : ""
+                                activeView === "reports-purchase-request" ? " underline-active" : ""
                               }`}
-                              onClick={() => setActiveView("reports-summary")}
+                              onClick={() => setActiveView("reports-purchase-request")}
                             >
                               Purchase Request
                             </button>
                             <button
                               type="button"
                               className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-detailed" ? " underline-active" : ""
+                                activeView === "reports-revolving-fund" ? " underline-active" : ""
                               }`}
-                              onClick={() => setActiveView("reports-detailed")}
+                              onClick={() => setActiveView("reports-revolving-fund")}
                             >
                               Revolving Fund
                             </button>
                             <button
                               type="button"
                               className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-audit" ? " underline-active" : ""
+                                activeView === "reports-cash-advance" ? " underline-active" : ""
                               }`}
-                              onClick={() => setActiveView("reports-audit")}
+                              onClick={() => setActiveView("reports-cash-advance")}
                             >
                               Cash Advance Request
                             </button>
                             <button
                               type="button"
                               className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-audit" ? " underline-active" : ""
+                                activeView === "reports-cash-advance-liquidation" ? " underline-active" : ""
                               }`}
-                              onClick={() => setActiveView("reports-audit")}
+                              onClick={() => setActiveView("reports-cash-advance-liquidation")}
                             >
                               Cash Advance Liquidation
                             </button>

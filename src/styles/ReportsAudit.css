@@ -1,0 +1,213 @@
+/* ===========================================================
+   AUDIT VIEW STYLES (Clean + Fixed)
+   =========================================================== */
+
+/* Animations */
+@keyframes modalFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalFadeOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+}
+
+/* Layout */
+.audit-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.75rem 2rem 2rem;
+  height: 70vh;
+  overflow-y: auto;
+  background: var(--color-app-bg);
+  color: var(--color-text-primary);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) var(--color-table-header, #f4f4f4);
+}
+
+/* Scrollbar */
+.audit-view::-webkit-scrollbar {
+  width: 10px;
+}
+.audit-view::-webkit-scrollbar-track {
+  background: var(--color-table-header, #f4f4f4);
+  border-radius: 4px;
+}
+.audit-view::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 4px;
+  border: 2px solid var(--color-table-header, #f4f4f4);
+}
+.audit-view::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-primary);
+}
+
+/* Table container */
+.audit-table-wrapper {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-elevation);
+  border-radius: 1rem;
+  overflow: clip;
+  position: relative;
+}
+
+/* Table elements */
+.audit-items-table th {
+  border: 1px solid var(--color-border);
+  padding: 8px;
+  text-align: left;
+}
+
+.admin-table thead {
+  background: var(--color-table-header);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.audit-table th,
+.audit-table td {
+  padding: 0.9rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.audit-table tbody tr:hover {
+  background: rgba(36, 207, 142, 0.06);
+}
+
+.audit-table tbody tr:last-of-type td {
+  border-bottom: none;
+}
+
+/* ===========================================================
+   DATE FILTER INPUT
+   =========================================================== */
+.audit-date-filter {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.audit-date-filter:hover {
+  border-color: #24cf8e;
+}
+
+.audit-date-filter:focus {
+  border-color: #24cf8e;
+  box-shadow: 0 0 0 2px rgba(36, 207, 142, 0.25);
+  background-color: var(--color-surface);
+}
+
+/* ✅ Dark theme override (using variables, no inversion) */
+.dark .audit-date-filter {
+  background-color: var(--color-surface-dark, #2b2b2b);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+.dark .audit-date-filter:focus {
+  border-color: #24cf8e;
+  box-shadow: 0 0 0 2px rgba(36, 207, 142, 0.35);
+}
+
+/* Calendar icon (native picker) */
+.audit-date-filter::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 1;
+  cursor: pointer;
+}
+
+/* ✅ Safe dark mode fix for Chrome — prevents double inversion */
+.dark .audit-date-filter::-webkit-calendar-picker-indicator {
+  filter: brightness(1.2);
+  opacity: 0.9;
+}
+
+/* ===========================================================
+   MODAL + RAW JSON
+   =========================================================== */
+.audit-raw-json {
+  background: var(--color-table-header, #f4f4f4);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 4px;
+  padding: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Overlay */
+.audit-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+
+/* Modal container */
+.audit-modal {
+  background: var(--color-surface);
+  border-radius: 0.75rem;
+  padding: 1.75rem;
+  width: min(650px, 90vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  animation: modalFadeIn 0.25s ease forwards;
+  position: relative;
+  z-index: 9999;
+}
+
+/* Scrollbar inside modal */
+.audit-modal::-webkit-scrollbar {
+  width: 8px;
+}
+.audit-modal::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+/* Fade out transition */
+.audit-modal.hide {
+  animation: modalFadeOut 0.25s ease forwards;
+}
+
+/* Close button */
+.audit-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--color-text-primary);
+}
