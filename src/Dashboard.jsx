@@ -432,7 +432,11 @@ function Dashboard({ role, name, onLogout }) {
                           className={`sidebar-item${
                             activeView === "requests" || activeView === "purchase-request" ? " sidebar-item-active" : ""
                           }`}
-                          onClick={() => setRequestsOpen((prev) => !prev)}
+                          onClick={
+                            () => {setRequestsOpen((prev) => !prev);
+                            setReportsOpen(false);
+                            }
+                          }
                         >
                           <span className="sidebar-item-icon">{item.icon}</span>
                           <span>{item.label}</span>
