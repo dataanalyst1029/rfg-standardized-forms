@@ -173,7 +173,7 @@ function ReportsRequestPurchase() {
 
   // ---------------------- RENDER ----------------------
   return (
-    <div className="audit-view">
+    <div className="admin-view">
       {/* ---------- Toolbar and Filters ---------- */}
       <div className="admin-toolbar">
         <div className="admin-toolbar-title">
@@ -223,7 +223,7 @@ function ReportsRequestPurchase() {
       )}
 
       {/* ---------- Data Table ---------- */}
-      <div className="audit-table-wrapper">
+      <div className="admin-table-wrapper">
         <table className="admin-table purchase-table">
           <thead>
             <tr>

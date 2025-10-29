@@ -130,7 +130,7 @@ const ReportsAudit = ({
   }, [filteredRequests, page, rowsPerPage]);
 
   return (
-    <div className="audit-view">
+    <div className="admin-view">
       {/* Toolbar */}
       <div className="admin-toolbar">
         <div className="admin-toolbar-title">
@@ -153,9 +153,6 @@ const ReportsAudit = ({
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
-          <button className="date-filter-btn" onClick={fetchAuditLogs}>
-            Filter
-          </button>
 
           <input
             type="search"
@@ -175,7 +172,7 @@ const ReportsAudit = ({
       )}
 
       {/* Table */}
-      <div className="audit-table-wrapper">
+      <div className="admin-table-wrapper">
         <table className="admin-table">
           <thead>
             <tr>
