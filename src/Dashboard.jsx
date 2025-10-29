@@ -612,114 +612,149 @@ function Dashboard({ role, name, onLogout }) {
 
                         {reportsOpen && (
                           <div className="sidebar-dropdown-items">
+                            {userAccess.includes("Purchase Request") && (
                               <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-purchase-request" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-purchase-request")}
-                            >
-                              Purchase Request
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-revolving-fund" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-revolving-fund")}
-                            >
-                              Revolving Fund
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-cash-advance" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-cash-advance")}
-                            >
-                              Cash Advance Request
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-cash-advance-liquidation" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-cash-advance-liquidation")}
-                            >
-                              Cash Advance Liquidation
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-audit" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-audit")}
-                            >
-                              CA Receipt Form
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-audit" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-audit")}
-                            >
-                              Reimbursement Form
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-audit" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-audit")}
-                            >
-                              Payment Request Form
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-audit" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-audit")}
-                            >
-                              Maintenance or Repair
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-audit" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-audit")}
-                            >
-                              HR Overtime Approval
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-audit" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-audit")}
-                            >
-                              HR Leave Application
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-audit" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-audit")}
-                            >
-                              Interbranch Transfer Slip
-                            </button>
-                            <button
-                              type="button"
-                              className={`sidebar-item sidebar-item-nested${
-                                activeView === "reports-audit" ? " underline-active" : ""
-                              }`}
-                              onClick={() => setActiveView("reports-audit")}
-                            >
-                              Credit Card Acknowledgement Receipt
-                            </button>
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "reports-purchase-request" ? " underline-active" : ""
+                                }`}
+                                onClick={() => setActiveView("reports-purchase-request")}
+                              >
+                                Purchase Request
+                              </button>
+                            )}
+
+                            {userAccess.includes("Revolving Fund") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "reports-revolving-fund" ? " underline-active" : ""
+                                }`}
+                                  onClick={() => setActiveView("reports-revolving-fund")}
+                                >
+                                  Revolving Fund
+                                </button>
+                              )}
+
+                              {userAccess.includes("Cash Advance Request") && (
+                                <button
+                                  type="button"
+                                  className={`sidebar-item sidebar-item-nested${
+                                    activeView === "reports-cash-advance" ? " underline-active" : ""
+                                  }`}
+                                  onClick={() => setActiveView("reports-cash-advance")}
+                                >
+                                  Cash Advance Request
+                                </button>
+                              )}
+
+                              {userAccess.includes("Cash Advance Liquidation") && (
+                                <button
+                                  type="button"
+                                  className={`sidebar-item sidebar-item-nested${
+                                    activeView === "reports-cash-advance-liquidation" ? " underline-active" : ""
+                                  }`}
+                                  onClick={() => setActiveView("reports-cash-advance-liquidation")}
+                                >
+                                  Cash Advance Liquidation
+                                </button>
+                              )}
+
+                              {userAccess.includes("CA Receipt Form") && (
+                                <button
+                                  type="button"
+                                  className={`sidebar-item sidebar-item-nested${
+                                    activeView === "reports-audit" ? " underline-active" : ""
+                                  }`}
+                                  onClick={() => setActiveView("reports-audit")}
+                                >
+                                  CA Receipt Form
+                                </button>
+                              )}
+
+                              {userAccess.includes("Reimbursement Form") && (
+                                <button
+                                  type="button"
+                                  className={`sidebar-item sidebar-item-nested${
+                                    activeView === "reports-audit" ? " underline-active" : ""
+                                  }`}
+                                  onClick={() => setActiveView("reports-audit")}
+                                >
+                                  Reimbursement Form
+                                </button>
+                              )}
+
+                              {userAccess.includes("Payment Request Form") && (
+                                <button
+                                  type="button"
+                                  className={`sidebar-item sidebar-item-nested${
+                                    activeView === "reports-audit" ? " underline-active" : ""
+                                  }`}
+                                  onClick={() => setActiveView("reports-audit")}
+                                >
+                                  Payment Request Form
+                                </button>
+                              )}
+
+                              {userAccess.includes("Maintenance or Repair") && (
+                                <button
+                                  type="button"
+                                  className={`sidebar-item sidebar-item-nested${
+                                    activeView === "reports-audit" ? " underline-active" : ""
+                                  }`}
+                                  onClick={() => setActiveView("reports-audit")}
+                                >
+                                  Maintenance or Repair
+                                </button>
+                              )}
+
+                              {userAccess.includes("HR Overtime Approval") && (
+                                <button
+                                  type="button"
+                                  className={`sidebar-item sidebar-item-nested${
+                                    activeView === "reports-audit" ? " underline-active" : ""
+                                  }`}
+                                  onClick={() => setActiveView("reports-audit")}
+                                >
+                                  HR Overtime Approval
+                                </button>
+                              )}
+
+                              {userAccess.includes("HR Leave Application") && (
+                                <button
+                                  type="button"
+                                  className={`sidebar-item sidebar-item-nested${
+                                    activeView === "reports-audit" ? " underline-active" : ""
+                                  }`}
+                                  onClick={() => setActiveView("reports-audit")}
+                                >
+                                  HR Leave Application
+                                </button>
+                              )}
+
+                              {userAccess.includes("Interbranch Transfer Slip") && (
+                                <button
+                                  type="button"
+                                  className={`sidebar-item sidebar-item-nested${
+                                    activeView === "reports-audit" ? " underline-active" : ""
+                                  }`}
+                                  onClick={() => setActiveView("reports-audit")}
+                                >
+                                  Interbranch Transfer Slip
+                                </button>
+                              )}
+
+                              {userAccess.includes("Credit Card Acknowledgement Receipt") && (
+                                <button
+                                  type="button"
+                                  className={`sidebar-item sidebar-item-nested${
+                                    activeView === "reports-audit" ? " underline-active" : ""
+                                  }`}
+                                  onClick={() => setActiveView("reports-audit")}
+                                >
+                                  Credit Card Acknowledgement Receipt
+                                </button>
+                              )}
                           </div>
                         )}
                       </div>
