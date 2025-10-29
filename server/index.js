@@ -1294,6 +1294,7 @@ app.get("/api/cash_advance_request/:code", async (req, res) => {
       inclusive_date_from: formatDate(data.inclusive_date_from),
       inclusive_date_to: formatDate(data.inclusive_date_to),
       total_amount: data.total_amount,
+      received_by: data.received_by,
     });
   } catch (err) {
     console.error("Error fetching cash advance details:", err);
@@ -1560,6 +1561,116 @@ app.put("/api/update_cash_advance_liquidation", uploadForm.none(), async (req, r
     res.status(500).json({ message: "Server error updating cash advance liquidation." });
   }
 });
+
+app.get("/api/ca_receipt/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const result = await pool.query(
+      `SELECT car_request_code
+       FROM ca_receipt
+       WHERE car_request_code LIKE $1
+       ORDER BY car_request_code DESC
+       LIMIT 1`,
+      [`CAR-${year}-%`]
+    );
+
+    let nextCode;
+    if (result.rows.length > 0) {
+      const lastCode = result.rows[0].car_request_code;
+      const lastNum = parseInt(lastCode.split("-")[2], 10);
+      const nextNum = String(lastNum + 1).padStart(6, "0");
+      nextCode = `CAR-${year}-${nextNum}`;
+    } else {
+      nextCode = `CAR-${year}-000001`;
+    }
+
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("❌ Error generating next CA receipt code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+
+app.post("/api/ca_receipt", async (req, res) => {
+  const {
+    car_request_code,
+    request_date,
+    employee_id,
+    name,
+    cash_advance_no,
+    received_from,
+    php_amount,
+    php_word,
+    received_by,
+    received_signature,
+    user_id,
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const existing = await client.query(
+      "SELECT id FROM ca_receipt WHERE car_request_code = $1",
+      [car_request_code]
+    );
+    if (existing.rows.length > 0) {
+      await client.query("ROLLBACK");
+      return res
+        .status(400)
+        .json({ message: `CA Receipt ${car_request_code} already exists.` });
+    }
+
+    await client.query(
+      `INSERT INTO ca_receipt (
+        car_request_code, 
+        request_date, 
+        employee_id, 
+        name, 
+        cash_advance_no, 
+        received_from, 
+        php_amount, 
+        php_word, 
+        received_by, 
+        received_signature, 
+        user_id,
+        status,
+        created_at,
+        updated_at
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'Pending',NOW(),NOW())`,
+      [
+        car_request_code,
+        request_date || new Date(),
+        employee_id,
+        name,
+        cash_advance_no,
+        received_from,
+        php_amount,
+        php_word,
+        received_by,
+        received_signature,
+        user_id,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: `✅ CA Receipt ${car_request_code} saved successfully!`,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("❌ Error saving CA receipt:", err);
+    res.status(500).json({ message: "Server error saving CA receipt" });
+  } finally {
+    client.release();
+  }
+});
+
 
 /* ------------------------
    BRANCHES CRUD API
