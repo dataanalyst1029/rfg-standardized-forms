@@ -157,7 +157,7 @@ function ReportsCashAdvanceLiquidation() {
           "name",
           "branch",
           "department",
-          "cash_advance_no",
+          "nature_activity",
           "status",
         ].some((key) =>
           req[key]?.toString().toLowerCase().includes(term)
@@ -268,7 +268,7 @@ function ReportsCashAdvanceLiquidation() {
               <th style={{ textAlign: "left" }}>Branch</th>
               <th style={{ textAlign: "left" }}>Department</th>
               <th style={{ textAlign: "left" }}>Check No.</th>
-              <th style={{ textAlign: "center" }}>Status</th>
+              <th style={{ textAlign: "center" }}>Nature of Activity</th>
               <th style={{ textAlign: "center" }}>Action</th>
             </tr>
           </thead>
@@ -302,7 +302,7 @@ function ReportsCashAdvanceLiquidation() {
                   <td style={{ textAlign: "left" }}>{req.name}</td>
                   <td style={{ textAlign: "left" }}>{req.branch}</td>
                   <td style={{ textAlign: "left" }}>{req.department}</td>
-                  <td style={{ textAlign: "left" }}>{req.check_pcv_no}</td>
+                  <td style={{ textAlign: "left" }}>{req.nature_activity}</td>
                   <td style={{ textAlign: "center" }}>
                     {req.status.toUpperCase()}
                   </td>
@@ -369,240 +369,254 @@ function ReportsCashAdvanceLiquidation() {
       </div>
 
       {/* ---------- Modal for Viewing Request Details ---------- */}
-        {/* ---------- Modal for Viewing Request Details ---------- */}
-        {/*
         {modalOpen && modalRequest && (
-            <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
-            <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-                <div className="admin-modal-panel request-modal">
-                <button
-                    className="admin-close-btn"
-                    onClick={handleCloseModal}
-                    aria-label="Close"
-                >
-                    ×
-                </button>
+                <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
+                    <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+                        <div className="admin-modal-panel request-modals">
+                            <button
+                                className="admin-close-btn"
+                                onClick={handleCloseModal}
+                                aria-label="Close"
+                                >
+                                ×
+                            </button>
 
-                <h2>{modalRequest.revolving_request_code}</h2>
-                <p>
-                    <strong>Date:</strong>{" "}
-                    <em>{new Date(modalRequest.date_request).toLocaleDateString()}</em>
-                </p>
-                <div className="employee-info">
-                    <p>
-                    <strong>Employee ID:</strong>{" "}
-                    <em>{modalRequest.employee_id}</em>
-                    </p>
-                    <p>
-                    <strong>Custodian:</strong>{" "}
-                    <em>{modalRequest.custodian}</em>
-                    </p>
-                    <p>
-                    <strong>Branch:</strong>{" "}
-                    <em>{modalRequest.branch}</em>
-                    </p>
-                    <p>
-                    <strong>Department:</strong>{" "}
-                    <em>{modalRequest.department}</em>
-                    </p>
-                </div>
+                            <h2>{modalRequest.cal_request_code}</h2>
+                            <p>
+                                <strong>Date:</strong>{" "}
+                                <em>{new Date(modalRequest.request_date).toLocaleDateString()}</em>
+                            </p>
+                            <div className="employee-info">
+                              <p>
+                                <strong>Employee ID:</strong>{" "}
+                                <em>{modalRequest.employee_id}</em>
+                              </p>
+                              <p>
+                                <strong>Name:</strong>{" "}
+                                <em>{modalRequest.name}</em>
+                              </p>
+                              <p>
+                                <strong>Branch:</strong>{" "}
+                                <em>{modalRequest.branch}</em>
+                              </p>
+                              <p>
+                                <strong>Department:</strong>{" "}
+                                <em>{modalRequest.department}</em>
+                              </p>
+                            </div>
 
-                <div class="replenish-amount">
-                    <span><b>Amount for Replenishment: </b>
-                    <i>
-                        {modalRequest.replenish_amount
-                        ? Number(modalRequest.replenish_amount).toLocaleString(
-                            "en-PH",
-                            {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                            }
-                            )
-                        : "0.00"}
-                    </i>
-                    </span>
-                </div>
+                            <div class="replenish-amount">
+                                <p>
+                                    <strong>Nature of Activity:</strong>{" "}
+                                    <em>{modalRequest.nature_activity}</em>
+                                </p>
+                                <p>
+                                    <strong>Inclusive date(s):</strong>{" "}
+                                    <em>{new Date(modalRequest.inclusive_date_from).toLocaleDateString()} - {new Date(modalRequest.inclusive_date_to).toLocaleDateString()}</em>
+                                </p>
+                            </div>
 
-                {modalRequest.items && modalRequest.items.length > 0 ? (
-                    <table className="request-items-table">
-                    <thead>
-                        <tr>
-                        <th className="text-center">DATE</th>
-                        <th className="text-center">VOUCHER NO.</th>
-                        <th className="text-center">OR REF. NO.</th>
-                        <th className="text-center">AMOUNT</th>
-                        <th>EXP. CATEGORY</th>
-                        <th>GL ACCOUNT</th>
-                        <th>REMARKS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {modalRequest.items.map((item) => (
-                        <tr key={item.id}>
-                            <td className="text-center">
-                            {new Date(
-                                modalRequest.date_request
-                            ).toLocaleDateString()}
-                            </td>
-                            <td className="text-center">{item.voucher_no}</td>
-                            <td className="text-center">{item.or_ref_no}</td>
-                            <td className="text-center">
-                            {item.amount
-                                ? Number(item.amount).toLocaleString("en-PH", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                })
-                                : "0.00"}
-                            </td>
-                            <td>{item.exp_cat}</td>
-                            <td>{item.gl_account}</td>
-                            <td>{item.remarks}</td>
-                        </tr>
-                        ))}
-                        <tr>
-                        <td className="text-center" colSpan={3}>
-                            Total
-                        </td>
-                        <td className="text-center">
-                            {modalRequest.total
-                            ? Number(modalRequest.total).toLocaleString("en-PH", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                                })
-                            : "0.00"}
-                        </td>
-                        <td colSpan={3}></td>
-                        </tr>
-                    </tbody>
-                    </table>
-                ) : (
-                    <p>—</p>
-                )}
-
-                <div className="replenishment-cash">
-                    <label htmlFor="cash-advance-luquidation">
-                    <p>Petty Cash/Revolving Fund Amount:</p>
-                    <em>
-                        {modalRequest.revolving_amount
-                        ? Number(modalRequest.revolving_amount).toLocaleString(
-                            "en-PH",
-                            {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                            }
-                            )
-                        : "0.00"}
-                    </em>
-                    </label>
-                    <label htmlFor="total-expense">
-                    <p>Less: Total Expenses per vouchers:</p>
-                    <em>
-                        {modalRequest.total_exp
-                        ? Number(modalRequest.total_exp).toLocaleString("en-PH", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                            })
-                        : "0.00"}
-                    </em>
-                    </label>
-                    <label htmlFor="cash-onhand">
-                    <p>Cash on Hand:</p>
-                    <em>
-                        {modalRequest.cash_onhand
-                        ? Number(modalRequest.cash_onhand).toLocaleString(
-                            "en-PH",
-                            {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                            }
-                            )
-                        : "0.00"}
-                    </em>
-                    </label>
-                </div>
-
-                <div className="submit-content">
-                    <div className="submit-by-content">
-                    <div>
-                        <span>{modalRequest.submitted_by}</span>
-                        <p>Submitted by</p>
-                    </div>
-
-                    <div className="revolving-signature">
-                        <input
-                        className="submit-sign"
-                        type="text"
-                        value={modalRequest.submitter_signature}
-                        readOnly
-                        />
-                        {modalRequest.submitter_signature ? (
-                        <>
-                            <img
-                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.submitter_signature}`}
-                            alt="Signature"
-                            className="signature-image"
-                            />
-                        </>
-                        ) : (
-                        <p>
-                            <i>No signature available</i>
-                        </p>
-                        )}
-                        <p>Signature</p>
-                    </div>
-                    </div>
-                </div>
-
-                <form
-                    className="request-footer-form"
-                    onSubmit={(e) => e.preventDefault()}
-                >
-                    <div className="submit-content">
-                    <div className="submit-by-content">
-                        <div>
-                        <label>
-                            <span>
-                            <input
-                                type="text"
-                                name="approved_by"
-                                value={userData.name || ""}
-                                readOnly
-                            />
-                            </span>
-                            <p>Approved by</p>
-                        </label>
-                        </div>
-
-                        <div className="approver-signature">
-                        <label>
-                            <input
-                            type="text"
-                            name="approver_signature"
-                            value={userData.signature || ""}
-                            className="submit-sign"
-                            required
-                            readOnly
-                            />
-                            {userData.signature ? (
-                            <img
-                                src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                                alt="Signature"
-                                className="signature-img"
-                            />
+                            {modalRequest.items && modalRequest.items.length > 0 ? (
+                            <table className="request-items-table">
+                                <thead>
+                                <tr>
+                                    <th className="text-center">DATE</th>
+                                    <th className="text-center">DESCRIPTION</th>
+                                    <th className="text-center">OR NO.</th>
+                                    <th className="text-center">AMOUNT</th>
+                                    <th className="text-center">EXPENSE CHARGES</th>
+                                    <th>Store/Branch</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {modalRequest.items.map((item) => (
+                                    <tr key={item.id}>
+                                        <td className="text-center">{item.transaction_date}</td>
+                                        <td className="text-center">{item.description}</td>
+                                        <td className="text-center">{item.or_no}</td>
+                                        <td className="text-center">
+                                            {item.amount? Number(item.amount).toLocaleString("en-PH", {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })
+                                            : "0.00"}
+                                        </td>
+                                        <td className="text-center">{item.exp_charges}</td>
+                                        <td className="text-center">{item.store_branch}</td>
+                                        {/* <td>{item.remarks}</td> */}
+                                    </tr>
+    
+                                ))}
+                                <tr>
+                                    <td className="text-center" colSpan={3}><b>Total Expenses</b></td>
+                                    <td className="text-center">{modalRequest.total_expense
+                                            ? Number(modalRequest.total_expense).toLocaleString("en-PH", {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })
+                                        : "0.00"}
+                                    </td>
+                                    <td colSpan={2}></td>
+                                </tr>
+                                </tbody>
+                            </table>
                             ) : (
-                            <p>No signature available</p>
+                            <p>—</p>
                             )}
-                            <p>Signature</p>
-                        </label>
+
+                            <div className="pr-items-card">
+                                <div>
+                                    <table className="request-items-table">
+                                        <tr>
+                                            <th className="text-center">BUDGETED</th>
+                                            <th className="text-center">ACTUAL</th>
+                                            <th className="text-center">DIFFERENCE</th>
+                                        </tr>
+                                        <tr>
+                                            <td className="text-center">
+                                                {modalRequest.budgeted
+                                                    ? Number(modalRequest.budgeted).toLocaleString("en-PH", {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                })
+                                                : "0.00"}
+                                            </td>
+                                            <td className="text-center">
+                                                {modalRequest.actual
+                                                    ? Number(modalRequest.actual).toLocaleString("en-PH", {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                })
+                                                : "0.00"}</td>
+                                            <td className="text-center">
+                                                {modalRequest.difference
+                                                    ? Number(modalRequest.difference).toLocaleString("en-PH", {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                })
+                                                : "0.00"}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div className="pr-items-card">
+                                <div className="pr-flex-container">
+                                    <div className="cal-section" >
+                                        <h2 className="pr-section-title">When Budgeted Exceeds Actual</h2>
+                                        <div>
+                                            <span>Deposit of Excess</span>
+                                            <input type="text" value={modalRequest.excess_deposit} readOnly />
+                                        </div>
+                                        <div>
+                                            <span>Date</span>
+                                            <input type="text" value={new Date(modalRequest.date_excess).toLocaleDateString()} readOnly/>
+                                        </div>
+                                        <div>
+                                            <span>Acknowledgement Receipt No.</span>
+                                            <input type="text" value={modalRequest.ack_rcpt_no} readOnly/>
+                                        </div>
+                                        <div>
+                                            <span>Amount</span>
+                                            <input 
+                                                type="text"
+                                                value={modalRequest.exceed_amount? Number(modalRequest.exceed_amount).toLocaleString("en-PH", {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                })
+                                                : "0.00"} readOnly
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="cal-section" >
+                                        <h2 className="pr-section-title">When Actual Exceeds Budgeted</h2>
+                                        <div>
+                                            <span>Reimbursable Amount</span>
+                                            <input 
+                                                type="text"
+                                                value={modalRequest.rb_amount? Number(modalRequest.rb_amount).toLocaleString("en-PH", {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                })
+                                                : "0.00"} readOnly
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="submit-content">
+                              <div className="submit-by-content">
+                                <div>
+                                  <span>{modalRequest.prepared_by}</span>
+                                  <p>Prepared by</p>
+                                </div>
+
+                                <div className="signature-content">
+                                    <label htmlFor="">
+                                        <input className="submit-sign" type="text" value={modalRequest.prepared_signature} readOnly />
+                                        {modalRequest.prepared_signature ? (
+                                            <>
+                                            <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${modalRequest.prepared_signature}`}
+                                                alt="Signature"
+                                                className="cal-signature-image"
+                                            />
+                                            </>
+                                        ) : (
+                                            <div className="img-sign empty-sign"></div>
+                                        )}
+                                    </label>
+                                  <p>Signature</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
+                              <div className="submit-content">
+                                <div className="submit-by-content-approve">
+                                    <div>
+                                        <span>
+                                            <input
+                                            type="text"
+                                            name="approved_by"
+                                            value={userData.name || ""}
+                                            className="approver-name"
+                                            readOnly
+                                            />
+                                        </span>
+                                        <p>Approved by</p>
+                                    </div>
+
+                                    <div className="signature-content">
+                                        <label>
+                                          <input
+                                            type="text"
+                                            name="approve_signature"
+                                            value={userData.signature || ""}
+                                            className="submit-sign"
+                                            required
+                                            readOnly
+                                          />
+                                          {userData.signature ? (
+                                          <img
+                                          src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                                          alt="Signature"
+                                          className="cal-signature-image"/>
+                                          ) : (
+                                              <div className="img-sign empty-sign"></div>
+                                          )}
+                                          <p>Signature</p>
+                                        </label>
+                                    </div>
+                                </div>
+                              </div>
+                            </form>
                         </div>
                     </div>
-                    </div>
-                </form>
                 </div>
-            </div>
-            </div>
-        )}
-        */}
+            )}
     </div>
   );
 }
