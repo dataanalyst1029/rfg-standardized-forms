@@ -391,7 +391,7 @@ function Dashboard({ role, name, onLogout }) {
 
   return (
     <div className="dashboard-layout">
-      <aside className="dashboard-sidebar scrollbar">
+      <aside className="dashboard-sidebar">
         <div className="sidebar-brand">
           <span className="sidebar-project-name">RFG Forms Console</span>
           <span className="sidebar-project-env">
@@ -414,7 +414,8 @@ function Dashboard({ role, name, onLogout }) {
           </span>
         </div>
 
-        {NAVIGATION.map((section) => {
+        <div className="sidebar-content scrollbar">
+          {NAVIGATION.map((section) => {
           if (section.id === "administration" && role !== "admin") return null;
 
           return (
@@ -800,6 +801,7 @@ function Dashboard({ role, name, onLogout }) {
             </div>
           );
         })}
+        </div>
 
         <div className="sidebar-user">
           <div className="sidebar-user-meta">
