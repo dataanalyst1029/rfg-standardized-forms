@@ -612,7 +612,7 @@ function Dashboard({ role, name, onLogout }) {
 
                         {reportsOpen && (
                           <div className="sidebar-dropdown-items">
-                            {userAccess.includes("Purchase Request") && (
+                            {(role === "admin" || userAccess.includes("Purchase Request")) && (
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
@@ -624,7 +624,7 @@ function Dashboard({ role, name, onLogout }) {
                               </button>
                             )}
 
-                            {userAccess.includes("Revolving Fund") && (
+                            {(role === "admin" || userAccess.includes("Revolving Fund")) && (
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
@@ -636,7 +636,7 @@ function Dashboard({ role, name, onLogout }) {
                                 </button>
                               )}
 
-                              {userAccess.includes("Cash Advance Request") && (
+                              {(role === "admin" || userAccess.includes("Cash Advance Request")) && (
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
@@ -648,7 +648,7 @@ function Dashboard({ role, name, onLogout }) {
                                 </button>
                               )}
 
-                              {userAccess.includes("Cash Advance Liquidation") && (
+                              {(role === "admin" || userAccess.includes("Cash Advance Liquidation")) && (
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
@@ -660,7 +660,7 @@ function Dashboard({ role, name, onLogout }) {
                                 </button>
                               )}
 
-                              {userAccess.includes("CA Receipt Form") && (
+                              {(role === "admin" || userAccess.includes("CA Receipt Form")) && (
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
@@ -672,7 +672,7 @@ function Dashboard({ role, name, onLogout }) {
                                 </button>
                               )}
 
-                              {userAccess.includes("Reimbursement Form") && (
+                              {(role === "admin" || userAccess.includes("Reimbursement Form")) && (
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
@@ -684,7 +684,7 @@ function Dashboard({ role, name, onLogout }) {
                                 </button>
                               )}
 
-                              {userAccess.includes("Payment Request Form") && (
+                              {(role === "admin" || userAccess.includes("Payment Request Form")) && (
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
@@ -696,7 +696,7 @@ function Dashboard({ role, name, onLogout }) {
                                 </button>
                               )}
 
-                              {userAccess.includes("Maintenance or Repair") && (
+                              {(role === "admin" || userAccess.includes("Maintenance or Repair")) && (
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
@@ -708,7 +708,7 @@ function Dashboard({ role, name, onLogout }) {
                                 </button>
                               )}
 
-                              {userAccess.includes("HR Overtime Approval") && (
+                              {(role === "admin" || userAccess.includes("HR Overtime Approval")) && (
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
@@ -720,7 +720,7 @@ function Dashboard({ role, name, onLogout }) {
                                 </button>
                               )}
 
-                              {userAccess.includes("HR Leave Application") && (
+                              {(role === "admin" || userAccess.includes("HR Leave Application")) && (
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
@@ -732,7 +732,7 @@ function Dashboard({ role, name, onLogout }) {
                                 </button>
                               )}
 
-                              {userAccess.includes("Interbranch Transfer Slip") && (
+                              {(role === "admin" || userAccess.includes("Interbranch Transfer Slip")) && (
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
@@ -744,7 +744,7 @@ function Dashboard({ role, name, onLogout }) {
                                 </button>
                               )}
 
-                              {userAccess.includes("Credit Card Acknowledgement Receipt") && (
+                              {(role === "admin" || userAccess.includes("Credit Card Acknowledgement Receipt")) && (
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
