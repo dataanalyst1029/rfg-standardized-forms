@@ -176,7 +176,7 @@ function RevolvingFundRequest() {
                     {loading ? (
                     <tr>
                         <td colSpan={8} className="admin-empty-state">
-                        Loading cash advance budget requests...
+                        Loading reimbursement requests...
                         </td>
                     </tr>
                     ) : visibleRequests.length === 0 ? (
@@ -184,7 +184,7 @@ function RevolvingFundRequest() {
                         <td colSpan={8} className="admin-empty-state">
                         {search
                             ? "No requests match your search."
-                            : "No cash advance budget requests found."}
+                            : "No reimbursement requests found."}
                         </td>
                     </tr>
                     ) : (

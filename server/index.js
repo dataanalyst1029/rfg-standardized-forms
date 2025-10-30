@@ -1898,7 +1898,6 @@ app.get("/api/reimbursement", async (req, res) => {
     const result = await pool.query(
       `SELECT * 
        FROM reimbursement 
-       WHERE status = 'Pending'
        ORDER BY request_date DESC`
     );
     res.json(result.rows);

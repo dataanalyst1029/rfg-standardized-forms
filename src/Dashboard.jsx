@@ -19,6 +19,7 @@ import ReportsPurchaseRequest from "./reports/ReportsPurchaseRequest.jsx";
 import ReportsRevolvingFund from "./reports/ReportsRevolvingFund.jsx";
 import ReportsCashAdvance from "./reports/ReportsCashAdvance.jsx";
 import ReportsCashAdvanceLiquidation from "./reports/ReportsCashAdvanceLiquidation.jsx";
+import ReportsReimbursementForm from "./reports/ReportsReimbursementForm.jsx";
 
 const STORAGE_KEY = "rfg-dashboard-active-view";
 
@@ -242,8 +243,8 @@ function renderActiveView(view) {
           <RequestCashAdvanceLiquidation />
         </div>
       );
-
-    case "reimbursement":
+    
+      case "reimbursement":
       return (
         <div className="dashboard-content dashboard-content--flush">
           <RequestReimbursement />
@@ -280,6 +281,13 @@ function renderActiveView(view) {
       return (
         <div className="dashboard-content dashboard-content--flush">
           <ReportsCashAdvanceLiquidation />
+        </div>
+      );
+
+    case "reports-reimbursement-form":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ReportsReimbursementForm/>
         </div>
       );
 
@@ -694,9 +702,9 @@ function Dashboard({ role, name, onLogout }) {
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
-                                    activeView === "reports-audit" ? " underline-active" : ""
+                                    activeView === "reports-reimbursement-form" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => setActiveView("reports-audit")}
+                                  onClick={() => setActiveView("reports-reimbursement-form")}
                                 >
                                   Reimbursement Form
                                 </button>
