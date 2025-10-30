@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import "./styles/PurchaseRequest.css";
-import "./styles/CashAdvanceRequest.css";
+import "./styles/CAReceipt.css";
+// import "./styles/CashAdvanceRequest.css";
 import { API_BASE_URL } from "../config/api.js";
 import { useNavigate } from "react-router-dom";
 
@@ -231,8 +231,9 @@ function CAReceipt({ onLogout }) {
           </div>
         </header>
 
-        <section className="pr-form-section" id="details">
-          <form onSubmit={handleSubmit} className="cash-receipt-form">
+        <form onSubmit={handleSubmit} className="cash-receipt-form">
+          <section className="pr-form-section" id="details">
+
             <div className="pr-grid-two">
               <div className="pr-field">
                 <label>Cash Adv. No.</label>
@@ -280,18 +281,22 @@ function CAReceipt({ onLogout }) {
               </div>
             </div>
 
-            <div className="pr-field">
-              <label>Received From</label>
-              <input
-                type="text"
-                name="received_from"
-                value={formData.received_from || ""}
-                onChange={handleChange}
-                className="pr-input"
-                required
-              />
-            </div>
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label>Received From</label>
+                <input
+                  type="text"
+                  name="received_from"
+                  value={formData.received_from || ""}
+                  onChange={handleChange}
+                  className="pr-input"
+                  required
+                />
+              </div>
+              <div className="pr-field">
 
+              </div>
+            </div>
 
             <div className="pr-grid-two">
               <div className="pr-field">
@@ -318,40 +323,37 @@ function CAReceipt({ onLogout }) {
                 />
               </div>
             </div>
+          </section>
 
-            <div className="pr-grid-two">
-              <div className="pr-field">
-                <label>Received By</label>
-                <input
-                  type="text"
-                  name="received_by"
-                  value={formData.received_by}
-                  readOnly
-                  className="pr-input"
-                />
-              </div>
 
-              <div className="pr-field">
-                <label>Signature</label>
-                {userData.signature ? (
+            <section className="rfr-form-section" id="signature">
+              <div className="signature-details">
+                <label htmlFor="receive-by">
+                  <input type="text" name="received_by" value={userData.name || ""} />
+                  <p>Received by:</p>
+                </label>
+                <label htmlFor="receive-by" class="signature-by">
+                  {userData.signature ? (
                   <img
                     src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
                     alt="Signature"
-                    className="signature-img"
-                  />
-                ) : (
-                  <p>No signature available</p>
-                )}
+                    className="car-signature-img"/>
+                    ) : (
+                        <p>No signature available</p>
+                  )}
+                  <input type="text" name="submitter_signature" value={userData.signature || ""} readOnly />
+                  <p>Signature:</p>
+
+                </label>
               </div>
-            </div>
+            </section>
 
             <div className="pr-form-actions">
               <button type="submit" className="pr-submit" disabled={isSubmitting}>
-                {isSubmitting ? "Submitting..." : "Submit Receipt"}
+                {isSubmitting ? "Submitting..." : "Submit CA Receipt"}
               </button>
             </div>
-          </form>
-        </section>
+        </form>
       </main>
     </div>
   );

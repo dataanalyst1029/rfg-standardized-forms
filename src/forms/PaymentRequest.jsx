@@ -1,759 +1,702 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "./styles/PaymentRequest.css";
+import "./styles/PurchaseRequest.css";
+import "./styles/CashAdvanceRequest.css";
 import { API_BASE_URL } from "../config/api.js";
+import { useNavigate } from "react-router-dom";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
-const emptyItem = () => ({
-  description: "",
-  quantity: "",
-  unit_price: "",
-  amount: "",
-  budget_code: "",
-});
-
-const parseNumber = (value) => {
-  if (value === null || value === undefined || value === "") {
-    return 0;
-  }
-  const parsed = Number(value);
-  return Number.isNaN(parsed) ? 0 : parsed;
+const initialFormData = {
+  prf_request_code: "",
+  request_date: new Date().toISOString().split("T")[0],
+  employee_id: "",
+  name: "",
+  user_id: "",
+  branch: "",
+  department: "",
+  vendor_supplier: "",
+  pr_number: "",
+  date_needed: new Date().toISOString().split("T")[0], 
+  total_amount: "",
+  purpose: "",
+  requested_by: "",
+  requested_signature: "",
 };
 
-const formatAmount = (value) => parseNumber(value).toFixed(2);
+const emptyItem = { 
+  item: "", 
+  quantity: "", 
+  unit_price: "", 
+  amount: "", 
+  expense_charges: "",
+  location: "" 
+};
 
-function PaymentRequest({ onLogout }) {
-  const storedUser = JSON.parse(sessionStorage.getItem("user") || "{}");
-  const navigate = useNavigate();
-  const handleBackToForms = () => {
-    navigate("/forms-list");
-  };
-  const [activeSection, setActiveSection] = useState("details");
-  const role = (storedUser.role || "").toLowerCase();
-  const isUserAccount = role === "user";
+const NAV_SECTIONS = [
+  { id: "pr-main", label: "New Payment Request" },
+  { id: "submitted", label: "View Submitted Requests" },
+];
 
-  const createInitialFormState = () => ({
-    requester_name: storedUser.name || "",
-    branch: storedUser.branch || "",
-    department: storedUser.department || "",
-    employee_id: storedUser.employee_id || "",
-    request_date: new Date().toISOString().split("T")[0],
-    vendor_name: "",
-    pr_number: "",
-    date_needed: "",
-    purpose: "",
-  });
-
-  const [request, setRequest] = useState(null);
-  const [formData, setFormData] = useState(createInitialFormState);
-  const [items, setItems] = useState([emptyItem()]);
+function PurchaseRequest({ onLogout }) {
+  const [formData, setFormData] = useState(initialFormData);
+  const [items, setItems] = useState([emptyItem]);
+  const [loading, setLoading] = useState(true);
   const [branches, setBranches] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [filteredDepartments, setFilteredDepartments] = useState([]);
+  const [activeSection, setActiveSection] = useState("details");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
+  const [userData, setUserData] = useState({ name: "", contact_no: "" });
+  const navigate = useNavigate();
   const [message, setMessage] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [nextReferenceCode, setNextReferenceCode] = useState(null);
-
-  const totalAmount = useMemo(
-    () => items.reduce((sum, item) => sum + parseNumber(item.amount), 0),
-    [items],
-  );
-
-  const availableDepartments = useMemo(() => {
-    if (!formData.branch) {
-      return [];
-    }
-    const branchRecord = branches.find((branch) => branch.branch_name === formData.branch);
-    if (!branchRecord) {
-      return [];
-    }
-    return departments.filter(
-      (dept) =>
-        dept.branch_id !== null &&
-        dept.branch_id !== undefined &&
-        Number(dept.branch_id) === Number(branchRecord.id),
-    );
-  }, [branches, departments, formData.branch]);
 
   useEffect(() => {
-    if (!isUserAccount) {
-      setMessage({
-        type: "error",
-        text: "Only user-level accounts can create payment requests.",
-      });
+    const storedId = sessionStorage.getItem("id");
+    const storedName = sessionStorage.getItem("name");
+
+    if (storedId) {
+      fetch(`${API_BASE_URL}/users/${storedId}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch user data");
+          return res.json();
+        })
+        .then((data) => {
+          setUserData(data);
+          setFormData((prev) => ({
+            ...prev,
+            name: data.name || storedName || "",
+            user_id: storedId,
+            contact_no: data.contact_no || "",
+            employee_id: data.employee_id || "",
+            requested_by: data.name || "",
+            requested_signature: data.signature || "",
+
+          }));
+        })
+        .catch((err) => {
+          console.error("Error fetching user data:", err);
+          setFormData((prev) => ({
+            ...prev,
+            employee_id: data.employee_id || "",
+            name: storedName || "",
+            user_id: storedId,
+          }));
+        });
     }
-  }, [isUserAccount]);
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
+    const fetchNextCode = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/payment_request/next-code`);
+        if (!res.ok) throw new Error("Failed to retrieve next reference number");
+        const data = await res.json();
+        if (data.nextCode) {
+          setFormData((prev) => ({ ...prev, prf_request_code: data.nextCode }));
+        }
+      } catch (error) {
+        console.error("Error fetching next code", error);
+        setModal({
+          isOpen: true,
+          type: "error",
+          message: "Unable to load the next ca request reference.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNextCode();
+  }, []);
 
-    const loadLookups = async () => {
+  useEffect(() => {
+    const fetchData = async () => {
       try {
         const [branchRes, deptRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/branches`),
           fetch(`${API_BASE_URL}/api/departments`),
         ]);
-        const branchData = branchRes.ok ? await branchRes.json() : [];
-        const deptData = deptRes.ok ? await deptRes.json() : [];
-        if (!isMounted) {
-          return;
-        }
+        if (!branchRes.ok || !deptRes.ok) throw new Error("Failed to fetch data");
+        const branchData = await branchRes.json();
+        const deptData = await deptRes.json();
         setBranches(branchData);
         setDepartments(deptData);
-
-        if (branchData.length) {
-          const baseBranch = (storedUser.branch || formData.branch || "").toLowerCase();
-          const matchedBranch = branchData.find(
-            (branch) => (branch.branch_name || "").toLowerCase() === baseBranch,
-          );
-          if (matchedBranch) {
-            setFormData((prev) => ({ ...prev, branch: matchedBranch.branch_name }));
-          }
-        }
-
-        if (deptData.length && storedUser.department) {
-          setFormData((prev) => ({ ...prev, department: storedUser.department }));
-        }
       } catch (error) {
-        console.error("Error loading payment request lookups:", error);
+        console.error("Error loading branch/department data:", error);
+        setModal({
+          isOpen: true,
+          type: "error",
+          message: "Unable to load branches and departments.",
+        });
       }
     };
-
-    loadLookups();
-
-    return () => {
-      isMounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storedUser.branch, storedUser.department]);
+    fetchData();
+  }, []);
 
   useEffect(() => {
-    if (!formData.branch) {
-      return;
+    if (formData.branch) {
+      const filtered = departments.filter(
+        (dept) => dept.branch_name === formData.branch
+      );
+      setFilteredDepartments(filtered);
+      setFormData((prev) => ({ ...prev, department: "" }));
+    } else {
+      setFilteredDepartments([]);
     }
-    const branchDepartments = availableDepartments;
-    if (
-      formData.department &&
-      branchDepartments.some((dept) => dept.department_name === formData.department)
-    ) {
-      return;
-    }
-    if (branchDepartments.length === 0) {
-      if (formData.department !== "") {
-        setFormData((prev) => ({ ...prev, department: "" }));
-      }
-      return;
-    }
-    const firstDepartment = branchDepartments[0]?.department_name || "";
-    if (firstDepartment === formData.department) {
-      return;
-    }
-    setFormData((prev) => ({
-      ...prev,
-      department: firstDepartment,
-    }));
-  }, [formData.branch, availableDepartments, formData.department]);
+  }, [formData.branch, departments]);
 
-  useEffect(() => {
-    let isMounted = true;
-    if (request) {
-      setNextReferenceCode(null);
-      return () => {
-        isMounted = false;
-      };
-    }
-
-    const fetchNextCode = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/payment_request/next-code`);
-        if (!res.ok) {
-          throw new Error("Failed to load next reference code.");
-        }
-        const data = await res.json();
-        if (isMounted) {
-          setNextReferenceCode(data.nextCode || null);
-        }
-      } catch (error) {
-        console.error("Error fetching next payment request code:", error);
-      }
-    };
-
-    fetchNextCode();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [request]);
-
-  const showMessage = (type, text) => {
-    setMessage({ type, text });
-    if (type !== "error") {
-      setTimeout(() => setMessage(null), 2500);
-    }
-  };
-
-  const handleFieldChange = (event) => {
+  const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleBranchChange = (event) => {
-    const value = event.target.value;
-    const branchRecord = branches.find((branch) => branch.branch_name === value);
-    const branchDepartments = branchRecord
-      ? departments.filter((dept) => {
-          if (dept.branch_id === null || dept.branch_id === undefined) {
-            return true;
-          }
-          return Number(dept.branch_id) === Number(branchRecord.id);
-        })
-      : [];
+  const handleItemChange = (index, event) => {
+    const { name, value } = event.target;
+
+    setItems((prev) => {
+      const next = [...prev];
+      const item = { ...next[index], [name]: value };
+
+      const quantity = parseFloat(item.quantity) || 0;
+      const unitPrice = parseFloat(item.unit_price) || 0;
+      item.amount = (quantity * unitPrice).toFixed(2);
+
+      next[index] = item;
+      return next;
+    });
+  };
+
+
+  const addItemRow = () => setItems((prev) => [...prev, emptyItem]);
+  const removeItemRow = (index) =>
+    setItems((prev) =>
+      prev.length === 1 ? [emptyItem] : prev.filter((_, i) => i !== index)
+    );
+
+  const sanitizedItems = useMemo(
+    () =>
+      items
+        .map((item) => ({
+          item: item.item,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          amount: item.amount,
+          expense_charges: item.expense_charges,
+          location: item.location || "",
+        }))
+        .filter((item) => item.item && item.amount),
+    [items]
+  );
+
+  const handleCutoffChange = (date) => {
+    if (!date) return;
+
+    const formattedDate = new Date(
+      date.getTime() - date.getTimezoneOffset() * 60000
+    ).toISOString().split("T")[0];
+
     setFormData((prev) => ({
       ...prev,
-      branch: value,
-      department: branchDepartments[0]?.department_name || "",
+      cutoff_date: formattedDate,
     }));
   };
 
-  const handleDepartmentChange = (event) => {
-    const value = event.target.value;
-    setFormData((prev) => ({ ...prev, department: value }));
+  const isValidCutoffDate = (date) => {
+    const day = date.getDate();
+    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    return day === 15 || day === lastDay;
   };
 
-  const updateItemValue = (index, field, value) => {
-    setItems((prev) =>
-      prev.map((item, idx) => {
-        if (idx !== index) {
-          return item;
-        }
-        const updated = { ...item, [field]: value };
-        if (field === "quantity" || field === "unit_price") {
-          const quantity = parseNumber(field === "quantity" ? value : updated.quantity);
-          const unitPrice = parseNumber(field === "unit_price" ? value : updated.unit_price);
-          const computed = quantity * unitPrice;
-          updated.amount = computed > 0 ? computed.toFixed(2) : "";
-        }
-        return updated;
-      }),
-    );
-  };
 
-  const addItemRow = () => {
-    setItems((prev) => [...prev, emptyItem()]);
-  };
 
-  const removeItemRow = (index) => {
-    setItems((prev) => {
-      if (prev.length === 1) {
-        return [emptyItem()];
-      }
-      return prev.filter((_, idx) => idx !== index);
-    });
-  };
+  const totalAmount = sanitizedItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
-  const syncStateFromResponse = (data) => {
-    setRequest(data);
-    setNextReferenceCode(null);
-    setFormData({
-      requester_name: data.requester_name || "",
-      branch: data.branch || "",
-      department: data.department || "",
-      employee_id: data.employee_id || "",
-      request_date: data.request_date ? data.request_date.slice(0, 10) : new Date().toISOString().split("T")[0],
-      vendor_name: data.vendor_name || "",
-      pr_number: data.pr_number || "",
-      date_needed: data.date_needed ? data.date_needed.slice(0, 10) : "",
-      purpose: data.purpose || "",
-    });
-    const normalizedItems =
-      Array.isArray(data.items) && data.items.length
-        ? data.items.map((item) => ({
-            description: item.description || "",
-            quantity:
-              item.quantity !== undefined && item.quantity !== null ? String(item.quantity) : "",
-            unit_price:
-              item.unit_price !== undefined && item.unit_price !== null
-                ? String(item.unit_price)
-                : "",
-            amount:
-              item.amount !== undefined && item.amount !== null ? String(item.amount) : "",
-            budget_code: item.budget_code || "",
-          }))
-        : [emptyItem()];
-    setItems(normalizedItems);
-  };
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-  const resetFormState = () => {
-    setRequest(null);
-    setFormData(createInitialFormState());
-    setItems([emptyItem()]);
-    setMessage(null);
-    setNextReferenceCode(null);
-  };
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-  const submitRequest = async () => {
-    if (!isUserAccount) {
-      return;
-    }
-    if (!formData.branch) {
-      showMessage("error", "Select the branch that owns this payment.");
-      return;
-    }
-    if (!formData.department && availableDepartments.length > 0) {
-      showMessage("error", "Select the corresponding department.");
-      return;
-    }
-    if (!formData.vendor_name.trim()) {
-      showMessage("error", "Vendor or supplier name is required.");
-      return;
-    }
-    if (!formData.purpose.trim()) {
-      showMessage("error", "Please describe the purpose for this payment.");
-      return;
+    if (sanitizedItems.length === 0) {
+      return setModal({
+        isOpen: true,
+        type: "error",
+        message: "Add at least one line item before submitting.",
+      });
     }
 
-    const cleanedItems = items
-      .map((item) => ({
-        description: item.description.trim(),
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        amount: item.amount,
-        budget_code: item.budget_code.trim(),
-      }))
-      .filter(
-        (item) =>
-          item.description ||
-          parseNumber(item.quantity) > 0 ||
-          parseNumber(item.unit_price) > 0 ||
-          parseNumber(item.amount) > 0 ||
-          item.budget_code,
-      );
+    let currentPRCode = formData.prf_request_code;
 
-    if (cleanedItems.length === 0) {
-      showMessage("error", "Add at least one line item with an amount.");
-      return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/payment_request/next-code`);
+      const data = await res.json();
+      if (data.nextCode) currentPRCode = data.nextCode;
+    } catch (error) {
+      return setModal({
+        isOpen: true,
+        type: "error",
+        message: "Unable to get the latest PR number.",
+      });
     }
-
-    if (!cleanedItems.some((item) => parseNumber(item.amount) > 0)) {
-      showMessage("error", "Line item amount must be greater than zero.");
-      return;
-    }
-
-    setIsSaving(true);
-
-    const payloadItems = cleanedItems.map((item) => {
-      const quantity = parseNumber(item.quantity);
-      const unitPrice = parseNumber(item.unit_price);
-      const computed = quantity * unitPrice;
-      return {
-        description: item.description,
-        quantity,
-        unit_price: unitPrice,
-        amount: computed > 0 ? computed : parseNumber(item.amount),
-        budget_code: item.budget_code,
-      };
-    });
 
     const payload = {
-      requester_name: formData.requester_name,
-      branch: formData.branch,
-      department: formData.department,
-      employee_id: formData.employee_id,
-      request_date: formData.request_date,
-      vendor_name: formData.vendor_name,
-      pr_number: formData.pr_number,
-      date_needed: formData.date_needed,
-      purpose: formData.purpose,
-      items: payloadItems,
-      submitted_by: storedUser.id || null,
+      ...formData,
+      prf_request_code: currentPRCode,
+      total_amount: totalAmount,
+      items: sanitizedItems,
     };
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/payment_request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to submit payment request.");
-      }
-      syncStateFromResponse(data);
-      showMessage("success", "Payment request submitted for approval.");
-    } catch (error) {
-      console.error("Error submitting payment request:", error);
-      showMessage("error", error.message || "Unable to submit payment request.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const res = await fetch(`${API_BASE_URL}/api/payment_request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 
-  const currentStatus = request?.status || "new";
-  const isReadOnly = Boolean(request);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to submit request");
+
+  setMessage({
+    type: "success",
+    text: `Payment Request ${currentPRCode} submitted successfully.`,
+  });
+
+  setTimeout(() => {
+    setMessage(null);
+    window.location.reload();
+  }, 2000);
+
+} catch (error) {
+  console.error("Error submitting purchase request", error);
+  setMessage({
+    type: "error",
+    text: error.message || "Unable to submit purchase request. Please try again.",
+  });
+
+  setTimeout(() => setMessage(null), 3000);
+}
+
+  };
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/forms/payment-request-form/submitted");
-      return;
-    }
-    setActiveSection(sectionId);
-    const target = document.getElementById(sectionId);
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      navigate("/submitted-cash-advance-budget-request"); 
+    } else {
+      setActiveSection(sectionId);
+      const element = document.getElementById(sectionId);
+      if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
+  if (loading)
+  return (
+    <div className="loading-container">
+      <div className="spinner"></div>
+      <span>Loading Payment Request Form…</span>
+    </div>
+  );
+
   return (
     <div className="pr-layout">
+
+      {message && (
+        <div className="message-modal-overlay">
+          <div className={`message-modal-content ${message.type}`}>
+            {message.text}
+          </div>
+        </div>
+      )}
+      
+      {modal.isOpen && (
+        <div className="pr-modal-overlay">
+          <div className={`pr-modal ${modal.type}`}>
+            <p>{modal.message}</p>
+            <button
+              onClick={() => {
+                setModal({ ...modal, isOpen: false });
+                if (modal.type === "success") {
+                  window.location.reload();
+                }
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2>Payment Request</h2>
-          <span>{currentStatus.toUpperCase()}</span>
+          <h2 
+            onClick={() => navigate("/forms-list")} 
+            style={{ cursor: "pointer", color: "#007bff" }}
+            title="Back to Forms Library"
+          >
+            Payment Request
+          </h2>
+          <span>Standardized form</span>
         </div>
+
         <nav className="pr-sidebar-nav">
-          {[
-            { id: "details", label: "Request details" },
-            { id: "vendor", label: "Vendor info" },
-            { id: "items", label: "Line items" },
-            { id: "purpose", label: "Purpose" },
-            { id: "submitted", label: "View submitted requests" },
-          ].map((section) => (
+          {NAV_SECTIONS.map((section) => (
             <button
               key={section.id}
               type="button"
-              className={activeSection === section.id ? "is-active" : ""}
+              className={section.id === "pr-main" ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}
             </button>
           ))}
         </nav>
+
         <div className="pr-sidebar-footer">
           <span className="pr-sidebar-meta">
             Remember to review line items before submitting.
           </span>
-          {onLogout && (
-            <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
-              Sign out
-            </button>
-          )}
+          <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
+            Sign out
+          </button>
         </div>
       </aside>
-      <main className="pr-main">
-        <button type="button" className="form-back-button" onClick={handleBackToForms}>
-          ← <span>Back to forms library</span>
-        </button>
+
+      <main className="pr-main" id="pr-main">
         <header className="pr-topbar">
           <div>
-            <h1 className="topbar-title">Request for Payment</h1>
+            <h1>New Payment Request</h1>
             <p className="pr-topbar-meta">
               Capture payable details and route for approval ahead of disbursement.
             </p>
           </div>
+
           <div className="pr-reference-card">
             <span className="pr-reference-label">Reference code</span>
             <span className="pr-reference-value">
-              {request?.form_code || nextReferenceCode || "Pending assignment"}
+              {formData.prf_request_code || "—"}
             </span>
             <span className="pr-reference-label">Request date</span>
             <span>
-              <input
-                type="date"
-                name="request_date"
-                value={formData.request_date}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
+              {new Date(formData.request_date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </span>
           </div>
         </header>
 
-        {message && (
-          <div className={`pay-alert pay-alert--${message.type}`}>
-            {message.text}
-          </div>
-        )}
+        <form onSubmit={handleSubmit}>
+          <section className="pr-form-section" id="details">
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="employeeID">
+                  Employee ID
+                </label>
+                <input
+                  id="employeeID"
+                  name="employee_id"
+                  value={userData.employee_id}
+                  className="pr-input"
+                  readOnly
+                  required
+                />
+              </div>
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="name">
+                  Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  value={userData.name}
+                  onChange={handleChange}
+                  className="pr-input"
+                  placeholder="Full name"
+                  readOnly
+                  required
+                />
+                <input
+                  type="hidden"
+                  id="requestById"
+                  name="user_id"
+                  value={formData.user_id} 
+                  className="pr-input"
+                  placeholder="User ID"
+                  readOnly
+                />
+              </div>
+            </div>
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="branch">Branch</label>
+                <select
+                  id="branch"
+                  name="branch"
+                  value={formData.branch}
+                  onChange={handleChange}
+                  className="pr-input"
+                  required
+                >
+                  <option value="" disabled>Select branch</option>
+                  {branches.map((b) => (
+                    <option key={b.branch_name} value={b.branch_name}>
+                      {b.branch_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-        <section className="pr-form-section" id="details">
-          <h2 className="pr-section-title">Requester details</h2>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="requester_name">Name</label>
-              <input
-                id="requester_name"
-                name="requester_name"
-                value={formData.requester_name}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="employee_id">Employee ID</label>
-              <input
-                id="employee_id"
-                name="employee_id"
-                value={formData.employee_id}
-                className="pr-input"
-                readOnly
-              />
-            </div>
-          </div>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="branch">Branch / Department</label>
-              <select
-                id="branch"
-                name="branch"
-                value={formData.branch}
-                onChange={handleBranchChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              >
-                <option value="">Select branch</option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.branch_name}>
-                    {branch.branch_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="department">Department</label>
-              {availableDepartments.length > 0 ? (
+
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="department">Department</label>
                 <select
                   id="department"
                   name="department"
                   value={formData.department}
-                  onChange={handleDepartmentChange}
+                  onChange={handleChange}
                   className="pr-input"
-                  disabled={isReadOnly}
+                  required
                 >
-                  <option value="">Select department</option>
-                  {availableDepartments.map((department) => (
-                    <option key={department.id} value={department.department_name}>
-                      {department.department_name}
+                  <option value="" disabled>Select department</option>
+                  {filteredDepartments.map((d) => (
+                    <option key={d.department_name} value={d.department_name}>
+                      {d.department_name}
                     </option>
                   ))}
                 </select>
-              ) : (
+              </div>
+
+            </div>
+          </section>
+
+          <section className="pr-form-section" id="vendor-supplier-information">
+            <h2 className="pr-section-title">Vendor / Supplier Information</h2>
+            {/* <p className="pr-section-subtitle">
+              Identify the payee and relevant references for this payment.
+            </p> */}
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="payee-name">Vendor/Supplier (Payee's Name)</label>
                 <input
-                  id="department"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleDepartmentChange}
+                  type="text"
+                  name="vendor_supplier"
+                  value={formData.vendor_supplier}
+                  onChange={handleChange}
                   className="pr-input"
-                  disabled={isReadOnly}
-                  placeholder="No departments configured"
+                  required
                 />
-              )}
-            </div>
-          </div>
-        </section>
+              </div>
 
-        <section className="pr-form-section" id="vendor">
-          <h2 className="pr-section-title">Vendor / supplier information</h2>
-          <p className="pr-section-subtitle">
-            Identify the payee and relevant references for this payment.
-          </p>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="vendor_name">Vendor / Supplier</label>
-              <input
-                id="vendor_name"
-                name="vendor_name"
-                value={formData.vendor_name}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="pr-number">PR Number (if applicable)</label>
+                <input
+                  type="text"
+                  name="pr_number"
+                  value={formData.pr_number}
+                  onChange={handleChange}
+                  className="pr-input"
+                  required
+                />
+              </div>
             </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="pr_number">PR number (if applicable)</label>
-              <input
-                id="pr_number"
-                name="pr_number"
-                value={formData.pr_number}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
+
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="date-needed">Date Needed</label>
+                <input
+                  type="date"
+                  name="date_needed"
+                  value={formData.date_needed}
+                  onChange={handleChange}
+                  className="pr-input"
+                  required
+                />
+              </div>
+
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="pr-number">Purpose</label>
+                <textarea
+                  id="purposeText"
+                  name="purpose"
+                  value={formData.purpose}
+                  onChange={handleChange}
+                  className="cabr-textarea"
+                  placeholder="Purpose of the payment request"
+                  rows={1}
+                  required
+                />
+              </div>
             </div>
-          </div>
-          <div className="pr-field">
-            <label className="pr-label" htmlFor="date_needed">Date needed</label>
-            <input
-              type="date"
-              id="date_needed"
-              name="date_needed"
-              value={formData.date_needed}
-              onChange={handleFieldChange}
-              className="pr-input"
-              disabled={isReadOnly}
-            />
-          </div>
-        </section>
+          </section>
 
-        <section className="pr-form-section" id="purpose">
-          <h2 className="pr-section-title">Purpose</h2>
-          <p className="pr-section-subtitle">
-            Describe what this payment covers.
-          </p>
-          <div className="pr-field">
-            <textarea
-              id="purpose"
-              name="purpose"
-              value={formData.purpose}
-              onChange={handleFieldChange}
-              className="pr-textarea"
-              rows={4}
-              disabled={isReadOnly}
-            />
-          </div>
-        </section>
-
-        <section className="pr-items-card" id="items">
-          <div className="pr-items-header">
-            <div>
-              <h2 className="pr-items-title">Payment breakdown</h2>
+          <section className="pr-items-card" id="items">
+            <div className="pr-items-header">
               <p className="pr-section-subtitle">
-                Itemize the payable with quantities, pricing, and budget source codes.
               </p>
+              <button type="button" className="pr-items-add" onClick={addItemRow}>
+                Add item
+              </button>
             </div>
-            <button
-              type="button"
-              className="pr-items-add"
-              onClick={addItemRow}
-              disabled={isReadOnly}
-            >
-              Add line item
-            </button>
-          </div>
-          <div className="pay-items-wrapper">
-            <table className="pr-items-table">
-              <thead>
-                <tr>
-                  <th>Description</th>
-                  <th>Qty</th>
-                  <th>Unit price</th>
-                  <th>Amount</th>
-                  <th>Budget source / code</th>
-                  {!isReadOnly && <th>Action</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <tr key={index}>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.description}
-                        onChange={(event) =>
-                          updateItemValue(index, "description", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.quantity}
-                        onChange={(event) =>
-                          updateItemValue(index, "quantity", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.unit_price}
-                        onChange={(event) =>
-                          updateItemValue(index, "unit_price", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        value={item.amount ? formatAmount(item.amount) : ""}
-                        readOnly
-                        className="pr-input"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={item.budget_code}
-                        onChange={(event) =>
-                          updateItemValue(index, "budget_code", event.target.value)
-                        }
-                        className="pr-input"
-                        disabled={isReadOnly}
-                      />
-                    </td>
-                    {!isReadOnly && (
-                      <td>
-                        <button
-                          type="button"
-                          className="pr-table-action"
-                          onClick={() => removeItemRow(index)}
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={3} style={{ textAlign: "right", fontWeight: 600 }}>
-                    TOTAL
-                  </td>
-                  <td style={{ fontWeight: 600 }}>
-                    {"\u20B1"} {totalAmount.toFixed(2)}
-                  </td>
-                  <td colSpan={isReadOnly ? 1 : 2} />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-          <div className="pay-total-card">
-            <span className="pay-total-label">Grand total</span>
-            <span className="pay-total-amount">{"\u20B1"} {totalAmount.toFixed(2)}</span>
-          </div>
-        </section>
 
-        <div className="pr-form-actions">
-          <button
-            type="button"
-            className="pr-submit"
-            onClick={submitRequest}
-            disabled={isSaving || isReadOnly || !isUserAccount}
-          >
-            Submit for approval
-          </button>
-          {request && (
-            <button
-              type="button"
-              className="pr-sidebar-logout"
-              onClick={resetFormState}
-              disabled={isSaving}
-            >
-              Start new request
+            <div className="table-wrapper">
+              <table className="pr-items-table">
+                <thead>
+                  <tr>
+                    <th className="text-center">Item</th>
+                    <th className="text-center">Quantity</th>
+                    <th className="text-center">Unit Price</th>
+                    <th className="text-center">Amount</th>
+                    <th className="text-center">Expense Charges</th>
+                    <th className="text-center">Location (Store/Branch)</th>
+                    <th className="text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="pr-items-empty">
+                        No items yet. Add an item to get started.
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map((item, index) => (
+                      <tr key={index}>
+                        <td>
+                          <input
+                            type="text"
+                            name="item"
+                            value={item.item}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            required
+                          />
+                        </td>
+                        
+                        <td>
+                          <input
+                            type="number"
+                            name="quantity"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            name="unit_price"
+                            min="1"
+                            value={item.unit_price}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="1"
+                            name="amount"
+                            value={item.amount}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            name="expense_charges"
+                            value={item.expense_charges}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            name="location"
+                            value={item.location}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="pr-table-action"
+                            onClick={() => removeItemRow(index)}
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                  <tr className="rfr-items-total">
+                    <td colSpan={3}>
+                      Total:
+                    </td>
+                    <td><input type="text" name="total_amount" className="rfr-input-total" value={items
+                        .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+                        .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} readOnly />
+                    </td>
+                    <td colSpan={4}></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="rfr-form-section" id="signature">
+              <h2 className="rfr-section-title">Signature Details</h2>
+
+              <div className="signature-details">
+                <label htmlFor="requested_by">
+                  <input
+                    type="text"
+                    name="requested_by"
+                    value={formData.requested_by || userData.name || ""}
+                    onChange={handleChange}
+                  />
+                  <p>Requested by:</p>
+                </label>
+                <label htmlFor="submitted-signature" class="signature-by">
+                  {userData.signature ? (
+                    <img
+                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                      alt="Signature"
+                      className="signature-img"
+                    />
+                  ) : (
+                    <p>No signature available</p>
+                  )}
+                  <input
+                    type="text"
+                    name="requested_signature"
+                    value={formData.requested_signature || userData.signature || ""}
+                    onChange={handleChange}
+                    readOnly
+                  />
+                  <p>Signature:</p>
+
+                </label>
+              </div>
+          </section>
+
+          <div className="pr-form-actions">
+            <button type="submit" className="pr-submit" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit Payment Request"}
             </button>
-          )}
-        </div>
+          </div>
+        </form>
       </main>
     </div>
   );
 }
 
-export default PaymentRequest;
+export default PurchaseRequest;

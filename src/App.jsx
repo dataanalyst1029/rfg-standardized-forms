@@ -19,6 +19,7 @@ import RevolvingFund from "./forms/RevolvingFund";
 import CashAdvanceRequest from "./forms/CashAdvanceRequest";
 import CashAdvanceLiquidation from "./forms/CashAdvanceLiquidation";
 import CAReceipt from "./forms/CAReceipt";
+import Reimbursement from "./forms/Reimbursement";
 import PaymentRequest from "./forms/PaymentRequest";
 import MaintenanceRepair from "./forms/MaintenanceRepair";
 import OvertimeApproval from "./forms/OvertimeApproval";
@@ -163,10 +164,23 @@ function App() {
         />
 
         <Route
+          path="/forms/reimbursement-form"
+          element={
+            user &&
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
+              <Reimbursement onLogout={handleLogout} currentUserId={user.id} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
           path="/forms/payment-request-form"
           element={
-            user && user.role === "user" ? (
-              <PaymentRequest onLogout={handleLogout} />
+            user &&
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
+              <PaymentRequest onLogout={handleLogout} currentUserId={user.id} />
             ) : (
               <Navigate to="/" replace />
             )
@@ -210,6 +224,9 @@ function App() {
             )
           }
         />
+
+{/* ---------------------------------------------------------------------------------------------------------------------------- */}
+        {/* SUBMITTED FORMS */}
 
         <Route
           path="/forms/submitted-purchase-requests"

@@ -10,6 +10,7 @@ import RequestPurchase from "./RequestPurchase.jsx";
 import RequestRevolvingFund from "./RequestRevolvingFund";
 import RequestCashAdvance from "./RequestCashAdvance";
 import RequestCashAdvanceLiquidation from "./RequestCashAdvanceLiquidation";
+import RequestReimbursement from "./RequestReimbursement";
 import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
 import { useNavigate } from "react-router-dom";
@@ -147,6 +148,10 @@ const getInitialView = () => {
       ...navigationItems.map((item) => item.id),
       "purchase-request",
       "revolving-fund-request",
+      "cash-advance-budget-request",
+      "cash-advance-liquidation",
+      "reimbursement",
+      "approved-requests",
       "profile"
     ];
     if (validIds.includes(stored)) {
@@ -235,6 +240,13 @@ function renderActiveView(view) {
       return (
         <div className="dashboard-content dashboard-content--flush">
           <RequestCashAdvanceLiquidation />
+        </div>
+      );
+
+    case "reimbursement":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <RequestReimbursement />
         </div>
       );
 
@@ -370,6 +382,7 @@ function Dashboard({ role, name, onLogout }) {
           "revolving-fund-request",
           "cash-advance-budget-request",
           "cash-advance-liquidation",
+          "reimbursement",
           "approved-requests",
         ].includes(stored)
       ) {
@@ -503,7 +516,7 @@ function Dashboard({ role, name, onLogout }) {
                                 Cash Advance Liquidation
                               </button>
                             )}
-                            {userAccess.includes("CA Receipt Form") && (
+                            {/* {userAccess.includes("CA Receipt Form") && (
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
@@ -513,14 +526,14 @@ function Dashboard({ role, name, onLogout }) {
                               >
                                 CA Receipt Form
                               </button>
-                            )}
+                            )} */}
                             {userAccess.includes("Reimbursement Form") && (
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
-                                  activeView === "purchase-request" ? " underline-active" : ""
+                                  activeView === "reimbursement" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("purchase-request")}
+                                onClick={() => setActiveView("reimbursement")}
                               >
                                 Reimbursement Form
                               </button>

@@ -1562,6 +1562,10 @@ app.put("/api/update_cash_advance_liquidation", uploadForm.none(), async (req, r
   }
 });
 
+/* ------------------------
+   CASH ADVANCE RECEIPT API
+------------------------ */
+
 app.get("/api/ca_receipt/next-code", async (req, res) => {
   try {
     const year = new Date().getFullYear();
@@ -1635,12 +1639,9 @@ app.post("/api/ca_receipt", async (req, res) => {
         php_word, 
         received_by, 
         received_signature, 
-        user_id,
-        status,
-        created_at,
-        updated_at
+        user_id
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'Pending',NOW(),NOW())`,
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
       [
         car_request_code,
         request_date || new Date(),
@@ -1671,6 +1672,431 @@ app.post("/api/ca_receipt", async (req, res) => {
   }
 });
 
+
+
+/* ------------------------
+   REIMBURSEMENT API
+------------------------ */
+
+app.get("/api/cash_advance_liquidation/:code", async (req, res) => {
+  try {
+    const { code } = req.params;
+    const result = await pool.query(
+      `SELECT *
+       FROM cash_advance_liquidation 
+       WHERE cal_request_code = $1 
+       LIMIT 1`,
+      [code]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Cash advance liquidation not found" });
+    }
+
+    const data = result.rows[0];
+
+    const formatDate = (d) => {
+      if (!d) return null;
+      const dateObj = new Date(d);
+      return new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000)
+        .toISOString()
+        .split("T")[0];
+    };
+
+    res.json({
+      cal_request_code: data.cal_request_code,
+      cash_advance_no: data.cash_advance_no,
+      employee_id: data.employee_id,
+      name: data.name,
+      branch: data.branch,
+      department: data.department,
+      rb_amount: data.rb_amount,
+      received_by: data.received_by,
+    });
+  } catch (err) {
+    console.error("Error fetching cash advance details:", err);
+    res.status(500).json({ error: "Server error fetching cash advance details" });
+  }
+});
+
+app.get("/api/reimbursement/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const result = await pool.query(
+      `SELECT rb_request_code
+       FROM reimbursement
+       WHERE rb_request_code LIKE $1
+       ORDER BY rb_request_code DESC
+       LIMIT 1`,
+      [`RB-${year}-%`]
+    );
+
+    let nextCode;
+    if (result.rows.length > 0) {
+      const lastCode = result.rows[0].rb_request_code;
+      const lastNum = parseInt(lastCode.split("-")[2], 10);
+      const nextNum = String(lastNum + 1).padStart(6, "0");
+      nextCode = `RB-${year}-${nextNum}`;
+    } else {
+      nextCode = `RB-${year}-000001`;
+    }
+
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("❌ Error generating next CA receipt code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+
+app.post("/api/reimbursement", async (req, res) => {
+  const {
+    rb_request_code,
+    request_date,
+    cal_no,
+    ca_no,
+    employee_id,
+    name,
+    branch,
+    department,
+    bpi_acc_no,
+    total_rb_amount,
+    requested_by,
+    request_signature,
+    user_id,
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const existing = await client.query(
+      "SELECT id FROM reimbursement WHERE rb_request_code = $1",
+      [rb_request_code]
+    );
+    if (existing.rows.length > 0) {
+      await client.query("ROLLBACK");
+      return res
+        .status(400)
+        .json({ message: `CA Receipt ${rb_request_code} already exists.` });
+    }
+
+    await client.query(
+      `INSERT INTO reimbursement (
+        rb_request_code, 
+        request_date, 
+        cal_no, 
+        ca_no, 
+        employee_id, 
+        name, 
+        branch, 
+        department, 
+        bpi_acc_no,
+        total_rb_amount,
+        requested_by, 
+        request_signature, 
+        user_id
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+      [
+        rb_request_code,
+        request_date || new Date(),
+        cal_no,
+        ca_no,
+        employee_id,
+        name,
+        branch,
+        department,
+        bpi_acc_no,
+        total_rb_amount,
+        requested_by,
+        request_signature,
+        user_id,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: `✅ Reimbursement ${rb_request_code} saved successfully!`,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("❌ Error saving reimbursement:", err);
+    res.status(500).json({ message: "Server error saving reimbursement" });
+  } finally {
+    client.release();
+  }
+});
+
+
+/* ------------------------
+   UPDATE REIMBURSEMENT
+------------------------ */
+app.put("/api/update_reimbursement", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      rb_request_code,
+      approved_by,
+      approve_signature,
+      status,
+      declined_reason,
+    } = req.body;
+
+    if (!rb_request_code) {
+      return res.status(400).json({ message: "rb_request_code is required." });
+    }
+
+    let query = `
+      UPDATE reimbursement
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Approved") {
+      query += `,
+        approved_by = $${paramIndex++},
+        approve_signature = $${paramIndex++}
+      `;
+      values.push(approved_by, approve_signature);
+    }
+
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE rb_request_code = $${paramIndex} RETURNING *`;
+    values.push(rb_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Reimbursement not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Reimbursement updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating reimbursement:", err);
+    res.status(500).json({ message: "Server error updating reimbursement." });
+  }
+});
+
+app.get("/api/reimbursement", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * 
+       FROM reimbursement 
+       WHERE status = 'Pending'
+       ORDER BY request_date DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching reimbursements:", err);
+    res.status(500).json({ message: "Server error fetching reimbursements" });
+  }
+});
+
+
+
+/* ------------------------
+   PAYMENT REQUEST API
+------------------------ */
+
+app.get("/api/payment_request/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const result = await pool.query(
+      `SELECT prf_request_code 
+       FROM payment_request 
+       WHERE prf_request_code LIKE $1 
+       ORDER BY prf_request_code DESC 
+       LIMIT 1`,
+      [`PRF-${year}-%`]
+    );
+
+    let nextCode;
+    if (result.rows.length > 0) {
+      const lastCode = result.rows[0].prf_request_code;
+      const lastNum = parseInt(lastCode.split("-")[2]);
+      const nextNum = String(lastNum + 1).padStart(6, "0");
+      nextCode = `PRF-${year}-${nextNum}`;
+    } else {
+      nextCode = `PRF-${year}-000001`;
+    }
+
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("❌ Error generating next payment request code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+app.post("/api/payment_request", async (req, res) => {
+  const {
+    prf_request_code,
+    request_date,
+    employee_id,
+    name,
+    branch,
+    department,
+    vendor_supplier,
+    pr_number,
+    date_needed,
+    purpose,
+    total_amount,
+    requested_by,
+    requested_signature,
+    user_id,
+    items = [],
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const safeTotalAmount =
+      total_amount === "" || total_amount === undefined || total_amount === null
+        ? null
+        : Number(total_amount);
+
+    const result = await client.query(
+      `INSERT INTO payment_request
+      (prf_request_code, request_date, employee_id, name, branch, department, vendor_supplier, pr_number, date_needed, purpose, total_amount, requested_by, requested_signature, user_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      RETURNING id`,
+      [
+        prf_request_code,
+        request_date || new Date(),
+        employee_id,
+        name,
+        branch,
+        department,
+        vendor_supplier,
+        pr_number,
+        date_needed === "" ? null : date_needed,
+        purpose,
+        safeTotalAmount,
+        requested_by,
+        requested_signature,
+        user_id,
+      ]
+    );
+
+    const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);
+    if (!requestId) throw new Error("Failed to get payment request ID");
+
+
+    if (items.length > 0) {
+      const values = [];
+      const placeholders = [];
+
+      items.forEach((item, i) => {
+        const base = i * 7;
+        placeholders.push(
+          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7})`
+        );
+        values.push(
+          requestId,
+          item.item || null,
+          item.quantity || null,
+          item.unit_price || null,
+          item.amount || null,
+          item.expense_charges || null,
+          item.location || null,
+          // item.remarks?.trim() || null
+        );
+      });
+
+      await client.query(
+        `INSERT INTO payment_request_item
+        (request_id, item, quantity, unit_price, amount, expense_charges, location)
+        VALUES ${placeholders.join(", ")}`,
+        values
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: `Payment Request ${prf_request_code} saved successfully!`,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("❌ Error saving payment request:", err);
+    res.status(500).json({ message: "Server error saving payment request" });
+  } finally {
+    client.release();
+  }
+});
+
+
+
+app.get("/api/payment_request", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT pr.*,
+        json_agg(
+          json_build_object(
+            'id', pri.id, 
+            'item', pri.item, 
+            'quantity', pri.quantity, 
+            'unit_price', pri.unit_price,
+            'amount', pri.amount, 
+            'expense_charges', pri.expense_charges, 
+            'location', pri.location, 
+          )
+        ) AS items
+      FROM payment_request pr
+      LEFT JOIN payment_request_item pri ON pr.id = pri.request_id
+      GROUP BY pr.id
+      ORDER BY pr.created_at DESC;
+
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching payment requests:", err);
+    res.status(500).json({ message: "Server error fetching payment requests" });
+  }
+});
+
+app.get("/api/payment_request_item", async (req, res) => {
+  const { request_id } = req.query;
+
+  try {
+    let query = `
+      SELECT id, request_id, item, quantity, unit_price, amount, expense_charges, location
+      FROM payment_request_item
+    `;
+    const params = [];
+
+    if (request_id) {
+      query += " WHERE request_id = $1";
+      params.push(request_id);
+    }
+
+    query += " ORDER BY id ASC";
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching payment request items:", err);
+    res.status(500).json({ message: "Server error fetching payment request items" });
+  }
+});
 
 /* ------------------------
    BRANCHES CRUD API
