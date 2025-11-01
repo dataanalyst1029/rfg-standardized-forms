@@ -2056,7 +2056,7 @@ app.get("/api/payment_request", async (req, res) => {
             'unit_price', pri.unit_price,
             'amount', pri.amount, 
             'expense_charges', pri.expense_charges, 
-            'location', pri.location, 
+            'location', pri.location
           )
         ) AS items
       FROM payment_request pr
@@ -2094,6 +2094,68 @@ app.get("/api/payment_request_item", async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching payment request items:", err);
     res.status(500).json({ message: "Server error fetching payment request items" });
+  }
+});
+
+
+/* ------------------------
+   UPDATE PAYMENT REQUEST
+------------------------ */
+app.put("/api/update_payment_request", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      prf_request_code,
+      approved_by,
+      approved_signature,
+      status,
+      declined_reason,
+    } = req.body;
+
+    if (!prf_request_code) {
+      return res.status(400).json({ message: "prf_request_code is required." });
+    }
+
+    let query = `
+      UPDATE payment_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Approved") {
+      query += `,
+        approved_by = $${paramIndex++},
+        approved_signature = $${paramIndex++}
+      `;
+      values.push(approved_by, approved_signature);
+    }
+
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE prf_request_code = $${paramIndex} RETURNING *`;
+    values.push(prf_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Payment request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Payment request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating payment request:", err);
+    res.status(500).json({ message: "Server error updating payment request." });
   }
 });
 
@@ -2244,659 +2306,11 @@ app.delete("/api/departments/:id", async (req, res) => {
 });
 
 /* ------------------------
-   PAYMENT REQUEST API
------------------------- */
-const parseAmount = (value) => {
-  if (value === null || value === undefined || value === "") {
-    return 0;
-  }
-  const parsed = Number(value);
-  return Number.isNaN(parsed) ? 0 : parsed;
-};
-
-app.get("/api/payment_request/next-code", async (req, res) => {
-  try {
-    const nextCode = await getNextPaymentRequestCode();
-    res.json({ nextCode });
-  } catch (err) {
-    console.error("Error generating next payment request code:", err);
-    res.status(500).json({ message: "Server error generating next code" });
-  }
-});
-
-const buildPaymentRequestResponse = async (requests) => {
-  if (!requests.length) {
-    return [];
-  }
-
-  const ids = requests.map((req) => req.id);
-  const { rows: items } = await pool.query(
-    `SELECT *
-       FROM payment_request_items
-      WHERE request_id = ANY($1)
-      ORDER BY created_at ASC`,
-    [ids],
-  );
-
-  const itemsMap = items.reduce((acc, item) => {
-    if (!acc[item.request_id]) {
-      acc[item.request_id] = [];
-    }
-    acc[item.request_id].push(item);
-    return acc;
-  }, {});
-
-  return requests.map((request) => ({
-    ...request,
-    items: itemsMap[request.id] || [],
-  }));
-};
-
-app.get("/api/payment_request", async (req, res) => {
-  const { role, userId, status } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  try {
-    const clauses = [];
-    const params = [];
-
-    if (status) {
-      params.push(status);
-      clauses.push(`status = $${params.length}`);
-    }
-
-    if (normalizedRole === "user") {
-      if (!userId) {
-        return res.status(400).json({ message: "userId is required for user-level requests" });
-      }
-      params.push(Number(userId));
-      clauses.push(`submitted_by = $${params.length}`);
-    }
-
-    const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-    const { rows } = await pool.query(
-      `SELECT *
-         FROM payment_requests
-        ${whereClause}
-        ORDER BY created_at DESC`,
-      params,
-    );
-
-    const response = await buildPaymentRequestResponse(rows);
-    res.json(response);
-  } catch (err) {
-    console.error("Error fetching payment requests:", err);
-    res.status(500).json({ message: "Server error fetching payment requests" });
-  }
-});
-
-app.get("/api/payment_request/:id", async (req, res) => {
-  const { id } = req.params;
-  const { role, userId } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  try {
-    const request = await fetchPaymentRequestById(id);
-    if (!request) {
-      return res.status(404).json({ message: "Payment request not found" });
-    }
-
-    if (normalizedRole === "user" && Number(request.submitted_by) !== Number(userId)) {
-      return res.status(403).json({ message: "You do not have access to this record" });
-    }
-
-    res.json(request);
-  } catch (err) {
-    console.error("Error fetching payment request:", err);
-    res.status(500).json({ message: "Server error fetching payment request" });
-  }
-});
-
-app.post("/api/payment_request", async (req, res) => {
-  const {
-    requester_name,
-    branch,
-    department,
-    employee_id,
-    request_date,
-    vendor_name,
-    pr_number,
-    date_needed,
-    purpose,
-    items = [],
-    submitted_by,
-  } = req.body;
-
-  const status = "submitted";
-  const requestDateValue = request_date ? new Date(request_date) : new Date();
-  const dateNeededValue = date_needed ? new Date(date_needed) : null;
-  const submittedAt = new Date();
-
-  const computeItemAmount = (item) => {
-    const quantity = parseAmount(item.quantity);
-    const unitPrice = parseAmount(item.unit_price);
-    const amount = parseAmount(item.amount);
-    const derived = quantity * unitPrice;
-    return derived > 0 ? derived : amount;
-  };
-
-  const totalAmount = items.reduce((acc, curr) => acc + computeItemAmount(curr), 0);
-
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
-    const formCode = await getNextPaymentRequestCode();
-    const insertRequest = await client.query(
-      `INSERT INTO payment_requests
-        (form_code, status, requester_name, branch, department, employee_id, request_date,
-         vendor_name, pr_number, date_needed, purpose, total_amount, submitted_by, submitted_at,
-         created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW(),NOW())
-       RETURNING *`,
-      [
-        formCode,
-        status,
-        requester_name || null,
-        branch || null,
-        department || null,
-        employee_id || null,
-        requestDateValue,
-        vendor_name || null,
-        pr_number || null,
-        dateNeededValue,
-        purpose || null,
-        totalAmount,
-        submitted_by || null,
-        submittedAt,
-      ],
-    );
-
-    const requestId = insertRequest.rows[0].id;
-    const savedItems = [];
-
-    for (const item of items) {
-      const quantity = parseAmount(item.quantity);
-      const unitPrice = parseAmount(item.unit_price);
-      const amountValue = computeItemAmount(item);
-      const { rows: itemRows } = await client.query(
-        `INSERT INTO payment_request_items
-          (request_id, description, quantity, unit_price, amount, budget_code)
-         VALUES ($1,$2,$3,$4,$5,$6)
-         RETURNING *`,
-        [
-          requestId,
-          item.description || null,
-          quantity,
-          unitPrice,
-          amountValue,
-          item.budget_code || null,
-        ],
-      );
-      savedItems.push(itemRows[0]);
-    }
-
-    await client.query("COMMIT");
-    res.status(201).json({ ...insertRequest.rows[0], items: savedItems });
-  } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("Error creating payment request:", err);
-    res.status(500).json({ message: err?.message || "Server error creating payment request" });
-  } finally {
-    client.release();
-  }
-});
-
-app.patch("/api/payment_request/:id/approve", async (req, res) => {
-  const { id } = req.params;
-  const { approved_by } = req.body;
-
-  try {
-    const request = await fetchPaymentRequestById(id);
-    if (!request) {
-      return res.status(404).json({ message: "Payment request not found" });
-    }
-
-    if (request.status !== "submitted") {
-      return res.status(409).json({ message: "Only submitted requests can be approved" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE payment_requests
-          SET status = 'approved',
-              approved_by = $1,
-              approved_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $2
-        RETURNING *`,
-      [approved_by || null, id],
-    );
-
-    const response = await fetchPaymentRequestById(rows[0].id);
-    res.json(response);
-  } catch (err) {
-    console.error("Error approving payment request:", err);
-    res.status(500).json({ message: "Server error approving payment request" });
-  }
-});
-
-app.patch("/api/payment_request/:id/release", async (req, res) => {
-  const { id } = req.params;
-  const {
-    accounting_gl_code,
-    accounting_amount,
-    accounting_or_number,
-    accounting_check_number,
-    received_by,
-    released_by,
-  } = req.body;
-
-  try {
-    const request = await fetchPaymentRequestById(id);
-    if (!request) {
-      return res.status(404).json({ message: "Payment request not found" });
-    }
-
-    if (request.status !== "approved") {
-      return res.status(409).json({ message: "Only approved requests can be released" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE payment_requests
-          SET status = 'released',
-              accounting_gl_code = $1,
-              accounting_amount = $2,
-              accounting_or_number = $3,
-              accounting_check_number = $4,
-              received_by = $5,
-              received_at = NOW(),
-              released_by = $6,
-              released_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $7
-        RETURNING *`,
-      [
-        accounting_gl_code || null,
-        accounting_amount !== undefined && accounting_amount !== null
-          ? parseAmount(accounting_amount)
-          : null,
-        accounting_or_number || null,
-        accounting_check_number || null,
-        received_by || null,
-        released_by || null,
-        id,
-      ],
-    );
-
-    const response = await fetchPaymentRequestById(rows[0].id);
-    res.json(response);
-  } catch (err) {
-    console.error("Error releasing payment request:", err);
-    res.status(500).json({ message: "Server error releasing payment request" });
-  }
-});
-
-/* ------------------------
    START SERVER
 ------------------------ */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
-
-
-/* ------------------------
-   CASH ADVANCE API
------------------------- */
-app.get("/api/cash_advance", async (req, res) => {
-  const { role, userId, status } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  try {
-    const clauses = [];
-    const params = [];
-
-    if (status) {
-      params.push(status);
-      clauses.push(`status = $${params.length}`);
-    }
-
-    if (normalizedRole === "user") {
-      if (!userId) {
-        return res.status(400).json({ message: "userId is required for user-level requests" });
-      }
-      params.push(Number(userId));
-      clauses.push(`submitted_by = $${params.length}`);
-    }
-
-    const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-    const { rows } = await pool.query(
-      `SELECT *
-         FROM cash_advance_requests
-        ${whereClause}
-        ORDER BY created_at DESC`,
-      params,
-    );
-
-    const ids = rows.map((row) => row.id);
-    let itemsByRequest = {};
-    if (ids.length) {
-      const { rows: itemRows } = await pool.query(
-        `SELECT *
-           FROM cash_advance_items
-          WHERE request_id = ANY($1)
-          ORDER BY created_at ASC`,
-        [ids],
-      );
-
-      itemsByRequest = itemRows.reduce((acc, item) => {
-        if (!acc[item.request_id]) {
-          acc[item.request_id] = [];
-        }
-        acc[item.request_id].push(item);
-        return acc;
-      }, {});
-    }
-
-    const response = rows.map((row) => ({
-      ...row,
-      items: itemsByRequest[row.id] || [],
-    }));
-
-    res.json(response);
-  } catch (err) {
-    console.error("Error fetching cash advance requests:", err);
-    res.status(500).json({ message: "Server error fetching cash advance requests" });
-  }
-});
-
-app.get("/api/cash_advance/:id", async (req, res) => {
-  const { id } = req.params;
-  const { role, userId } = req.query;
-  const normalizedRole = normalizeRole(role);
-
-  try {
-    const request = await fetchCashAdvanceById(id);
-
-    if (!request) {
-      return res.status(404).json({ message: "Cash advance request not found" });
-    }
-
-    if (normalizedRole === "user" && Number(request.submitted_by) !== Number(userId)) {
-      return res.status(403).json({ message: "You do not have access to this record" });
-    }
-
-    res.json(request);
-  } catch (err) {
-    console.error("Error fetching cash advance request:", err);
-    res.status(500).json({ message: "Server error fetching cash advance request" });
-  }
-});
-
-app.post("/api/cash_advance", async (req, res) => {
-  const {
-    custodian_name,
-    branch,
-    department,
-    employee_id,
-    request_date,
-    cut_off_date,
-    signature,
-    nature_of_activity,
-    inclusive_dates,
-    purpose,
-    items = [],
-    submitted_by,
-  } = req.body;
-
-  const status = "submitted";
-  const requestDateValue = request_date ? new Date(request_date) : new Date();
-  const cutOffDateValue = cut_off_date ? new Date(cut_off_date) : null;
-  const totalAmount = items.reduce((acc, curr) => acc + parseAmount(curr.amount), 0);
-  const submittedAt = new Date();
-
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
-    const formCode = await getNextCashAdvanceCode();
-    const insertRequest = await client.query(
-      `INSERT INTO cash_advance_requests
-        (form_code, status, custodian_name, branch, department, employee_id, request_date, cut_off_date,
-         signature, nature_of_activity, inclusive_dates, purpose, total_amount, submitted_by, submitted_at,
-         created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW(),NOW())
-       RETURNING *`,
-      [
-        formCode,
-        status,
-        custodian_name || null,
-        branch || null,
-        department || null,
-        employee_id || null,
-        requestDateValue,
-        cutOffDateValue,
-        signature || null,
-        nature_of_activity || null,
-        inclusive_dates || null,
-        purpose || null,
-        totalAmount,
-        submitted_by || null,
-        submittedAt,
-      ],
-    );
-
-    const requestId = insertRequest.rows[0].id;
-    const savedItems = [];
-
-    for (const item of items) {
-      const { rows: itemInsertRows } = await client.query(
-        `INSERT INTO cash_advance_items
-          (request_id, description, amount, budget_account, remarks)
-         VALUES ($1,$2,$3,$4,$5)
-         RETURNING *`,
-        [
-          requestId,
-          item.description || null,
-          parseAmount(item.amount),
-          item.budget_account || null,
-          item.remarks || null,
-        ],
-      );
-      savedItems.push(itemInsertRows[0]);
-    }
-
-    await client.query("COMMIT");
-    res.status(201).json({ ...insertRequest.rows[0], items: savedItems });
-  } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("Error creating cash advance request:", err);
-    res.status(500).json({ message: err?.message || "Server error creating cash advance request" });
-  } finally {
-    client.release();
-  }
-});
-
-app.put("/api/cash_advance/:id", async (req, res) => {
-  const { id } = req.params;
-  const {
-    custodian_name,
-    branch,
-    department,
-    employee_id,
-    request_date,
-    cut_off_date,
-    signature,
-    nature_of_activity,
-    inclusive_dates,
-    purpose,
-    items = [],
-  } = req.body;
-
-  const requestDateValue = request_date ? new Date(request_date) : new Date();
-  const cutOffDateValue = cut_off_date ? new Date(cut_off_date) : null;
-  const totalAmount = items.reduce((acc, curr) => acc + parseAmount(curr.amount), 0);
-
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
-    const existing = await client.query(
-      `SELECT *
-         FROM cash_advance_requests
-        WHERE id = $1`,
-      [id],
-    );
-
-    if (existing.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Cash advance request not found" });
-    }
-
-    const currentStatus = existing.rows[0].status;
-    if (currentStatus !== "submitted" && currentStatus !== "draft" && currentStatus !== "rejected") {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ message: "Only draft, submitted, or rejected requests can be edited" });
-    }
-
-    const updatedRequest = await client.query(
-      `UPDATE cash_advance_requests
-          SET custodian_name = $1,
-              branch = $2,
-              department = $3,
-              employee_id = $4,
-              request_date = $5,
-              cut_off_date = $6,
-              signature = $7,
-              nature_of_activity = $8,
-              inclusive_dates = $9,
-              purpose = $10,
-              total_amount = $11,
-              updated_at = NOW()
-        WHERE id = $12
-        RETURNING *`,
-      [
-        custodian_name || null,
-        branch || null,
-        department || null,
-        employee_id || null,
-        requestDateValue,
-        cutOffDateValue,
-        signature || null,
-        nature_of_activity || null,
-        inclusive_dates || null,
-        purpose || null,
-        totalAmount,
-        id,
-      ],
-    );
-
-    await client.query("DELETE FROM cash_advance_items WHERE request_id = $1", [id]);
-    const savedItems = [];
-
-    for (const item of items) {
-      const { rows: itemInsertRows } = await client.query(
-        `INSERT INTO cash_advance_items
-          (request_id, description, amount, budget_account, remarks)
-         VALUES ($1,$2,$3,$4,$5)
-         RETURNING *`,
-        [
-          id,
-          item.description || null,
-          parseAmount(item.amount),
-          item.budget_account || null,
-          item.remarks || null,
-        ],
-      );
-      savedItems.push(itemInsertRows[0]);
-    }
-
-    await client.query("COMMIT");
-    res.json({ ...updatedRequest.rows[0], items: savedItems });
-  } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("Error updating cash advance request:", err);
-    res.status(500).json({ message: "Server error updating cash advance request" });
-  } finally {
-    client.release();
-  }
-});
-
-app.patch("/api/cash_advance/:id/approve", async (req, res) => {
-  const { id } = req.params;
-  const { approved_by } = req.body;
-
-  try {
-    const request = await fetchCashAdvanceById(id);
-    if (!request) {
-      return res.status(404).json({ message: "Cash advance request not found" });
-    }
-
-    if (request.status !== "submitted") {
-      return res.status(409).json({ message: "Only submitted requests can be approved" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE cash_advance_requests
-          SET status = 'approved',
-              approved_by = $1,
-              approved_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $2
-        RETURNING *`,
-      [approved_by || null, id],
-    );
-
-    const response = await fetchCashAdvanceById(rows[0].id);
-    res.json(response);
-  } catch (err) {
-    console.error("Error approving cash advance request:", err);
-    res.status(500).json({ message: "Server error approving cash advance request" });
-  }
-});
-
-app.patch("/api/cash_advance/:id/release", async (req, res) => {
-  const { id } = req.params;
-  const { release_method, check_number, bank_gl_code, released_by } = req.body;
-
-  try {
-    const request = await fetchCashAdvanceById(id);
-    if (!request) {
-      return res.status(404).json({ message: "Cash advance request not found" });
-    }
-
-    if (request.status !== "approved") {
-      return res.status(409).json({ message: "Only approved requests can be released" });
-    }
-
-    const { rows } = await pool.query(
-      `UPDATE cash_advance_requests
-          SET release_method = $1,
-              check_number = $2,
-              bank_gl_code = $3,
-              released_by = $4,
-              released_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $5
-        RETURNING *`,
-      [
-        release_method || null,
-        check_number || null,
-        bank_gl_code || null,
-        released_by || null,
-        id,
-      ],
-    );
-
-    const response = await fetchCashAdvanceById(rows[0].id);
-    res.json(response);
-  } catch (err) {
-    console.error("Error releasing cash advance request:", err);
-    res.status(500).json({ message: "Server error releasing cash advance request" });
-  }
 });
 
 //ENDPOINT FOR AUDIT REPORTS

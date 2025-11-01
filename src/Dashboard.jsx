@@ -11,6 +11,7 @@ import RequestRevolvingFund from "./RequestRevolvingFund";
 import RequestCashAdvance from "./RequestCashAdvance";
 import RequestCashAdvanceLiquidation from "./RequestCashAdvanceLiquidation";
 import RequestReimbursement from "./RequestReimbursement";
+import RequestPayment from "./RequestPayment";
 import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
 import { useNavigate } from "react-router-dom";
@@ -152,6 +153,7 @@ const getInitialView = () => {
       "cash-advance-budget-request",
       "cash-advance-liquidation",
       "reimbursement",
+      "payment-request",
       "approved-requests",
       "profile"
     ];
@@ -244,10 +246,17 @@ function renderActiveView(view) {
         </div>
       );
     
-      case "reimbursement":
+    case "reimbursement":
       return (
         <div className="dashboard-content dashboard-content--flush">
           <RequestReimbursement />
+        </div>
+      );
+
+    case "payment-request":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <RequestPayment />
         </div>
       );
 
@@ -391,6 +400,7 @@ function Dashboard({ role, name, onLogout }) {
           "cash-advance-budget-request",
           "cash-advance-liquidation",
           "reimbursement",
+          "payment-request",
           "approved-requests",
         ].includes(stored)
       ) {
@@ -550,11 +560,11 @@ function Dashboard({ role, name, onLogout }) {
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
-                                  activeView === "purchase-request" ? " underline-active" : ""
+                                  activeView === "payment-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("purchase-request")}
+                                onClick={() => setActiveView("payment-request")}
                               >
-                                Payment Request Form
+                                Payment Request
                               </button>
                             )}
                             {userAccess.includes("Maintenance or Repair") && (
