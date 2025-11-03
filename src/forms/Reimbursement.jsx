@@ -20,6 +20,11 @@ const initialFormData = {
   request_signature: "",
 };
 
+const NAV_SECTIONS = [
+  { id: "pr-main", label: "New Reimbursement" },
+  { id: "submitted", label: "View Submitted Requests" },
+];
+
 function Reimbursement({ onLogout }) {
   const [formData, setFormData] = useState(initialFormData);
   const [cashAdvanceRequests, setCashAdvanceRequests] = useState([]);
@@ -134,6 +139,16 @@ function Reimbursement({ onLogout }) {
     }
   };
 
+  const handleNavigate = (sectionId) => {
+    if (sectionId === "submitted") {
+      navigate("/submitted-reimbursement"); 
+    } else {
+      setActiveSection(sectionId);
+      const element = document.getElementById(sectionId);
+      if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   if (loading)
     return (
       <div className="loading-container">
@@ -154,13 +169,33 @@ function Reimbursement({ onLogout }) {
 
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2 onClick={() => navigate("/forms-list")} style={{ cursor: "pointer", color: "#007bff" }}>
+          <h2 
+            onClick={() => navigate("/forms-list")} 
+            style={{ cursor: "pointer", color: "#007bff" }}
+            title="Back to Forms Library"
+          >
             Reimbursement
           </h2>
-          <span>Standardized Form</span>
+          <span>Standardized form</span>
         </div>
 
+        <nav className="pr-sidebar-nav">
+          {NAV_SECTIONS.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={section.id === "pr-main" ? "is-active" : ""}
+              onClick={() => handleNavigate(section.id)}
+            >
+              {section.label}
+            </button>
+          ))}
+        </nav>
+
         <div className="pr-sidebar-footer">
+          <span className="pr-sidebar-meta">
+            Remember to review line items before submitting.
+          </span>
           <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
             Sign out
           </button>

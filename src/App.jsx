@@ -14,6 +14,7 @@ import SubmittedRequests from "./submitted-request/SubmittedRequests";
 import SubmittedRevolvingFund from "./submitted-request/SubmittedRevolvingFund";
 import SubmittedCashAdvance from "./submitted-request/SubmittedCashAdvance";
 import SubmittedCashAdvanceLiquidation from "./submitted-request/SubmittedCashAdvanceLiquidation";
+import SubmittedReimbursement from "./submitted-request/SubmittedReimbursement";
 import SubmittedPaymentRequest from "./submitted-request/SubmittedPaymentRequest";
 import RevolvingFund from "./forms/RevolvingFund";
 import CashAdvanceRequest from "./forms/CashAdvanceRequest";
@@ -290,6 +291,22 @@ function App() {
         <Route
           path="/submitted-cash-advance-liquidation"
           element={<Navigate to="/forms/submitted-cash-advance-liquidation" replace />}
+        />
+
+        <Route
+          path="/forms/submitted-reimbursement"
+          element={
+            user ? (
+              <SubmittedReimbursement onLogout={handleLogout} currentUserId={user.id} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/submitted-reimbursement"
+          element={<Navigate to="/forms/submitted-reimbursement" replace />}
         />
 
         <Route
