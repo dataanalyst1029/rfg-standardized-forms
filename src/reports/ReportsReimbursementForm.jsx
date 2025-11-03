@@ -7,32 +7,24 @@ import { API_BASE_URL } from "../config/api.js";
 // Pagination options for the table
 const PAGE_SIZES = [5, 10, 20];
 
-// ✅ Enhanced date parser (handles MM/DD/YYYY, YYYY-MM-DD, and DD/MM/YYYY)
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // U.S. format: MM/DD/YYYY
+  // Handle MM/DD/YYYY (U.S. format)
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const [, month, day, year] = usMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // ISO format: YYYY-MM-DD
-  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  // Handle YYYY-MM-DD (ISO format)
+  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // European format: DD/MM/YYYY (optional support)
-  const euMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (euMatch) {
-    const [, day, month, year] = euMatch.map(Number);
-    return new Date(year, month - 1, day);
-  }
-
-  // Fallback — native Date parse
+  // Fallback — native parse attempt
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
