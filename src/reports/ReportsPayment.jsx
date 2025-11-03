@@ -116,6 +116,7 @@ function ReportsPayment() {
         }
 
     if (term) {
+        const normalizedTerm = term.replace(/[^0-9.]/g, "");
         categorizedRequests = categorizedRequests.filter((req) =>
         [
             "prf_request_code",
@@ -126,8 +127,11 @@ function ReportsPayment() {
             "department",
             "nature_activity",
             "status",
-        ].some((key) => req[key]?.toString().toLowerCase().includes(term))
-        );
+        ].some((key) => req[key]?.toString().toLowerCase().includes(term))||
+        (req.total_amount && 
+          req.total_amount.toString().replace(/[^0-9.]/g, "") === normalizedTerm
+        )
+      );
     }
 
     return categorizedRequests;
@@ -251,7 +255,12 @@ function ReportsPayment() {
                         <td style={{ textAlign: "left" }}>{req.name}</td>
                         <td style={{ textAlign: "left" }}>{req.branch}</td>
                         <td style={{ textAlign: "left" }}>{req.department}</td>
-                        <td style={{ textAlign: "center" }}>{req.total_amount}</td>
+                        <td>
+                            {Number(req.total_amount).toLocaleString("en-PH", {
+                                style: "currency",
+                                currency: "PHP",
+                            })}
+                            </td>
                         {/* <td style={{ textAlign: "center" }}>
                             {req.status.toUpperCase()}
                         </td> */}
