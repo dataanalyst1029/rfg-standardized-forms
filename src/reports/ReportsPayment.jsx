@@ -255,7 +255,7 @@ function ReportsPayment() {
                         <td style={{ textAlign: "left" }}>{req.name}</td>
                         <td style={{ textAlign: "left" }}>{req.branch}</td>
                         <td style={{ textAlign: "left" }}>{req.department}</td>
-                        <td>
+                        <td style={{ textAlign: "left" }}>
                             {Number(req.total_amount).toLocaleString("en-PH", {
                                 style: "currency",
                                 currency: "PHP",

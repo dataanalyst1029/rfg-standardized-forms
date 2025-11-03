@@ -257,7 +257,7 @@ function ReportsRevolvingFund() {
                     <td>{req.custodian}</td>
                     <td>{req.branch}</td>
                     <td>{req.department}</td>
-                    <td>
+                    <td style={{textAlign: "left"}}>
                       {Number(req.replenish_amount).toLocaleString("en-PH", {
                         style: "currency",
                         currency: "PHP",

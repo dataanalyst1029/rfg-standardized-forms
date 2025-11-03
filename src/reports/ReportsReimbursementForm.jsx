@@ -253,7 +253,7 @@ function ReportsReimbursementForm() {
                   </td>
                   <td style={{ textAlign: "center" }}>{req.cal_no}</td>
                   <td style={{ textAlign: "center" }}>{req.employee_id}</td>
-                  <td>
+                  <td style={{ textAlign: "center" }}>
                     {Number(req.total_rb_amount).toLocaleString("en-PH", {
                       style: "currency",
                       currency: "PHP",
