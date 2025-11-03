@@ -368,6 +368,7 @@ function Dashboard({ role, name, onLogout }) {
   const [reportsOpen, setReportsOpen] = useState(false);
   const storedId = sessionStorage.getItem("id");
   const [userAccess, setUserAccess] = useState([]);
+  const [userRole, setUserRole] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {

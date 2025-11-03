@@ -118,17 +118,20 @@ function ReportsRevolvingFund() {
 
     // Text search
     if (term) {
+      const normalizedTerm = term.replace(/[^0-9.]/g, "");
       categorizedRequests = categorizedRequests.filter((req) =>
         [
           "revolving_request_code",
           "date_request",
-          "employee_id",
+          "employee_id",  
           "custodian",
           "branch",
           "department",
-          "replenish_amount",
           "status",
-        ].some((key) => req[key]?.toString().toLowerCase().includes(term))
+        ].some((key) => req[key]?.toString().toLowerCase().includes(term)) ||
+        (req.replenish_amount && 
+          req.replenish_amount.toString().replace(/[^0-9.]/g, "") === normalizedTerm
+        )
       );
     }
 

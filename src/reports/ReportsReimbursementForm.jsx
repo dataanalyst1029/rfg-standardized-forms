@@ -118,16 +118,21 @@ function ReportsReimbursementForm() {
 
     // ✅ Text search
     if (term) {
+      const normalizedTerm = term.replace(/[^0-9.]/g, "");
       categorizedRequests = categorizedRequests.filter((req) =>
         [
           "rb_request_code",
           "request_date",
+          "cal_no",
           "employee_id",
           "name",
           "branch",
           "department",
           "status",
-        ].some((key) => req[key]?.toString().toLowerCase().includes(term))
+        ].some((key) => req[key]?.toString().toLowerCase().includes(term))||
+        (req.total_rb_amount && 
+          req.total_rb_amount.toString().replace(/[^0-9.]/g, "") === normalizedTerm
+        )
       );
     }
 
@@ -248,7 +253,12 @@ function ReportsReimbursementForm() {
                   </td>
                   <td style={{ textAlign: "center" }}>{req.cal_no}</td>
                   <td style={{ textAlign: "center" }}>{req.employee_id}</td>
-                  <td style={{ textAlign: "center" }}>{req.total_rb_amount}</td>
+                  <td>
+                    {Number(req.total_rb_amount).toLocaleString("en-PH", {
+                      style: "currency",
+                      currency: "PHP",
+                    })}
+                    </td>
                   <td style={{ textAlign: "center" }}>
                     <button
                       className="admin-primary-btn"
