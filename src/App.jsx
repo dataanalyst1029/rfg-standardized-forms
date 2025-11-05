@@ -25,6 +25,7 @@ import PaymentRequest from "./forms/PaymentRequest";
 import MaintenanceRepair from "./forms/MaintenanceRepair";
 import OvertimeApproval from "./forms/OvertimeApproval";
 import LeaveApplication from "./forms/LeaveApplication";
+import InterbranchTransferSlip from "./forms/InterbranchTransferSlip";
 import "./styles/App.css";
 
 function App() {
@@ -191,7 +192,8 @@ function App() {
         <Route
           path="/forms/maintenance-or-repair"
           element={
-            user && user.role === "user" ? (
+            user && 
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
               <MaintenanceRepair onLogout={handleLogout} />
             ) : (
               <Navigate to="/" replace />
@@ -202,7 +204,8 @@ function App() {
         <Route
           path="/forms/hr-overtime-approval"
           element={
-            user && user.role === "user" ? (
+            user && 
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
               <OvertimeApproval onLogout={handleLogout} />
             ) : (
               <Navigate to="/" replace />
@@ -218,8 +221,21 @@ function App() {
         <Route
           path="/forms/hr-leave-application"
           element={
-            user && user.role === "user" ? (
+            user && 
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
               <LeaveApplication onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/interbranch-transfer-slip"
+          element={
+            user && 
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
+              <InterbranchTransferSlip onLogout={handleLogout} />
             ) : (
               <Navigate to="/" replace />
             )

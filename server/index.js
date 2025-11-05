@@ -2306,6 +2306,250 @@ app.delete("/api/departments/:id", async (req, res) => {
 });
 
 /* ------------------------
+   INTERBRANCH TRANSFER SLIP API
+------------------------ */
+
+app.get("/api/interbranch_transfer_slip/next-code", async (req, res) => {  // Generate next available payment request code
+  try {
+    const year = new Date().getFullYear();  // Get current year for code prefix
+
+    const result = await pool.query(  // Query latest code that matches current year
+      `SELECT form_code 
+       FROM interbranch_transfer_slip 
+       WHERE form_code LIKE $1 
+       ORDER BY form_code DESC 
+       LIMIT 1`,
+      [`ITS-${year}-%`]  // Pattern for current year’s codes
+    );
+
+    let nextCode;  // Variable to store generated code
+    if (result.rows.length > 0) {  // If a record exists for this year
+      const lastCode = result.rows[0].form_code;  // Get latest code
+      const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
+      const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
+      nextCode = `ITS-${year}-${nextNum}`;  // Construct next code
+    } else {
+      nextCode = `ITS-${year}-000001`;  // If none found, start from 000001
+    }
+
+    res.json({ nextCode });  // Return next code to client
+  } catch (err) {
+    console.error("❌ Error generating next interbranch transfer slip code:", err);  // Log error
+    res.status(500).json({ message: "Server error generating next code" });  // Send error response
+  }
+});
+
+app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new interbranch transfer slip
+  const {
+    form_code,
+    date_transferred,
+    from_branch,
+    from_address,
+    from_area_ops_controller,
+    date_received,
+    to_branch,
+    to_address,
+    to_area_ops_controller,
+    dispatch_method,
+    vehicle_no,
+    driver_name,
+    driver_contact,
+    expected_date,
+    prepared_by,
+    approved_by,
+    received_by,
+    prepared_date,
+    approved_date,
+    dispatched_date,
+    received_date,
+    prepared_signature,
+    approved_signature,
+    dispatched_signature,
+    received_signature,
+    is_shortage,
+    is_overage,
+    short_reason,
+    over_reason,
+
+    items = [],  // Default to empty array if no items
+  } = req.body;
+
+  const client = await pool.connect();  // Get DB client for transaction
+  try {
+    await client.query("BEGIN");  // Start transaction
+
+    const result = await client.query(  // Insert main request record
+      `INSERT INTO interbranch_transfer_slip
+      (form_code, date_transferred, from_branch, from_address, from_area_ops_controller, date_received, to_branch, to_address, to_area_ops_controller, dispatch_method, vehicle_no, driver_name, driver_contact, expected_date, prepared_by, approved_by, received_by, prepared_date, approved_date, dispatched_date, received_date, prepared_signature, approved_signature, dispatched_signature, received_signature, is_shortage, is_overage, short_reason, over_reason)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28, $29)
+      RETURNING id`,
+      [
+        form_code,
+        date_transferred || new Date(),
+        from_branch,
+        from_address,
+        from_area_ops_controller,
+        date_received || new Date(),
+        to_branch,
+        to_address,
+        to_area_ops_controller,
+        dispatch_method,
+        vehicle_no,
+        driver_name,
+        driver_contact,
+        expected_date,
+        prepared_by || null,
+        approved_by || null,
+        received_by || null,
+        prepared_date || null,
+        approved_date || null,
+        dispatched_date || null,
+        received_date || null,
+        prepared_signature || null,
+        approved_signature || null,
+        dispatched_signature || null,
+        received_signature || null,
+        is_shortage || null,
+        is_overage || null,
+        short_reason || null,
+        over_reason || null,
+      ]
+    );
+
+    const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
+    if (!requestId) throw new Error("Failed to get interbranch transfer slip ID");  // Validate presence of ID
+
+    await client.query("COMMIT");  // Commit transaction
+
+    res.status(201).json({
+      success: true,
+      message: `Interbranch Transfer Slip ${form_code} saved successfully!`,  // Success message
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");  // Rollback on failure
+    console.error("❌ Error saving interbranch transfer slip:", err);
+    res.status(500).json({ message: "Server error saving interbranch transfer slip" });  // Send error response
+  } finally {
+    client.release();  // Release DB client
+  }
+});
+
+/*
+app.get("/api/payment_request", async (req, res) => {  // Fetch all payment requests with items
+  try {
+    const result = await pool.query(`
+      SELECT pr.*,
+        json_agg(
+          json_build_object(
+            'id', pri.id, 
+            'item', pri.item, 
+            'quantity', pri.quantity, 
+            'unit_price', pri.unit_price,
+            'amount', pri.amount, 
+            'expense_charges', pri.expense_charges, 
+            'location', pri.location
+          )
+        ) AS items
+      FROM payment_request pr
+      LEFT JOIN payment_request_item pri ON pr.id = pri.request_id
+      GROUP BY pr.id
+      ORDER BY pr.created_at DESC;  -- Sort by newest first
+    `);
+    res.json(result.rows);  // Return array of requests with nested items
+  } catch (err) {
+    console.error("❌ Error fetching payment requests:", err);
+    res.status(500).json({ message: "Server error fetching payment requests" });
+  }
+});
+
+app.get("/api/payment_request_item", async (req, res) => {  // Fetch items for a specific payment request
+  const { request_id } = req.query;
+
+  try {
+    let query = `
+      SELECT id, request_id, item, quantity, unit_price, amount, expense_charges, location
+      FROM payment_request_item
+    `;
+    const params = [];
+
+    if (request_id) {  // If specific request_id is provided
+      query += " WHERE request_id = $1";
+      params.push(request_id);
+    }
+
+    query += " ORDER BY id ASC";  // Sort items in ascending order
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);  // Return list of items
+  } catch (err) {
+    console.error("❌ Error fetching payment request items:", err);
+    res.status(500).json({ message: "Server error fetching payment request items" });
+  }
+});
+
+
+   //UPDATE PAYMENT REQUEST
+
+app.put("/api/update_payment_request", uploadForm.none(), async (req, res) => {  // Update existing payment request
+  try {
+    const {
+      prf_request_code,
+      approved_by,
+      approved_signature,
+      status,
+      declined_reason,
+    } = req.body;
+
+    if (!prf_request_code) {  // Validate input
+      return res.status(400).json({ message: "prf_request_code is required." });
+    }
+
+    let query = `
+      UPDATE payment_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];  // Initial parameter values
+    let paramIndex = 2;  // Index counter for dynamic params
+
+    if (status === "Approved") {  // If request approved
+      query += `,
+        approved_by = $${paramIndex++},
+        approved_signature = $${paramIndex++}
+      `;
+      values.push(approved_by, approved_signature);
+    }
+
+    if (status === "Declined") {  // If request declined
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE prf_request_code = $${paramIndex} RETURNING *`;  // Return updated record
+    values.push(prf_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {  // If no record updated
+      return res.status(404).json({ message: "Payment request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Payment request updated successfully.",  // Success response
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating payment request:", err);
+    res.status(500).json({ message: "Server error updating payment request." });
+  }
+});
+/*
+
+/* ------------------------
    START SERVER
 ------------------------ */
 const PORT = process.env.PORT || 5000;

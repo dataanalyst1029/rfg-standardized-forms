@@ -1,0 +1,110 @@
+/* --- Fieldset Container --- */
+/* This styles the <fieldset> that wraps all the radio buttons. */
+.pr-fieldset {
+  border: none;             /* Removes the default <fieldset> border */
+  /* padding: 0; */         /* Removed default padding */
+  margin: 0;                /* Removes default margin */
+  display: flex;            /* Use flexbox for layout */
+  flex-direction: column; /* <-- Stacks the radio buttons vertically */
+  gap: 1.3rem;             /* <-- Sets the vertical space BETWEEN each button */
+  
+  /* --- ADDED --- */
+  /* This padding pushes the button group down to align with the */
+  /* input fields in the right column. Adjust the value as needed. */
+  padding-top: 1.5rem;
+}
+
+/* --- Radio Button Wrapper --- */
+/* This styles the <div> wrapper around each individual radio button. */
+.pr-radio-option {
+  display: flex;  /* Use flexbox to align label and input (for 'Other') */
+  flex-grow: 0;   /* Prevents the buttons from stretching vertically */
+}
+
+/* --- Hidden Radio Input --- */
+/* This visually hides the actual radio button circle. */
+.pr-radio-input {
+  opacity: 0;       /* Makes it invisible */
+  position: absolute; /* Takes it out of the document flow */
+  width: 0;         /* No width */
+  height: 0;        /* No height */
+}
+
+/* --- Custom Radio Button Label --- */
+/* This styles the <label> to look like the button. */
+.pr-radio-label {
+  display: inline-flex;  /* Aligns the custom circle and text */
+  align-items: center; /* Vertically centers the custom circle and text */
+  width: 100%;         /* <-- Makes all buttons a uniform, full width */
+  padding: 0.75rem 1rem; /* Inner spacing (top/bottom | left/right) */
+  border: 1px solid #d1d5db; /* Light gray border */
+  border-radius: 0.5rem;   /* Rounded corners */
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease; /* Smooth animation for hover/click */
+  font-weight: 500;
+  color: #374151;       /* Dark gray text */
+}
+
+/* --- Custom Radio Circle --- */
+/* This styles the <span className="pr-radio-control"> */
+.pr-radio-control {
+  display: inline-block;
+  width: 1.25em;        /* 20px */
+  height: 1.25em;       /* 20px */
+  margin-right: 0.5rem; /* Space between the circle and the text */
+  border: 2px solid #888; /* Gray circle border */
+  border-radius: 50%;   /* Makes it a perfect circle */
+  transition: all 0.2s ease;
+  background-color: #fff;
+}
+
+/* --- "Other" Row Specifics --- */
+/* This styles the <div> wrapper for the "Other" option */
+.pr-radio-option--other {
+  display: flex;        /* Ensures the <label> and <input> are side-by-side */
+  align-items: center;  /* Vertically aligns the button and the text field */
+}
+
+/* Overrides the 'width: 100%' for the "Other" label */
+.pr-radio-option--other .pr-radio-label {
+  width: auto;      /* Label is only as wide as its content */
+  flex-shrink: 0; /* Prevents the label from shrinking */
+}
+
+/* Styles the text input field for "Other" */
+.pr-radio-option--other .pr-input {
+  flex-grow: 1; /* Allows the text field to fill all remaining space */
+}
+
+/* --- CHECKED STATE --- */
+/* This block controls how the button looks when it IS selected */
+
+/* Selects the <label> when its hidden radio button is :checked */
+.pr-radio-input:checked + .pr-radio-label {
+  border-color: #007bff;     /* Blue border */
+  background-color: #f0f7ff; /* Light blue background */
+  color: #0056b3;
+}
+
+/* Selects the custom circle when its hidden radio button is :checked */
+.pr-radio-input:checked + .pr-radio-label .pr-radio-control {
+  border-color: #007bff;   /* Blue border */
+  background-color: #007bff; /* Blue fill */
+  box-shadow: inset 0 0 0 3px #fff; /* Creates the inner white dot */
+}
+
+/* --- DISABLED STATE --- */
+/* This block controls how the button looks when it IS disabled */
+
+.pr-radio-input:disabled + .pr-radio-label {
+  background-color: #f9fafb; /* Light gray background */
+  color: #9ca3af;           /* Muted text color */
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+
+.pr-radio-input:disabled + .pr-radio-label .pr-radio-control {
+  border-color: #e5e7eb;
+  background-color: #e5e7eb;
+}
