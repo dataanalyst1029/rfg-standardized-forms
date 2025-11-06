@@ -2460,6 +2460,7 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
     client.release();  // Release DB client
   }
 });
+
 app.get("/api/interbranch_transfer_slip", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -2596,6 +2597,107 @@ app.put("/api/update_payment_request", uploadForm.none(), async (req, res) => { 
 });
 /*
 
+/* ------------------------
+   MAINTENANCE REQUESTS API
+------------------------ */
+app.get("/api/maintenance_requests/next-code", async (req, res) => {  // Generate next available maintenance request code
+  try {
+    const year = new Date().getFullYear();  // Get current year for code prefix
+
+    const result = await pool.query(  // Query latest code that matches current year
+      `SELECT form_code 
+       FROM maintenance_requests 
+       WHERE form_code LIKE $1 
+       ORDER BY form_code DESC 
+       LIMIT 1`,
+      [`MRF-${year}-%`]  // Pattern for current year’s codes
+    );
+
+    let nextCode;  // Variable to store generated code
+    if (result.rows.length > 0) {  // If a record exists for this year
+      const lastCode = result.rows[0].form_code;  // Get latest code
+      const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
+      const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
+      nextCode = `MRF-${year}-${nextNum}`;  // Construct next code
+    } else {
+      nextCode = `MRF-${year}-000001`;  // If none found, start from 000001
+    }
+
+    res.json({ nextCode });  // Return next code to client
+  } catch (err) {
+    console.error("❌ Error generating next maintenance/repair form code:", err);  // Log error
+    res.status(500).json({ message: "Server error generating next code" });  // Send error response
+  }
+});
+
+app.post("/api/maintenance_requests", async (req, res) => {  // Create new maintenance request
+  const {
+    form_code,
+    status,
+    requester_name,
+    branch,
+    department,
+    employee_id,
+    request_date,
+    signature,
+    date_needed,
+    work_description,
+    asset_tag,
+    performed_by,
+    date_completed,
+    completion_remarks,
+    submitted_at,
+    approved_by,
+    approved_at,
+    accomplished_by,
+    accomplished_at,
+
+    items = [],  // Default to empty array if no items
+  } = req.body;
+
+  const client = await pool.connect();  // Get DB client for transaction
+  try {
+    await client.query("BEGIN");  // Start transaction
+
+    const result = await client.query(  // Insert main request record
+      `INSERT INTO maintenance_requests
+      (form_code, requester_name, branch, department, employee_id, request_date, signature, date_needed, work_description, asset_tag, performed_by, date_completed, completion_remarks)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      RETURNING id`,
+      [
+        form_code,
+        requester_name,
+        branch,
+        department,
+        employee_id,
+        request_date,
+        signature,
+        date_needed,
+        work_description,
+        asset_tag,
+        performed_by,
+        date_completed,
+        completion_remarks,
+      ]
+    );
+
+    const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
+    if (!requestId) throw new Error("Failed to get maintenance request ID");  // Validate presence of ID
+
+    await client.query("COMMIT");  // Commit transaction
+
+    res.status(201).json({
+      success: true,
+      message: `Maintenance/Repair Form ${form_code} saved successfully!`,  // Success message
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");  // Rollback on failure
+    console.error("❌ Error saving maintenance/repair form:", err);
+    res.status(500).json({ message: "Server error saving maintenance/repair form" });  // Send error response
+  } finally {
+    client.release();  // Release DB client
+  }
+});
 /* ------------------------
    START SERVER
 ------------------------ */
