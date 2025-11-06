@@ -18,6 +18,11 @@ const initialFormData = {
   received_signature: "",
 };
 
+const NAV_SECTIONS = [
+  { id: "pr-main", label: "New CA Receipt" },
+  { id: "submitted", label: "View Submitted Requests" },
+];
+
 function CAReceipt({ onLogout }) {
   const [formData, setFormData] = useState(initialFormData);
   const [cashAdvanceRequests, setCashAdvanceRequests] = useState([]);
@@ -30,15 +35,33 @@ function CAReceipt({ onLogout }) {
   useEffect(() => {
     const fetchCashAdvanceRequests = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/cash_advance_request`);
-        const data = await res.json();
-        setCashAdvanceRequests(data);
+        // Get all cash advance requests
+        const [caRes, receiptRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/cash_advance_request`),
+          fetch(`${API_BASE_URL}/api/ca_receipt`),
+        ]);
+
+        const [caData, receiptData] = await Promise.all([
+          caRes.json(),
+          receiptRes.json(),
+        ]);
+
+        // Get all CA request codes that already exist in ca_receipt (with or without status)
+        const usedCARequestCodes = new Set(receiptData.map((r) => r.cash_advance_no));
+
+        const availableRequests = caData.filter(
+          (req) => !usedCARequestCodes.has(req.ca_request_code)
+        );
+
+        setCashAdvanceRequests(availableRequests);
       } catch (err) {
         console.error("Error fetching cash advance requests:", err);
       }
     };
+
     fetchCashAdvanceRequests();
   }, []);
+
 
   useEffect(() => {
     const storedId = sessionStorage.getItem("id");
@@ -176,6 +199,16 @@ function CAReceipt({ onLogout }) {
     }
   };
 
+  const handleNavigate = (sectionId) => {
+    if (sectionId === "submitted") {
+      navigate("/submitted-ca-receipt"); 
+    } else {
+      setActiveSection(sectionId);
+      const element = document.getElementById(sectionId);
+      if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   if (loading)
     return (
       <div className="loading-container">
@@ -202,6 +235,19 @@ function CAReceipt({ onLogout }) {
           <span>Standardized Form</span>
         </div>
 
+        <nav className="pr-sidebar-nav">
+            {NAV_SECTIONS.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                className={section.id === "pr-main" ? "is-active" : ""}
+                onClick={() => handleNavigate(section.id)}
+              >
+                {section.label}
+              </button>
+            ))}
+        </nav>
+
         <div className="pr-sidebar-footer">
           <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
             Sign out
@@ -215,13 +261,13 @@ function CAReceipt({ onLogout }) {
             <h1>Cash Receipt Form</h1>
           </div>
 
-          <div className="pr-reference-card">
-            <span className="pr-reference-label">Reference code</span>
-            <span className="pr-reference-value">
+          <div className="car-reference-card">
+            <span className="car-reference-label">Reference code</span>
+            <span className="car-reference-value">
               {formData.car_request_code || "—"}
             </span>
-            <span className="pr-reference-label">Request date</span>
-            <span>
+            <span className="car-reference-label">Request date</span>
+            <span className="car-reference-value">
               {new Date(formData.request_date).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
@@ -232,14 +278,14 @@ function CAReceipt({ onLogout }) {
         </header>
 
         <form onSubmit={handleSubmit} className="cash-receipt-form">
-          <section className="pr-form-section" id="details">
+          <section className="car-form-section">
 
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label>Cash Adv. No.</label>
+                <label className="car-reference-value">Cash Adv. No.</label>
                 <select
                   name="cash_advance_no"
-                  className="pr-input"
+                  className="car-input"
                   value={formData.cash_advance_no || ""}
                   onChange={handleCashAdvanceSelect}
                   required
@@ -258,39 +304,42 @@ function CAReceipt({ onLogout }) {
             </div>
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label>Employee ID</label>
+                <label className="car-reference-value">Employee ID</label>
                 <input
                   type="text"
                   name="employee_id"
                   value={formData.employee_id || ""}
                   onChange={handleChange}
-                  className="pr-input"
+                  className="car-input"
                   required
+                  readOnly
                 />
               </div>
               <div className="pr-field">
-                <label>Name</label>
+                <label className="car-reference-value">Name</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name || ""}
                   onChange={handleChange}
-                  className="pr-input"
+                  className="car-input"
                   required
+                  readOnly
                 />
               </div>
             </div>
 
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label>Received From</label>
+                <label className="car-reference-value">Received From</label>
                 <input
                   type="text"
                   name="received_from"
                   value={formData.received_from || ""}
                   onChange={handleChange}
-                  className="pr-input"
+                  className="car-input"
                   required
+                  readOnly
                 />
               </div>
               <div className="pr-field">
@@ -300,59 +349,57 @@ function CAReceipt({ onLogout }) {
 
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label>Amount in PHP</label>
+                <label className="car-reference-value">Amount in PHP</label>
                 <input
                   type="number"
                   name="php_amount"
                   value={formData.php_amount}
                   onChange={handleChange}
-                  className="pr-input"
+                  className="car-input"
                   required
+                  readOnly
                 />
               </div>
 
               <div className="pr-field">
-                <label>Amount (in words)</label>
+                <label className="car-reference-value">Amount (in words)</label>
                 <input
                   type="text"
                   name="php_word"
                   value={formData.php_word}
-                  readOnly
-                  className="pr-input"
+                  className="car-input"
                   required
+                  readOnly
                 />
+              </div>
+            </div>
+
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="car-reference-value">Received by:</label>
+                <input type="text" name="received_by" className="car-input" value={userData.name || ""} required readOnly/>
+              </div>
+
+              <div className="pr-field receive-signature">
+                <label className="car-reference-value">Signature</label>
+                <input type="text" name="received_signature" className="car-input received-signature" value={userData.signature || ""} readOnly />
+                {userData.signature ? (
+                  <img
+                    src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                    alt="Signature"
+                    className="img-sign"/>
+                    ) : (
+                        <p>No signature available</p>
+                  )}
               </div>
             </div>
           </section>
 
-
-            <section className="rfr-form-section" id="signature">
-              <div className="signature-details">
-                <label htmlFor="receive-by">
-                  <input type="text" name="received_by" value={userData.name || ""} />
-                  <p>Received by:</p>
-                </label>
-                <label htmlFor="receive-by" class="signature-by">
-                  {userData.signature ? (
-                  <img
-                    src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                    alt="Signature"
-                    className="car-signature-img"/>
-                    ) : (
-                        <p>No signature available</p>
-                  )}
-                  <input type="text" name="submitter_signature" value={userData.signature || ""} readOnly />
-                  <p>Signature:</p>
-
-                </label>
-              </div>
-            </section>
-
-            <div className="pr-form-actions">
-              <button type="submit" className="pr-submit" disabled={isSubmitting}>
-                {isSubmitting ? "Submitting..." : "Submit CA Receipt"}
-              </button>
-            </div>
+          <div className="pr-form-actions">
+            <button type="submit" className="pr-submit" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit CA Receipt"}
+            </button>
+          </div>
         </form>
       </main>
     </div>

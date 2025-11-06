@@ -27,6 +27,7 @@ import OvertimeApproval from "./forms/OvertimeApproval";
 import LeaveApplication from "./forms/LeaveApplication";
 import InterbranchTransferSlip from "./forms/InterbranchTransferSlip";
 import "./styles/App.css";
+import SubmittedCAReceipt from "./submitted-request/SubmittedCAReceipt";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -310,6 +311,22 @@ function App() {
         />
 
         <Route
+          path="/forms/submitted-ca-receipt"
+          element={
+            user ? (
+              <SubmittedCAReceipt onLogout={handleLogout} currentUserId={user.id} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/submitted-ca-receipt"
+          element={<Navigate to="/forms/submitted-ca-receipt" replace />}
+        />
+
+        <Route
           path="/forms/submitted-reimbursement"
           element={
             user ? (
@@ -326,18 +343,19 @@ function App() {
         />
 
         <Route
-          path="/forms/payment-request-form/submitted"
+          path="/forms/submitted-payment-request"
           element={
             user ? (
-              <SubmittedPaymentRequest
-                onLogout={handleLogout}
-                currentUserId={user.id}
-                showAll={user.role !== "user"}
-              />
+              <SubmittedPaymentRequest onLogout={handleLogout} currentUserId={user.id} />
             ) : (
               <Navigate to="/" replace />
             )
           }
+        />
+
+        <Route
+          path="/submitted-payment-request"
+          element={<Navigate to="/forms/submitted-payment-request" replace />}
         />
 
         <Route

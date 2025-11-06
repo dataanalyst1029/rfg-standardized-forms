@@ -1,22 +1,74 @@
-.submitted-rb-request-card {
+.receive-signature {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+}
+
+.receive-signature .sub-sign {
+  color: transparent;
+  border-bottom: 1px solid #555;
+  font-size: 1rem;
+  padding: 0 1rem;
+}
+
+.receive-signature .img-sign {
+  position: absolute;
+  top: 30%;
+  left: 20%;
+  width: 120px;
+  height: auto;
+  object-fit: contain;
+  transform: translate(-50%, -40%);
+  z-index: 0;
+  max-width: 25vw;
+  margin-top: 8px;
+}
+
+.received-signature {
+    color: transparent;
+}
+
+.car-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--color-app-bg);
+  color: var(--color-text-primary);
+}
+
+.car-form-section {
+  background: #fff;
+  border: transparent;
+  border-radius: 1.2rem;
+  padding: 1.8rem;
+  box-shadow: var(--shadow-elevation);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.submitted-ca-request-card {
   margin-bottom: 2rem;
   color: var(--card-text, #111);
   transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
-.rb-reference-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 1rem;
-  padding: 1.1rem 1.4rem;
+.car-main {
+  padding: 2rem 2.4rem 3rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  box-shadow: var(--shadow-elevation);
-  width: 220px;
+  gap: 1.75rem;
+  overflow-y: auto; 
+  height: 100vh; 
 }
 
-.print-rb-btn {
+.ca-title {
+    display: none;
+}
+
+.print-btn {
   position: fixed;
   top: 30px;
   right: 30px;
@@ -33,23 +85,25 @@
   z-index: 1000;
 }
 
-.print-rb-btn:hover {
+.print-btn:hover {
   background-color: #0056b3;
   transform: scale(1.1);
 }
+
+
 
 @media print {
     body * {
         visibility: hidden;
     }
 
-    .submitted-rb-request-card,
-    .submitted-rb-request-card * {
+    .submitted-ca-request-card,
+    .submitted-ca-request-card * {
         visibility: visible;
     }
 
-    .submitted-rb-request-card::before {
-        content: "RFG Reimbursement";
+    .submitted-ca-request-card::before {
+        content: "RFG Cash Advance Receipt";
         display: block;
         text-align: center;
         font-size: 20px;

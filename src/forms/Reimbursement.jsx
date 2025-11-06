@@ -37,15 +37,28 @@ function Reimbursement({ onLogout }) {
   useEffect(() => {
     const fetchCashAdvanceRequests = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/cash_advance_liquidation`);
-        const data = await res.json();
-        setCashAdvanceRequests(data);
+        const calRes = await fetch(`${API_BASE_URL}/api/cash_advance_liquidation`);
+        const calData = await calRes.json();
+
+        const rbRes = await fetch(`${API_BASE_URL}/api/reimbursement`);
+        const rbData = await rbRes.json();
+
+        const availableCALs = calData.filter((cal) => {
+          const matchingRb = rbData.find(
+            (rb) => rb.cal_no === cal.cal_request_code
+          );
+          return !matchingRb || !matchingRb.status;
+        });
+
+        setCashAdvanceRequests(availableCALs);
       } catch (err) {
-        console.error("Error fetching reimbursement:", err);
+        console.error("Error fetching reimbursement data:", err);
       }
     };
+
     fetchCashAdvanceRequests();
   }, []);
+
 
   useEffect(() => {
     const storedId = sessionStorage.getItem("id");
@@ -208,13 +221,13 @@ function Reimbursement({ onLogout }) {
             <h1>Reimbursement Form</h1>
           </div>
 
-          <div className="pr-reference-card">
-            <span className="pr-reference-label">Reference code</span>
-            <span className="pr-reference-value">
+          <div className="car-reference-card">
+            <span className="car-reference-label">Reference code</span>
+            <span className="car-reference-value">
               {formData.rb_request_code || "—"}
             </span>
-            <span className="pr-reference-label">Request date</span>
-            <span>
+            <span className="car-reference-label">Request date</span>
+            <span className="car-reference-value">
               {new Date(formData.request_date).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
@@ -225,13 +238,13 @@ function Reimbursement({ onLogout }) {
         </header>
 
         <form onSubmit={handleSubmit} className="cash-receipt-form">
-            <section className="pr-form-section" id="details">
+            <section className="car-form-section" id="details">
                 <div className="pr-grid-two">
                     <div className="pr-field">
-                        <label>Cash Advance Liquidation No.</label>
+                        <label className="car-reference-label">Cash Advance Liquidation No.</label>
                         <select
                         name="cal_no"
-                        className="pr-input"
+                        className="car-input"
                         value={formData.cal_no || ""}
                         onChange={handleCashAdvanceSelect}
                         required
@@ -246,78 +259,83 @@ function Reimbursement({ onLogout }) {
                     </div>
                     <div className="pr-field">
                         <div className="pr-field">
-                            <label>Cash Advance No.</label>
+                            <label className="car-reference-label">Cash Advance No.</label>
                             <input
                             type="text"
                             name="ca_no"
                             value={formData.ca_no || ""}
                             onChange={handleChange}
-                            className="pr-input"
+                            className="car-input"
                             required
+                            readOnly
                             />
                         </div>
                     </div>
                 </div>
                 <div className="pr-grid-two">
                     <div className="pr-field">
-                        <label>Employee ID</label>
+                        <label className="car-reference-label">Employee ID</label>
                         <input
                         type="text"
                         name="employee_id"
                         value={formData.employee_id || ""}
                         onChange={handleChange}
-                        className="pr-input"
+                        className="car-input"
                         required
+                        readOnly
                         />
                     </div>
                     <div className="pr-field">
-                        <label>Name</label>
+                        <label className="car-reference-label">Name</label>
                         <input
                         type="text"
                         name="name"
                         value={formData.name || ""}
                         onChange={handleChange}
-                        className="pr-input"
+                        className="car-input"
                         required
+                        readOnly
                         />
                     </div>
                 </div>
                 <div className="pr-grid-two">
                     <div className="pr-field">
-                        <label>Branch</label>
+                        <label className="car-reference-label">Branch</label>
                         <input
                         type="text"
                         name="branch"
                         value={formData.branch || ""}
                         onChange={handleChange}
-                        className="pr-input"
+                        className="car-input"
                         required
+                        readOnly
                         />
                     </div>
                     <div className="pr-field">
-                        <label>Department</label>
+                        <label className="car-reference-label">Department</label>
                         <input
                         type="text"
                         name="department"
                         value={formData.department || ""}
                         onChange={handleChange}
-                        className="pr-input"
+                        className="car-input"
                         required
+                        readOnly
                         />
                     </div>
                 </div>
             </section>
 
-            <section className="pr-form-section" id="details">
+            <section className="car-form-section" id="details">
                 <div className="pr-grid-two">
                     <div className="pr-field">
-                        <label>BPI Account No.</label>
+                        <label className="car-reference-label">BPI Account No.</label>
                         <input
                         type="text"
                         name="bpi_acc_no"
                         value={formData.bpi_acc_no || ""}
                         onChange={handleChange}
-                        className="pr-input"
+                        className="car-input"
                         required
                         />
                     </div>
@@ -327,14 +345,15 @@ function Reimbursement({ onLogout }) {
                 </div>
                 <div className="pr-grid-two">
                     <div className="pr-field">
-                        <label>Total Reimbursable Amount</label>
+                        <label className="car-reference-label">Total Reimbursable Amount</label>
                         <input
                         type="text"
                         name="total_rb_amount"
                         value={formData.total_rb_amount || ""}
                         onChange={handleChange}
-                        className="pr-input"
+                        className="car-input"
                         required
+                        readOnly
                         />
                     </div>
                     <div className="pr-field">
@@ -344,25 +363,25 @@ function Reimbursement({ onLogout }) {
             </section>
 
 
-            <section className="rfr-form-section" id="signature">
-              <div className="signature-details">
-                <label htmlFor="receive-by">
-                  <input type="text" name="requested_by" value={userData.name || ""} />
-                  <p>Request by:</p>
-                </label>
-                <label htmlFor="receive-by" class="signature-by">
-                  {userData.signature ? (
-                  <img
-                    src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                    alt="Signature"
-                    className="car-signature-img"/>
-                    ) : (
-                        <p>No signature available</p>
-                  )}
-                  <input type="text" name="submitter_signature" value={userData.signature || ""} readOnly />
-                  <p>Signature:</p>
+            <section className="car-form-section" id="signature">
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                  <label className="car-reference-value">Request by:</label>
+                  <input type="text" name="requested_by" className="car-input" value={userData.name || ""} required readOnly/>
+                </div>
 
-                </label>
+                <div className="pr-field receive-signature">
+                  <label className="car-reference-value">Signature</label>
+                  <input type="text" name="request_signature" className="car-input received-signature" value={userData.signature || ""} readOnly />
+                  {userData.signature ? (
+                    <img
+                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                          <p>No signature available</p>
+                    )}
+                </div>
               </div>
             </section>
 

@@ -1,8 +1,8 @@
-.enhanced-ui .pr-input {
+.enhanced-ui .car-input {
   transition: all 0.2s ease;
 }
 
-.enhanced-ui .pr-input:focus {
+.enhanced-ui .car-input:focus {
   border-color: #007bff;
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
 }
@@ -17,4 +17,63 @@
     transform: translate(-50%, -50%);
     z-index: 0;
     margin-top: 8px;
+}
+
+.car-reference-card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  padding: 1.1rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  box-shadow: var(--shadow-elevation);
+  min-width: 220px;
+}
+
+.car-reference-label {
+  color: #2e2e2e;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.car-reference-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #000;
+}
+
+.car-form-section {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 1.2rem;
+  padding: 1.8rem 1.8rem 3rem 1.8rem;
+  box-shadow: var(--shadow-elevation);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.car-input,
+.car-select,
+.car-textarea {
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  padding: 0.75rem 0.9rem;
+  color: #000;
+  font-size: 0.96rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.car-input:focus,
+.pr-select:focus,
+.pr-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(36, 207, 142, 0.2);
 }

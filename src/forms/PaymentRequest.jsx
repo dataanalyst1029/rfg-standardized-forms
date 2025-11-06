@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import "./styles/PurchaseRequest.css";
-import "./styles/CashAdvanceRequest.css";
+// import "./styles/PurchaseRequest.css";
+import "./styles/PaymentRequest.css";
+// import "./styles/CashAdvanceRequest.css";
 import { API_BASE_URL } from "../config/api.js";
 import { useNavigate } from "react-router-dom";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 const initialFormData = {
@@ -280,7 +280,7 @@ function PurchaseRequest({ onLogout }) {
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/submitted-cash-advance-budget-request"); 
+      navigate("/submitted-payment-request"); 
     } else {
       setActiveSection(sectionId);
       const element = document.getElementById(sectionId);
@@ -369,13 +369,13 @@ function PurchaseRequest({ onLogout }) {
             </p>
           </div>
 
-          <div className="pr-reference-card">
-            <span className="pr-reference-label">Reference code</span>
-            <span className="pr-reference-value">
+          <div className="car-reference-card">
+            <span className="car-reference-label">Reference code</span>
+            <span className="car-reference-value">
               {formData.prf_request_code || "—"}
             </span>
-            <span className="pr-reference-label">Request date</span>
-            <span>
+            <span className="car-reference-label">Request date</span>
+            <span className="car-reference-value">
               {new Date(formData.request_date).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
@@ -386,23 +386,23 @@ function PurchaseRequest({ onLogout }) {
         </header>
 
         <form onSubmit={handleSubmit}>
-          <section className="pr-form-section" id="details">
+          <section className="car-form-section" id="details">
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="pr-label" htmlFor="employeeID">
+                <label className="car-reference-label" htmlFor="employeeID">
                   Employee ID
                 </label>
                 <input
                   id="employeeID"
                   name="employee_id"
                   value={userData.employee_id}
-                  className="pr-input"
+                  className="car-input"
                   readOnly
                   required
                 />
               </div>
               <div className="pr-field">
-                <label className="pr-label" htmlFor="name">
+                <label className="car-reference-label" htmlFor="name">
                   Name
                 </label>
                 <input
@@ -410,7 +410,7 @@ function PurchaseRequest({ onLogout }) {
                   name="name"
                   value={userData.name}
                   onChange={handleChange}
-                  className="pr-input"
+                  className="car-input"
                   placeholder="Full name"
                   readOnly
                   required
@@ -420,7 +420,7 @@ function PurchaseRequest({ onLogout }) {
                   id="requestById"
                   name="user_id"
                   value={formData.user_id} 
-                  className="pr-input"
+                  className="car-input"
                   placeholder="User ID"
                   readOnly
                 />
@@ -428,13 +428,13 @@ function PurchaseRequest({ onLogout }) {
             </div>
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="pr-label" htmlFor="branch">Branch</label>
+                <label className="car-reference-label" htmlFor="branch">Branch</label>
                 <select
                   id="branch"
                   name="branch"
                   value={formData.branch}
                   onChange={handleChange}
-                  className="pr-input"
+                  className="car-input"
                   required
                 >
                   <option value="" disabled>Select branch</option>
@@ -448,13 +448,13 @@ function PurchaseRequest({ onLogout }) {
 
 
               <div className="pr-field">
-                <label className="pr-label" htmlFor="department">Department</label>
+                <label className="car-reference-label" htmlFor="department">Department</label>
                 <select
                   id="department"
                   name="department"
                   value={formData.department}
                   onChange={handleChange}
-                  className="pr-input"
+                  className="car-input"
                   required
                 >
                   <option value="" disabled>Select department</option>
@@ -469,32 +469,32 @@ function PurchaseRequest({ onLogout }) {
             </div>
           </section>
 
-          <section className="pr-form-section" id="vendor-supplier-information">
-            <h2 className="pr-section-title">Vendor / Supplier Information</h2>
+          <section className="car-form-section" id="vendor-supplier-information">
+            <h2 className="prf-section-title">Vendor / Supplier Information</h2>
             {/* <p className="pr-section-subtitle">
               Identify the payee and relevant references for this payment.
             </p> */}
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="pr-label" htmlFor="payee-name">Vendor/Supplier (Payee's Name)</label>
+                <label className="car-reference-label" htmlFor="payee-name">Vendor/Supplier (Payee's Name)</label>
                 <input
                   type="text"
                   name="vendor_supplier"
                   value={formData.vendor_supplier}
                   onChange={handleChange}
-                  className="pr-input"
+                  className="car-input"
                   required
                 />
               </div>
 
               <div className="pr-field">
-                <label className="pr-label" htmlFor="pr-number">PR Number (if applicable)</label>
+                <label className="car-reference-label" htmlFor="pr-number">PR Number (if applicable)</label>
                 <input
                   type="text"
                   name="pr_number"
                   value={formData.pr_number}
                   onChange={handleChange}
-                  className="pr-input"
+                  className="car-input"
                   required
                 />
               </div>
@@ -502,25 +502,25 @@ function PurchaseRequest({ onLogout }) {
 
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="pr-label" htmlFor="date-needed">Date Needed</label>
+                <label className="car-reference-label" htmlFor="date-needed">Date Needed</label>
                 <input
                   type="date"
                   name="date_needed"
                   value={formData.date_needed}
                   onChange={handleChange}
-                  className="pr-input"
+                  className="car-input"
                   required
                 />
               </div>
 
               <div className="pr-field">
-                <label className="pr-label" htmlFor="pr-number">Purpose</label>
+                <label className="car-reference-label" htmlFor="pr-number">Purpose</label>
                 <textarea
                   id="purposeText"
                   name="purpose"
                   value={formData.purpose}
                   onChange={handleChange}
-                  className="cabr-textarea"
+                  className="car-textarea"
                   placeholder="Purpose of the payment request"
                   rows={1}
                   required
@@ -529,7 +529,7 @@ function PurchaseRequest({ onLogout }) {
             </div>
           </section>
 
-          <section className="pr-items-card" id="items">
+          <section className="car-form-section" id="items">
             <div className="pr-items-header">
               <p className="pr-section-subtitle">
               </p>
@@ -567,7 +567,7 @@ function PurchaseRequest({ onLogout }) {
                             name="item"
                             value={item.item}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="pr-input"
+                            className="car-input"
                             required
                           />
                         </td>
@@ -579,7 +579,7 @@ function PurchaseRequest({ onLogout }) {
                             min="1"
                             value={item.quantity}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="pr-input"
+                            className="car-input"
                             required
                           />
                         </td>
@@ -590,7 +590,7 @@ function PurchaseRequest({ onLogout }) {
                             min="1"
                             value={item.unit_price}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="pr-input"
+                            className="car-input"
                             required
                           />
                         </td>
@@ -601,7 +601,7 @@ function PurchaseRequest({ onLogout }) {
                             name="amount"
                             value={item.amount}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="pr-input"
+                            className="car-input"
                             required
                           />
                         </td>
@@ -611,7 +611,7 @@ function PurchaseRequest({ onLogout }) {
                             name="expense_charges"
                             value={item.expense_charges}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="pr-input"
+                            className="car-input"
                             required
                           />
                         </td>
@@ -621,7 +621,7 @@ function PurchaseRequest({ onLogout }) {
                             name="location"
                             value={item.location}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="pr-input"
+                            className="car-input"
                             required
                           />
                         </td>
@@ -652,10 +652,29 @@ function PurchaseRequest({ onLogout }) {
             </div>
           </section>
 
-          <section className="rfr-form-section" id="signature">
-              <h2 className="rfr-section-title">Signature Details</h2>
+          <section className="car-form-section" id="signature">
+              <h2 className="prf-section-title">Signature Details</h2>
 
-              <div className="signature-details">
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                  <label className="car-reference-value">Requested by:</label>
+                  <input type="text" name="requested_by" className="car-input" value={userData.name || ""} required readOnly/>
+                </div>
+
+                <div className="pr-field receive-signature">
+                  <label className="car-reference-value">Signature</label>
+                  <input type="text" name="requested_signature" className="car-input received-signature" value={userData.signature || ""} readOnly />
+                  {userData.signature ? (
+                    <img
+                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                          <p>No signature available</p>
+                    )}
+                </div>
+              </div>
+              {/* <div className="signature-details">
                 <label htmlFor="requested_by">
                   <input
                     type="text"
@@ -685,7 +704,7 @@ function PurchaseRequest({ onLogout }) {
                   <p>Signature:</p>
 
                 </label>
-              </div>
+              </div> */}
           </section>
 
           <div className="pr-form-actions">

@@ -1672,6 +1672,31 @@ app.post("/api/ca_receipt", async (req, res) => {
   }
 });
 
+app.get("/api/ca_receipt", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        id,
+        car_request_code,
+        request_date,
+        employee_id,
+        name,
+        cash_advance_no,
+        received_from,
+        php_amount,
+        php_word,
+        received_by,
+        received_signature,
+        user_id
+      FROM ca_receipt
+      ORDER BY request_date DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching CA receipts:", err);
+    res.status(500).json({ message: "Server error fetching CA receipts" });
+  }
+});
 
 
 /* ------------------------
@@ -2158,6 +2183,66 @@ app.put("/api/update_payment_request", uploadForm.none(), async (req, res) => {
     res.status(500).json({ message: "Server error updating payment request." });
   }
 });
+
+app.use(express.json());
+
+app.put("/api/payment_request/:id", async (req, res) => {
+  const { id } = req.params;
+  const { status, received_by, received_signature } = req.body;
+
+  console.log("Received PUT /api/payment_request/:id", { id, status, received_by, received_signature });
+
+  if (!id) {
+    return res.status(400).json({ error: "Missing request ID" });
+  }
+
+  try {
+    const updateResult = await pool.query(
+      `UPDATE payment_request
+       SET status = $1,
+           received_by = $2,
+           received_signature = $3
+       WHERE id = $4
+       RETURNING *;`,
+      [status, received_by, received_signature, id]
+    );
+
+    if (updateResult.rowCount === 0) {
+      return res.status(404).json({ error: "Payment request not found" });
+    }
+
+    console.log("Payment request updated successfully:", updateResult.rows[0]);
+    res.json({
+      message: "Payment request updated successfully",
+      updated: updateResult.rows[0],
+    });
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: err.message || "Database error" });
+  }
+});
+
+// ✅ Fetch single user by ID
+app.get("/api/users/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT id, name, signature FROM users WHERE id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    res.status(500).json({ error: "Database error fetching user" });
+  }
+});
+
 
 /* ------------------------
    BRANCHES CRUD API

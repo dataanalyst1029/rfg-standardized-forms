@@ -66,164 +66,6 @@ function SubmittedReimbursement({ onLogout, currentUserId, showAll = false }) {
     setSelectedRequestCode(e.target.value);
   };
 
-  const handlePrint = () => {
-    if (!cardRef.current) return;
-
-    const printContents = cardRef.current.outerHTML;
-    const printWindow = window.open("", "", "width=900,height=650");
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print Reimbursement</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
-              background: #fff;
-              position: relative;
-            }
-
-            h2, h3, h4 {
-              margin-bottom: 8px;
-            }
-
-            .approved-content {
-              margin-top: 3rem;
-            }
-
-            .purchase-dept-content {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-end;
-              margin-bottom: 1.5rem;
-              position: relative;
-            }
-
-            .purchase-dept-content div {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              width: 45%;
-            }
-
-            .purchase-signature {
-              position: relative;
-              width: 45%;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-            }
-
-            .signature-image {
-              position: absolute;
-              top: -123px;
-              width: 150px;
-              height: auto;
-              object-fit: contain;
-            }
-
-            .purchase-signature p {
-              border-top: 1px solid;
-              width: 80%;
-              text-align: center;
-            }
-
-            .floating-buttons {
-              position: fixed;
-              bottom: 20px;
-              right: 20px;
-              display: flex;
-              gap: 10px;
-              z-index: 9999;
-            }
-
-            .action-btn {
-              width: 44px;
-              height: 44px;
-              border-radius: 50%;
-              border: none;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-              color: white;
-              font-size: 20px;
-              transition: transform 0.2s ease;
-            }
-
-            .action-btn:hover {
-              transform: scale(1.1);
-            }
-
-            .print-btn {
-              background-color: #007bff;
-            }
-
-            .pdf-btn {
-              background-color: #28a745;
-            }
-
-            @media print {
-              .floating-buttons {
-                display: none !important;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="floating-buttons">
-            <button class="action-btn print-btn" onclick="window.print()" title="Print">🖨️</button>
-            <button class="action-btn pdf-btn" id="downloadPDF" title="Download PDF">📥</button>
-          </div>
-
-          ${printContents}
-
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-          <script>
-            async function toBase64Image(img) {
-              const response = await fetch(img.src, {mode: 'cors'});
-              const blob = await response.blob();
-              return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(blob);
-              });
-            }
-
-            document.getElementById("downloadPDF").addEventListener("click", async function() {
-              const element = document.body.cloneNode(true);
-              const buttons = element.querySelector('.floating-buttons');
-              if (buttons) buttons.remove();
-
-              const imgs = element.querySelectorAll('img');
-              for (let img of imgs) {
-                try {
-                  const base64 = await toBase64Image(img);
-                  img.src = base64;
-                } catch (err) {
-                  console.warn('Could not convert image:', img.src);
-                }
-              }
-
-              const opt = {
-                margin: 0.5,
-                filename: 'Reimbursement.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-              };
-
-              html2pdf().from(element).set(opt).save();
-            });
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
-
   const selectedRequest = requests.find(
     (req) => req.rb_request_code === selectedRequestCode
   );
@@ -282,13 +124,13 @@ function SubmittedReimbursement({ onLogout, currentUserId, showAll = false }) {
           </div>
 
           {selectedRequest && (
-            <button onClick={handlePrint} className="print-btn">
-              🖨️ Print
+            <button className="print-rb-btn" onClick={() => window.print()}>
+            🖨️ Print
             </button>
           )}
         </header>
 
-        <div className="submitted-requests-container">
+        <div className="submitted-ca-requests-container">
           {requests.length === 0 ? (
             <p>No submitted requests found.</p>
           ) : (
@@ -314,11 +156,10 @@ function SubmittedReimbursement({ onLogout, currentUserId, showAll = false }) {
 
               {selectedRequest && (
                 <div
-                  className="submitted-request-card"
+                  className="submitted-rb-request-card"
                   ref={cardRef}
                   style={{ marginTop: "1rem" }}
                 >
-
                     {/* <div className="rb-reference-card">
                         <span className="rb-reference-value">
                             <strong>{selectedRequest.rb_request_code}</strong>
@@ -329,109 +170,117 @@ function SubmittedReimbursement({ onLogout, currentUserId, showAll = false }) {
                         <p hidden>ID: {selectedRequest.id}</p>
                     </div> */}
 
-                    <section className="pr-form-section" id="details">
+                    <section className="car-form-section" id="details">
                         <div className="pr-grid-two">
                             <div className="pr-field">
                                 <label>Reference No.</label>
-                                <input value={selectedRequest.rb_request_code} className="pr-input" readOnly />
+                                <input value={selectedRequest.rb_request_code} className="car-input" readOnly />
                             </div>
                             <div className="pr-field">
                                 <label>Date Request</label>
-                                <input value={formatDate(selectedRequest.request_date)} className="pr-input" readOnly />
+                                <input value={formatDate(selectedRequest.request_date)} className="car-input" readOnly />
                             </div>
                         </div>
                         <div className="pr-grid-two">
                             <div className="pr-field">
                                 <label>Cash Advance Liquidation No.</label>
-                                <input value={selectedRequest.cal_no} className="pr-input" readOnly />
+                                <input value={selectedRequest.cal_no} className="car-input" readOnly />
                             </div>
                             <div className="pr-field">
                                 <label>Cash Advance No.</label>
-                                <input value={selectedRequest.ca_no} className="pr-input" readOnly />
+                                <input value={selectedRequest.ca_no} className="car-input" readOnly />
                             </div>
                         </div>
                         <div className="pr-grid-two">
                             <div className="pr-field">
                                 <label>Employee ID</label>
-                                <input value={selectedRequest.employee_id} className="pr-input" readOnly />
+                                <input value={selectedRequest.employee_id} className="car-input" readOnly />
                             </div>
                             <div className="pr-field">
                                 <label>Name</label>
-                                <input value={selectedRequest.name} className="pr-input" readOnly />
+                                <input value={selectedRequest.name} className="car-input" readOnly />
                             </div>
                         </div>
                         <div className="pr-grid-two">
                             <div className="pr-field">
                                 <label>Branch</label>
-                                <input value={selectedRequest.branch} className="pr-input" readOnly />
+                                <input value={selectedRequest.branch} className="car-input" readOnly />
                             </div>
                             <div className="pr-field">
                                 <label>Department</label>
-                                <input value={selectedRequest.department} className="pr-input" readOnly />
+                                <input value={selectedRequest.department} className="car-input" readOnly />
                             </div>
                         </div>
                     </section>
 
-                    <section className="pr-form-section" id="details">
+                    <section className="car-form-section" id="details">
                         <div className="pr-grid-two">
                             <div className="pr-field">
                                 <label>BPI Account No.</label>
-                                <input value={selectedRequest.bpi_acc_no} className="pr-input" readOnly />
+                                <input value={selectedRequest.bpi_acc_no} className="car-input" readOnly />
                             </div>
                             <div className="pr-field">
                                 <label>Total Reimbursable Amount</label>
-                                <input value={selectedRequest.total_rb_amount} className="pr-input" readOnly />
+                                <input value={selectedRequest.total_rb_amount} className="car-input" readOnly />
                             </div>
                         </div>
                     </section>
 
-                    <section className="pr-form-section" id="details">
-                        <div className="signature-section">
-                            <div className="signature-format">
-                                <div className="submitter-signature">
-                                <label htmlFor="submitted-by">
-                                    <span className="s-name">{selectedRequest.requested_by}</span>
-                                    <span className="s-by">Request by</span>
-                                </label>
-                                </div>
-                                <div className="submitter-signature">
-                                <label htmlFor="submitted-signature">
-                                    <span className="sub-sign">{selectedRequest.request_signature}</span>
-                                    {selectedRequest.request_signature ? (
-                                    <img
-                                    src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.request_signature}`}
-                                    alt="Signature"
-                                    className="img-sign"/>
-                                    ) : (
-                                        <div className="img-sign empty-sign"></div>
-                                    )}
-                                    <span className="s-by">Signature</span>
-                                </label>
-                                </div>
-                            </div>
-                            <div class="signature-format">
-                                <div className="submitter-signature">
-                                    <label htmlFor="submitted-by">
-                                    <span className="s-name">{selectedRequest.approved_by}</span>
-                                    <span className="s-by">Approved by</span>
-                                    </label>
-                                </div>
-                                <div className="submitter-signature">
-                                    <label htmlFor="submitted-signature">
-                                        <span className="sub-sign">{selectedRequest.approve_signature}</span>
-                                        {selectedRequest.approve_signature ? (
-                                        <img
-                                        src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approve_signature}`}
-                                        alt="Signature"
-                                        className="img-sign"/>
-                                        ) : (
-                                            <div className="img-sign empty-sign"></div>
-                                        )}
-                                        <span className="s-by">Signature</span>
-                                    </label>
-                                </div>
-                            </div>
+                    <section className="car-form-section" style={{marginBottom: "5rem"}} id="details">
+                      <div className="pr-grid-two">
+                        <div className="pr-field">
+                            <label>Requested by</label>
+                            <input
+                            value={selectedRequest.requested_by}
+                            className="car-input"
+                            readOnly
+                            />
                         </div>
+                        <div className="pr-field receive-signature">
+                            <label>Signature</label>
+                            <input
+                            value={selectedRequest.request_signature}
+                            className="car-input received-signature"
+                            readOnly
+                            />
+                            {selectedRequest.request_signature ? (
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.request_signature}`}
+                                alt="Signature"
+                                className="img-sign"
+                            />
+                            ) : (
+                            <div className="img-sign empty-sign"></div>
+                            )}
+                        </div>
+                      </div>
+                      <div className="pr-grid-two">
+                        <div className="pr-field">
+                            <label>Approved by</label>
+                            <input
+                            value={selectedRequest.approved_by}
+                            className="car-input"
+                            readOnly
+                            />
+                        </div>
+                        <div className="pr-field receive-signature">
+                            <label>Signature</label>
+                            <input
+                            value={selectedRequest.approve_signature}
+                            className="car-input received-signature"
+                            readOnly
+                            />
+                            {selectedRequest.approve_signature ? (
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approve_signature}`}
+                                alt="Signature"
+                                className="img-sign"
+                            />
+                            ) : (
+                            <div className="img-sign empty-sign"></div>
+                            )}
+                        </div>
+                      </div>
                     </section>
                     {(selectedRequest.status || selectedRequest.declined_reason) && (
                       <div className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}>
