@@ -465,7 +465,7 @@ function SubmittedInterbranchTransferSlip({
 
     return (
       <>
-        <div className="dropdown-section">
+        <div className="dropdown-section" style={{ marginBottom: "1.5rem" }}>
           <label htmlFor="itsRequestSelect">Select Reference No: </label>
           <select
             id="itsRequestSelect"
