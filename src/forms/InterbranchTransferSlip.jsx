@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react"; // Added useMemo
 import { useNavigate } from "react-router-dom";
 import "./styles/InterbranchTransfer.css";
 // You will likely need styles from PurchaseRequest.css for the item table
-import "./styles/PurchaseRequest.css"; 
+import "./styles/PurchaseRequest.css";
 import { API_BASE_URL } from "../config/api.js";
 
 // Helper: generates default form values
@@ -70,14 +70,14 @@ function InterbranchTransferSlip({ onLogout }) {
   const [request, setRequest] = useState(null);
   const [formData, setFormData] = useState(initialFormData(storedUser));
   // Updated to use 'items' state for multiple items
-  const [items, setItems] = useState([emptyItem]); 
+  const [items, setItems] = useState([emptyItem]);
   const [branches, setBranches] = useState([]);
   const [message, setMessage] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [nextReferenceCode, setNextReferenceCode] = useState(null);
   const [activeSection, setActiveSection] = useState("details");
   const role = (storedUser.role || "").toLowerCase();
-  const isUserAccount = role === "user" || role === "staff";
+  const isUserAccount = role === "user";
 
   // Fetch next available reference code
   useEffect(() => {
@@ -183,7 +183,7 @@ function InterbranchTransferSlip({ onLogout }) {
   };
 
   // --- Item handling functions (from PaymentRequest) ---
-  
+
   const handleItemChange = (index, event) => {
     const { name, value } = event.target;
 
@@ -211,9 +211,8 @@ function InterbranchTransferSlip({ onLogout }) {
       ),
     [items]
   );
-  
-  // --- End Item handling functions ---
 
+  // --- End Item handling functions ---
 
   // Handle 'From Branch' change
   const handleFromBranchChange = (event) => {
@@ -255,7 +254,7 @@ function InterbranchTransferSlip({ onLogout }) {
       return showMessage("error", "Specify the transfer date.");
     if (!formData.dispatch_method)
       return showMessage("error", "Select a mode of transport.");
-    
+
     // Validation for multiple items
     if (sanitizedItems.length === 0) {
       return showMessage(
@@ -505,9 +504,9 @@ function InterbranchTransferSlip({ onLogout }) {
                 id="from_address"
                 name="from_address"
                 value={formData.from_address}
-                onChange={handleFieldChange}
                 className="pr-input"
                 disabled={isReadOnly}
+                readOnly // <-- MODIFICATION: Added readOnly
               />
             </div>
             <div className="pr-field">
@@ -518,9 +517,9 @@ function InterbranchTransferSlip({ onLogout }) {
                 id="to_address"
                 name="to_address"
                 value={formData.to_address}
-                onChange={handleFieldChange}
                 className="pr-input"
                 disabled={isReadOnly}
+                readOnly // <-- MODIFICATION: Added readOnly
               />
             </div>
           </div>
@@ -590,7 +589,10 @@ function InterbranchTransferSlip({ onLogout }) {
                 </tr>
               </thead>
               <tbody>
-                {items.length === 0 || (items.length === 1 && !items[0].item_description && !items[0].qty) ? (
+                {items.length === 0 ||
+                (items.length === 1 &&
+                  !items[0].item_description &&
+                  !items[0].qty) ? (
                   <tr>
                     <td colSpan={6} className="pr-items-empty">
                       No items yet. Add an item to get started.
@@ -714,7 +716,7 @@ function InterbranchTransferSlip({ onLogout }) {
                     className="pr-radio-input"
                   />
                   <label
-                    htmlFor="dispatch_column" // Note: This ID seems wrong in your original, fixed to "dispatch_courier"
+                    htmlFor="dispatch_courier"
                     className="pr-radio-label"
                   >
                     <span className="pr-radio-control"></span>

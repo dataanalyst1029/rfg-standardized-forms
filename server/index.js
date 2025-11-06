@@ -2173,7 +2173,7 @@ app.get("/api/branches", async (req, res) => {
 });
 
 app.post("/api/branches", async (req, res) => {
-  const { branch_name, branch_code, location } = req.body;
+  const { branch_name, branch_code, location, address } = req.body;
 
   if (!branch_name || !branch_code) {
     return res.status(400).json({ message: "Branch name and code are required" });
@@ -2181,10 +2181,10 @@ app.post("/api/branches", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO branches (branch_name, branch_code, location)
-       VALUES ($1, $2, $3)
+      `INSERT INTO branches (branch_name, branch_code, location, address)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [branch_name, branch_code, location || null]
+      [branch_name, branch_code, location || null, address || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -2195,15 +2195,15 @@ app.post("/api/branches", async (req, res) => {
 
 app.put("/api/branches/:id", async (req, res) => {
   const { id } = req.params;
-  const { branch_name, branch_code, location } = req.body;
+  const { branch_name, branch_code, location, address } = req.body;
 
   try {
     const result = await pool.query(
       `UPDATE branches 
-       SET branch_name = $1, branch_code = $2, location = $3, updated_at = NOW()
-       WHERE id = $4
+       SET branch_name = $1, branch_code = $2, location = $3, address = $4, updated_at = NOW()
+       WHERE id = $5
        RETURNING *`,
-      [branch_name, branch_code, location || null, id]
+      [branch_name, branch_code, location || null, address || null, id]
     );
 
     if (result.rows.length === 0) {
