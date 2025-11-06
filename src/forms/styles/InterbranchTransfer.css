@@ -124,3 +124,199 @@
   flex-direction: column;
   gap: 16px; /* <-- This creates the gap. Adjust 16px to whatever you like! */
 }
+
+/* --- Interbranch Transfer Slip Styles --- */
+
+.its-grid-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem; /* Use rem for screen */
+  width: 100%;
+  margin-top: 1.5rem;
+}
+
+.its-col-left, .its-col-right {
+  display: flex;
+  flex-direction: column;
+}
+
+.its-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #000;
+}
+
+.its-info-table th, 
+.its-info-table td {
+  border: 1px solid #000;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  height: 2.5rem; /* Set a consistent height */
+}
+
+.its-info-table th {
+  width: 40%;
+  font-weight: bold;
+  background: #f4f4f4;
+}
+
+.its-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  /* margin-top: 1.5rem; <-- Removed, now controlled by header */
+  border: 1px solid #000;
+  border-top: none; /* Header provides top border */
+}
+
+.its-items-table th, 
+.its-items-table td {
+  border: 1px solid #000;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.its-items-table th {
+  background: #f4f4f4;
+  font-weight: bold;
+}
+
+.its-items-table .text-center { 
+  text-align: center; 
+}
+
+.its-items-table tr td {
+  height: 2.5rem; /* Ensure rows have height */
+}
+
+.its-footnote {
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-top: 5px;
+}
+
+.its-transport-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #000;
+}
+
+.its-transport-table th, 
+.its-transport-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border: 1px solid #000;
+  height: 2.5rem; /* Set a consistent height */
+}
+
+.its-transport-table th {
+  width: 40%;
+  font-weight: bold;
+  background: #f4f4f4;
+}
+
+.its-transport-header {
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-align: center;
+  padding: 0.5rem;
+  background: #000;
+  color: #fff;
+  border: 1px solid #000;
+  margin-top: 1.5rem;
+  grid-column: 1 / -1; /* Span full width in grid */
+}
+
+.its-sig-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+  border: 1px solid #000;
+}
+
+.its-sig-table th, 
+.its-sig-table td {
+  border: 1px solid #000;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.its-sig-table th {
+  width: 20%;
+  font-weight: bold;
+  background: #f4f4f4;
+}
+
+.its-sig-table td:nth-of-type(1) { width: 30%; } /* Name */
+.its-sig-table td:nth-of-type(2) { width: 30%; } /* Signature */
+.its-sig-table td:nth-of-type(3) { width: 20%; } /* Date */
+
+.its-sig-table .sig-box {
+  height: 3.5rem;
+  vertical-align: bottom;
+}
+
+.its-received-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+  border: 1px solid #000;
+}
+
+.its-received-table th, 
+.its-received-table td {
+  border: 1px solid #000;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.its-received-table th {
+  width: 20%;
+  font-weight: bold;
+  background: #f4f4f4;
+}
+
+.its-received-table .sig-box {
+  height: 3.5rem;
+  vertical-align: bottom;
+}
+
+.its-receiving-section {
+  margin-top: 1.5rem;
+  border: 1px solid #000;
+}
+
+.its-receiving-header {
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-align: center;
+  padding: 0.5rem;
+  background: #000;
+  color: #fff;
+  border-bottom: 1px solid #000;
+}
+
+.its-receiving-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.its-receiving-col {
+  padding: 1rem;
+}
+
+.its-receiving-col:first-child {
+  border-right: 1px solid #000;
+}
+
+.its-receiving-col p {
+  margin: 0 0 10px 0;
+}
+
+.its-receiving-col .reason {
+  border-top: 1px solid #000;
+  padding-top: 10px;
+  margin-top: 10px;
+  min-height: 4rem;
+}

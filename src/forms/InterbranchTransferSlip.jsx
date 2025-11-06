@@ -35,7 +35,8 @@ const initialFormData = (storedUser) => ({
   approved_date: "",
   dispatched_date: "",
   received_date: "",
-  prepared_signature: storedUser.name || "",
+  // MODIFIED: Set to null initially, will be fetched
+  prepared_signature: null, 
   approved_signature: "",
   dispatched_signature: "",
   received_signature: "",
@@ -62,6 +63,13 @@ const emptyItem = {
   remarks: "",
 };
 
+// --- ADDED THIS ---
+const NAV_SECTIONS = [
+  { id: "its-main", label: "New Interbranch Transfer" },
+  { id: "submitted", label: "View Submitted Requests" },
+];
+// --- END ADD ---
+
 function InterbranchTransferSlip({ onLogout }) {
   const storedUser = JSON.parse(sessionStorage.getItem("user") || "{}");
   const navigate = useNavigate();
@@ -70,14 +78,46 @@ function InterbranchTransferSlip({ onLogout }) {
   const [request, setRequest] = useState(null);
   const [formData, setFormData] = useState(initialFormData(storedUser));
   // Updated to use 'items' state for multiple items
-  const [items, setItems] = useState([emptyItem]);
+  const [items, setItems] = useState([]);
   const [branches, setBranches] = useState([]);
   const [message, setMessage] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [nextReferenceCode, setNextReferenceCode] = useState(null);
-  const [activeSection, setActiveSection] = useState("details");
+  // --- MODIFIED THIS ---
+  const [activeSection, setActiveSection] = useState("its-main");
+  // --- END MODIFY ---
   const role = (storedUser.role || "").toLowerCase();
-  const isUserAccount = role === "user";
+  const isUserAccount = role === "user" || role === "staff" || "admin";
+
+  // --- NEW: Fetch full user data (including signature) ---
+  useEffect(() => {
+    if (storedUser.id) {
+      fetch(`${API_BASE_URL}/users/${storedUser.id}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch user data");
+          return res.json();
+        })
+        .then((data) => {
+          // Update formData with fetched signature and name
+          setFormData((prev) => ({
+            ...prev,
+            prepared_by: data.name || storedUser.name,
+            prepared_signature: data.signature || null, // <-- This is the fix
+            employee_id: data.employee_id || storedUser.employee_id,
+          }));
+        })
+        .catch((err) => {
+          console.error("Error fetching user data:", err);
+          // Fallback to storedUser if fetch fails
+          setFormData((prev) => ({
+            ...prev,
+            prepared_by: storedUser.name || "",
+            employee_id: storedUser.employee_id || "",
+          }));
+        });
+    }
+  }, [storedUser.id, storedUser.name, storedUser.employee_id]);
+  // --- END NEW ---
 
   // Fetch next available reference code
   useEffect(() => {
@@ -200,7 +240,7 @@ function InterbranchTransferSlip({ onLogout }) {
 
   const removeItemRow = (index) =>
     setItems((prev) =>
-      prev.length === 1 ? [emptyItem] : prev.filter((_, i) => i !== index)
+     prev.filter((_, i) => i !== index)
     );
 
   // Memoized list of valid items to be submitted
@@ -244,6 +284,12 @@ function InterbranchTransferSlip({ onLogout }) {
   // Handle form submission
   const submitRequest = async () => {
     if (!isUserAccount) return;
+    
+    // --- ADDED SIGNATURE VALIDATION ---
+    if (!formData.prepared_signature) {
+       return showMessage("error", "Your signature is not set up. Please update your profile.");
+    }
+    // --- END VALIDATION ---
 
     // Updated validation rules
     if (!formData.from_branch)
@@ -304,16 +350,18 @@ function InterbranchTransferSlip({ onLogout }) {
   const isTransportMethodSelected = formData.dispatch_method !== "";
 
   // Navigate between sidebar sections
+  // --- REPLACED THIS FUNCTION ---
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      // Update path to be specific to this form
-      navigate("/forms/interbranch-transfer/submitted");
-      return;
+      navigate("/forms/interbranch-transfer-slip/submitted");
+    } else {
+      // This handles scrolling to the top if "New Interbranch Transfer" is clicked
+      setActiveSection(sectionId);
+      const target = document.getElementById(sectionId);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-    setActiveSection(sectionId);
-    const target = document.getElementById(sectionId);
-    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+  // --- END REPLACE ---
 
   // Render main layout
   return (
@@ -326,23 +374,20 @@ function InterbranchTransferSlip({ onLogout }) {
         </div>
 
         {/* Sidebar navigation sections */}
+        {/* --- REPLACED THIS NAV --- */}
         <nav className="pr-sidebar-nav">
-          {[
-            { id: "details", label: "Request details" },
-            { id: "items", label: "Item Details" },
-            { id: "dispatch", label: "Mode of Transport" },
-            { id: "submitted", label: "View submitted requests" },
-          ].map((section) => (
+          {NAV_SECTIONS.map((section) => (
             <button
               key={section.id}
               type="button"
-              className={activeSection === section.id ? "is-active" : ""}
+              className={section.id === "its-main" ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}
             </button>
           ))}
         </nav>
+        {/* --- END REPLACE --- */}
 
         <div className="pr-sidebar-footer">
           <span className="pr-sidebar-meta">
@@ -361,7 +406,9 @@ function InterbranchTransferSlip({ onLogout }) {
       </aside>
 
       {/* Main form area */}
-      <main className="pr-main">
+      {/* --- MODIFIED THIS LINE --- */}
+      <main className="pr-main" id="its-main">
+      {/* --- END MODIFY --- */}
         <button
           type="button"
           className="form-back-button"
@@ -506,7 +553,7 @@ function InterbranchTransferSlip({ onLogout }) {
                 value={formData.from_address}
                 className="pr-input"
                 disabled={isReadOnly}
-                readOnly // <-- MODIFICATION: Added readOnly
+                readOnly // <-- This was added
               />
             </div>
             <div className="pr-field">
@@ -519,7 +566,7 @@ function InterbranchTransferSlip({ onLogout }) {
                 value={formData.to_address}
                 className="pr-input"
                 disabled={isReadOnly}
-                readOnly // <-- MODIFICATION: Added readOnly
+                readOnly // <-- This was added
               />
             </div>
           </div>
@@ -589,10 +636,7 @@ function InterbranchTransferSlip({ onLogout }) {
                 </tr>
               </thead>
               <tbody>
-                {items.length === 0 ||
-                (items.length === 1 &&
-                  !items[0].item_description &&
-                  !items[0].qty) ? (
+                {items.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="pr-items-empty">
                       No items yet. Add an item to get started.
@@ -854,7 +898,7 @@ function InterbranchTransferSlip({ onLogout }) {
               onClick={() => {
                 setRequest(null);
                 setFormData(initialFormData(storedUser)); // Reset form
-                setItems([emptyItem]); // Reset items
+                setItems([]); // Reset items
                 setNextReferenceCode(null); // Will trigger refetch
               }}
               disabled={isSaving}

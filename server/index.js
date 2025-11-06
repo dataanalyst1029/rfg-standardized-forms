@@ -2460,35 +2460,55 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
     client.release();  // Release DB client
   }
 });
-
-/*
-app.get("/api/payment_request", async (req, res) => {  // Fetch all payment requests with items
+app.get("/api/interbranch_transfer_slip", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT pr.*,
+      SELECT its.*,
         json_agg(
           json_build_object(
-            'id', pri.id, 
-            'item', pri.item, 
-            'quantity', pri.quantity, 
-            'unit_price', pri.unit_price,
-            'amount', pri.amount, 
-            'expense_charges', pri.expense_charges, 
-            'location', pri.location
+            'id', itsi.id, 
+            'item_code', itsi.item_code, 
+            'item_description', itsi.item_description, 
+            'qty', itsi.qty,
+            'unit_measure', itsi.unit_measure, 
+            'remarks', itsi.remarks
           )
-        ) AS items
-      FROM payment_request pr
-      LEFT JOIN payment_request_item pri ON pr.id = pri.request_id
-      GROUP BY pr.id
-      ORDER BY pr.created_at DESC;  -- Sort by newest first
+        ) FILTER (WHERE itsi.id IS NOT NULL) AS items
+      FROM interbranch_transfer_slip its
+      LEFT JOIN interbranch_transfer_slip_items itsi ON its.id = itsi.request_id
+      GROUP BY its.id
+      ORDER BY its.created_at DESC;
     `);
-    res.json(result.rows);  // Return array of requests with nested items
+    res.json(result.rows);
   } catch (err) {
-    console.error("❌ Error fetching payment requests:", err);
-    res.status(500).json({ message: "Server error fetching payment requests" });
+    console.error("❌ Error fetching interbranch transfer slips:", err);
+    res.status(500).json({ message: "Server error fetching interbranch transfer slips" });
   }
 });
 
+app.get("/api/interbranch_transfer_slip_items", async (req, res) => {
+  const { request_id } = req.query;
+
+  if (!request_id) {
+    return res.status(400).json({ message: "request_id is required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT *
+       FROM interbranch_transfer_slip_items
+       WHERE request_id = $1
+       ORDER BY id ASC`,
+      [request_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching interbranch transfer slip items:", err);
+    res.status(500).json({ message: "Server error fetching interbranch transfer slip items" });
+  }
+});
+
+/*
 app.get("/api/payment_request_item", async (req, res) => {  // Fetch items for a specific payment request
   const { request_id } = req.query;
 
