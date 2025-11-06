@@ -108,3 +108,19 @@
   border-color: #e5e7eb;
   background-color: #e5e7eb;
 }
+
+.its-numeric-input {
+  width: 15vh;
+}
+
+.its-field {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.its-input-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* <-- This creates the gap. Adjust 16px to whatever you like! */
+}

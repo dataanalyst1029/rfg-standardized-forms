@@ -2419,6 +2419,33 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
     const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
     if (!requestId) throw new Error("Failed to get interbranch transfer slip ID");  // Validate presence of ID
 
+    if (items.length > 0) {
+      const values = [];
+      const placeholders = [];
+
+      items.forEach((item, i) => {
+        const base = i * 6;
+        placeholders.push(
+          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`
+        );
+        values.push(
+          requestId,
+          item.item_code || null,
+          item.item_description || null,
+          item.qty || null,
+          item.unit_measure || null,
+          item.remarks || null
+        );
+      });
+
+      await client.query(
+        `INSERT INTO interbranch_transfer_slip_items
+        (request_id, item_code, item_description, qty, unit_measure, remarks)
+        VALUES ${placeholders.join(",")}`,
+        values
+      );
+    }
+
     await client.query("COMMIT");  // Commit transaction
 
     res.status(201).json({
