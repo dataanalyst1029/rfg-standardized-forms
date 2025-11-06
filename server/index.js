@@ -2258,7 +2258,7 @@ app.get("/api/branches", async (req, res) => {
 });
 
 app.post("/api/branches", async (req, res) => {
-  const { branch_name, branch_code, location } = req.body;
+  const { branch_name, branch_code, location, address } = req.body;
 
   if (!branch_name || !branch_code) {
     return res.status(400).json({ message: "Branch name and code are required" });
@@ -2266,10 +2266,10 @@ app.post("/api/branches", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO branches (branch_name, branch_code, location)
-       VALUES ($1, $2, $3)
+      `INSERT INTO branches (branch_name, branch_code, location, address)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [branch_name, branch_code, location || null]
+      [branch_name, branch_code, location || null, address || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -2280,15 +2280,15 @@ app.post("/api/branches", async (req, res) => {
 
 app.put("/api/branches/:id", async (req, res) => {
   const { id } = req.params;
-  const { branch_name, branch_code, location } = req.body;
+  const { branch_name, branch_code, location, address } = req.body;
 
   try {
     const result = await pool.query(
       `UPDATE branches 
-       SET branch_name = $1, branch_code = $2, location = $3, updated_at = NOW()
-       WHERE id = $4
+       SET branch_name = $1, branch_code = $2, location = $3, address = $4, updated_at = NOW()
+       WHERE id = $5
        RETURNING *`,
-      [branch_name, branch_code, location || null, id]
+      [branch_name, branch_code, location || null, address || null, id]
     );
 
     if (result.rows.length === 0) {
@@ -2504,6 +2504,33 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
     const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
     if (!requestId) throw new Error("Failed to get interbranch transfer slip ID");  // Validate presence of ID
 
+    if (items.length > 0) {
+      const values = [];
+      const placeholders = [];
+
+      items.forEach((item, i) => {
+        const base = i * 6;
+        placeholders.push(
+          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`
+        );
+        values.push(
+          requestId,
+          item.item_code || null,
+          item.item_description || null,
+          item.qty || null,
+          item.unit_measure || null,
+          item.remarks || null
+        );
+      });
+
+      await client.query(
+        `INSERT INTO interbranch_transfer_slip_items
+        (request_id, item_code, item_description, qty, unit_measure, remarks)
+        VALUES ${placeholders.join(",")}`,
+        values
+      );
+    }
+
     await client.query("COMMIT");  // Commit transaction
 
     res.status(201).json({
@@ -2518,35 +2545,55 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
     client.release();  // Release DB client
   }
 });
-
-/*
-app.get("/api/payment_request", async (req, res) => {  // Fetch all payment requests with items
+app.get("/api/interbranch_transfer_slip", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT pr.*,
+      SELECT its.*,
         json_agg(
           json_build_object(
-            'id', pri.id, 
-            'item', pri.item, 
-            'quantity', pri.quantity, 
-            'unit_price', pri.unit_price,
-            'amount', pri.amount, 
-            'expense_charges', pri.expense_charges, 
-            'location', pri.location
+            'id', itsi.id, 
+            'item_code', itsi.item_code, 
+            'item_description', itsi.item_description, 
+            'qty', itsi.qty,
+            'unit_measure', itsi.unit_measure, 
+            'remarks', itsi.remarks
           )
-        ) AS items
-      FROM payment_request pr
-      LEFT JOIN payment_request_item pri ON pr.id = pri.request_id
-      GROUP BY pr.id
-      ORDER BY pr.created_at DESC;  -- Sort by newest first
+        ) FILTER (WHERE itsi.id IS NOT NULL) AS items
+      FROM interbranch_transfer_slip its
+      LEFT JOIN interbranch_transfer_slip_items itsi ON its.id = itsi.request_id
+      GROUP BY its.id
+      ORDER BY its.created_at DESC;
     `);
-    res.json(result.rows);  // Return array of requests with nested items
+    res.json(result.rows);
   } catch (err) {
-    console.error("❌ Error fetching payment requests:", err);
-    res.status(500).json({ message: "Server error fetching payment requests" });
+    console.error("❌ Error fetching interbranch transfer slips:", err);
+    res.status(500).json({ message: "Server error fetching interbranch transfer slips" });
   }
 });
 
+app.get("/api/interbranch_transfer_slip_items", async (req, res) => {
+  const { request_id } = req.query;
+
+  if (!request_id) {
+    return res.status(400).json({ message: "request_id is required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT *
+       FROM interbranch_transfer_slip_items
+       WHERE request_id = $1
+       ORDER BY id ASC`,
+      [request_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching interbranch transfer slip items:", err);
+    res.status(500).json({ message: "Server error fetching interbranch transfer slip items" });
+  }
+});
+
+/*
 app.get("/api/payment_request_item", async (req, res) => {  // Fetch items for a specific payment request
   const { request_id } = req.query;
 

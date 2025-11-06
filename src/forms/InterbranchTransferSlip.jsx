@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react"; // Added useMemo
 import { useNavigate } from "react-router-dom";
 import "./styles/InterbranchTransfer.css";
+// You will likely need styles from PurchaseRequest.css for the item table
+import "./styles/PurchaseRequest.css";
 import { API_BASE_URL } from "../config/api.js";
 
 // Helper: generates default form values
-const createInitialFormState = (storedUser) => ({
+const initialFormData = (storedUser) => ({
   // Form fields
   form_code: null,
   date_transferred: "",
@@ -33,7 +35,8 @@ const createInitialFormState = (storedUser) => ({
   approved_date: "",
   dispatched_date: "",
   received_date: "",
-  prepared_signature: storedUser.name || "",
+  // MODIFIED: Set to null initially, will be fetched
+  prepared_signature: null, 
   approved_signature: "",
   dispatched_signature: "",
   received_signature: "",
@@ -44,17 +47,28 @@ const createInitialFormState = (storedUser) => ({
   short_reason: "",
   over_reason: "",
 
-  // Item Details fields (re-added as flat fields)
-  item_code: "",
-  quantity: "",
-  unit_of_measure: "",
-  item_description: "",
-  item_remarks: "",
+  // Item Details fields removed from here
 
   // Extra fields needed for form UI
   request_date: new Date().toISOString().split("T")[0],
   employee_id: storedUser.employee_id || "",
 });
+
+// Define an empty item row, similar to PaymentRequest
+const emptyItem = {
+  item_code: "",
+  qty: "",
+  unit_measure: "",
+  item_description: "",
+  remarks: "",
+};
+
+// --- ADDED THIS ---
+const NAV_SECTIONS = [
+  { id: "its-main", label: "New Interbranch Transfer" },
+  { id: "submitted", label: "View Submitted Requests" },
+];
+// --- END ADD ---
 
 function InterbranchTransferSlip({ onLogout }) {
   const storedUser = JSON.parse(sessionStorage.getItem("user") || "{}");
@@ -62,14 +76,48 @@ function InterbranchTransferSlip({ onLogout }) {
 
   // State declarations
   const [request, setRequest] = useState(null);
-  const [formData, setFormData] = useState(createInitialFormState(storedUser));
+  const [formData, setFormData] = useState(initialFormData(storedUser));
+  // Updated to use 'items' state for multiple items
+  const [items, setItems] = useState([]);
   const [branches, setBranches] = useState([]);
   const [message, setMessage] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [nextReferenceCode, setNextReferenceCode] = useState(null);
-  const [activeSection, setActiveSection] = useState("details");
+  // --- MODIFIED THIS ---
+  const [activeSection, setActiveSection] = useState("its-main");
+  // --- END MODIFY ---
   const role = (storedUser.role || "").toLowerCase();
-  const isUserAccount = role === "user" || role === "staff";
+  const isUserAccount = role === "user" || role === "staff" || "admin";
+
+  // --- NEW: Fetch full user data (including signature) ---
+  useEffect(() => {
+    if (storedUser.id) {
+      fetch(`${API_BASE_URL}/users/${storedUser.id}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch user data");
+          return res.json();
+        })
+        .then((data) => {
+          // Update formData with fetched signature and name
+          setFormData((prev) => ({
+            ...prev,
+            prepared_by: data.name || storedUser.name,
+            prepared_signature: data.signature || null, // <-- This is the fix
+            employee_id: data.employee_id || storedUser.employee_id,
+          }));
+        })
+        .catch((err) => {
+          console.error("Error fetching user data:", err);
+          // Fallback to storedUser if fetch fails
+          setFormData((prev) => ({
+            ...prev,
+            prepared_by: storedUser.name || "",
+            employee_id: storedUser.employee_id || "",
+          }));
+        });
+    }
+  }, [storedUser.id, storedUser.name, storedUser.employee_id]);
+  // --- END NEW ---
 
   // Fetch next available reference code
   useEffect(() => {
@@ -143,7 +191,7 @@ function InterbranchTransferSlip({ onLogout }) {
     if (type !== "error") setTimeout(() => setMessage(null), 2500);
   };
 
-  // Generic form input handler
+  // Generic form input handler (no longer handles item fields)
   const handleFieldChange = (event) => {
     const { name, value } = event.target;
 
@@ -173,6 +221,38 @@ function InterbranchTransferSlip({ onLogout }) {
       return { ...prev, [name]: value };
     });
   };
+
+  // --- Item handling functions (from PaymentRequest) ---
+
+  const handleItemChange = (index, event) => {
+    const { name, value } = event.target;
+
+    setItems((prev) => {
+      const next = [...prev];
+      const item = { ...next[index], [name]: value };
+      // No 'amount' calculation needed here
+      next[index] = item;
+      return next;
+    });
+  };
+
+  const addItemRow = () => setItems((prev) => [...prev, emptyItem]);
+
+  const removeItemRow = (index) =>
+    setItems((prev) =>
+     prev.filter((_, i) => i !== index)
+    );
+
+  // Memoized list of valid items to be submitted
+  const sanitizedItems = useMemo(
+    () =>
+      items.filter(
+        (item) => item.item_code && (item.qty || "0") !== "0"
+      ),
+    [items]
+  );
+
+  // --- End Item handling functions ---
 
   // Handle 'From Branch' change
   const handleFromBranchChange = (event) => {
@@ -204,6 +284,12 @@ function InterbranchTransferSlip({ onLogout }) {
   // Handle form submission
   const submitRequest = async () => {
     if (!isUserAccount) return;
+    
+    // --- ADDED SIGNATURE VALIDATION ---
+    if (!formData.prepared_signature) {
+       return showMessage("error", "Your signature is not set up. Please update your profile.");
+    }
+    // --- END VALIDATION ---
 
     // Updated validation rules
     if (!formData.from_branch)
@@ -214,68 +300,22 @@ function InterbranchTransferSlip({ onLogout }) {
       return showMessage("error", "Specify the transfer date.");
     if (!formData.dispatch_method)
       return showMessage("error", "Select a mode of transport.");
-    // Validation for single item
-    if (!formData.item_description || !formData.quantity) {
+
+    // Validation for multiple items
+    if (sanitizedItems.length === 0) {
       return showMessage(
         "error",
-        "Please provide at least an item description and quantity."
+        "Please provide at least one item with an item code and quantity."
       );
     }
 
     setIsSaving(true);
 
-    // Build payload for POST request
+    // Build payload for POST request, now including 'items'
     const payload = {
+      ...formData,
       form_code: nextReferenceCode,
-      date_transferred: formData.date_transferred,
-      from_branch: formData.from_branch,
-      from_address: formData.from_address,
-      from_area_ops_controller: formData.from_area_ops_controller,
-      date_received: formData.date_received,
-      to_branch: formData.to_branch,
-      to_address: formData.to_address,
-      to_area_ops_controller: formData.to_area_ops_controller,
-
-      // Dispatch fields
-      dispatch_method: formData.dispatch_method,
-      vehicle_no: formData.vehicle_no,
-      driver_name: formData.driver_name,
-      driver_contact: formData.driver_contact,
-      expected_date: formData.expected_date,
-
-      // ==========================================================
-      // --- FIX: Send item details as an array ---
-      // ==========================================================
-      items: [
-        {
-          item_code: formData.item_code,
-          quantity: formData.quantity,
-          unit_of_measure: formData.unit_of_measure,
-          item_description: formData.item_description,
-          item_remarks: formData.item_remarks,
-        },
-      ],
-      // ==========================================================
-
-      // Signature / Dates
-      prepared_by: formData.prepared_by,
-      approved_by: formData.approved_by,
-      received_by: formData.received_by,
-      prepared_date: formData.prepared_date,
-      approved_date: formData.approved_date,
-      dispatched_date: formData.dispatched_date,
-      received_date: formData.received_date,
-      prepared_signature: formData.prepared_signature,
-      approved_signature: formData.approved_signature,
-      dispatched_signature: formData.dispatched_signature,
-      received_signature: formData.received_signature,
-
-      // Other info
-      is_shortage: formData.is_shortage,
-      is_overage: formData.is_overage,
-      short_reason: formData.short_reason,
-      over_reason: formData.over_reason,
-      submitted_by: storedUser?.id || null,
+      items: sanitizedItems, // Add the array of items
     };
 
     console.log("Submitting payload:", payload);
@@ -310,16 +350,18 @@ function InterbranchTransferSlip({ onLogout }) {
   const isTransportMethodSelected = formData.dispatch_method !== "";
 
   // Navigate between sidebar sections
+  // --- REPLACED THIS FUNCTION ---
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      // Update path to be specific to this form
-      navigate("/forms/interbranch-transfer/submitted");
-      return;
+      navigate("/forms/interbranch-transfer-slip/submitted");
+    } else {
+      // This handles scrolling to the top if "New Interbranch Transfer" is clicked
+      setActiveSection(sectionId);
+      const target = document.getElementById(sectionId);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-    setActiveSection(sectionId);
-    const target = document.getElementById(sectionId);
-    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+  // --- END REPLACE ---
 
   // Render main layout
   return (
@@ -332,23 +374,20 @@ function InterbranchTransferSlip({ onLogout }) {
         </div>
 
         {/* Sidebar navigation sections */}
+        {/* --- REPLACED THIS NAV --- */}
         <nav className="pr-sidebar-nav">
-          {[
-            { id: "details", label: "Request details" },
-            { id: "items", label: "Item Details" },
-            { id: "dispatch", label: "Mode of Transport" },
-            { id: "submitted", label: "View submitted requests" },
-          ].map((section) => (
+          {NAV_SECTIONS.map((section) => (
             <button
               key={section.id}
               type="button"
-              className={activeSection === section.id ? "is-active" : ""}
+              className={section.id === "its-main" ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}
             </button>
           ))}
         </nav>
+        {/* --- END REPLACE --- */}
 
         <div className="pr-sidebar-footer">
           <span className="pr-sidebar-meta">
@@ -367,7 +406,9 @@ function InterbranchTransferSlip({ onLogout }) {
       </aside>
 
       {/* Main form area */}
-      <main className="pr-main">
+      {/* --- MODIFIED THIS LINE --- */}
+      <main className="pr-main" id="its-main">
+      {/* --- END MODIFY --- */}
         <button
           type="button"
           className="form-back-button"
@@ -510,9 +551,9 @@ function InterbranchTransferSlip({ onLogout }) {
                 id="from_address"
                 name="from_address"
                 value={formData.from_address}
-                onChange={handleFieldChange}
                 className="pr-input"
                 disabled={isReadOnly}
+                readOnly // <-- This was added
               />
             </div>
             <div className="pr-field">
@@ -523,9 +564,9 @@ function InterbranchTransferSlip({ onLogout }) {
                 id="to_address"
                 name="to_address"
                 value={formData.to_address}
-                onChange={handleFieldChange}
                 className="pr-input"
                 disabled={isReadOnly}
+                readOnly // <-- This was added
               />
             </div>
           </div>
@@ -563,92 +604,116 @@ function InterbranchTransferSlip({ onLogout }) {
           </div>
         </section>
 
-        {/* --- Item Details section --- */}
-        <section className="pr-form-section" id="items">
-          <h2 className="pr-section-title">Item Details</h2>
-          <p className="pr-section-subtitle">
-            Provide details for the item being transferred.
-          </p>
-
-          {/* Item Code (full width) */}
-          <div className="pr-field">
-            <label className="pr-label" htmlFor="item_code">
-              Item Code
-            </label>
-            <input
-              id="item_code"
-              name="item_code"
-              value={formData.item_code} /* Bind to formData */
-              onChange={handleFieldChange} /* Use generic handler */
-              className="pr-input"
-              disabled={isReadOnly}
-            />
-          </div>
-
-          {/* Quantity and Unit of Measure (side-by-side) */}
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="quantity">
-                Quantity
-              </label>
-              <input
-                id="quantity"
-                name="quantity"
-                type="number"
-                value={formData.quantity} /* Bind to formData */
-                onChange={handleFieldChange} /* Use generic handler */
-                className="pr-input"
-                disabled={isReadOnly}
-              />
+        {/* --- Item Details section (MODIFIED) --- */}
+        <section className="pr-items-card" id="items">
+          <div className="pr-items-header">
+            <div>
+              <h2 className="pr-section-title">Item Details</h2>
+              <p className="pr-section-subtitle">
+                Provide details for all items being transferred.
+              </p>
             </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="unit_of_measure">
-                Unit of Measure
-              </label>
-              <input
-                id="unit_of_measure"
-                name="unit_of_measure"
-                value={formData.unit_of_measure} /* Bind to formData */
-                onChange={handleFieldChange} /* Use generic handler */
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-          </div>
-
-          {/* Item Description (full width) */}
-          <div className="pr-field">
-            <label className="pr-label" htmlFor="item_description">
-              Item Description
-            </label>
-            <textarea
-              id="item_description"
-              name="item_description"
-              value={formData.item_description} /* Bind to formData */
-              onChange={handleFieldChange} /* Use generic handler */
-              className="pr-textarea"
-              rows={4}
+            <button
+              type="button"
+              className="pr-items-add"
+              onClick={addItemRow}
               disabled={isReadOnly}
-            />
+            >
+              Add item
+            </button>
           </div>
 
-          {/* Remarks (full width) */}
-          <div className="pr-field">
-            <label className="pr-label" htmlFor="item_remarks">
-              Remarks
-            </label>
-            <input
-              id="item_remarks"
-              name="item_remarks"
-              value={formData.item_remarks} /* Bind to formData */
-              onChange={handleFieldChange} /* Use generic handler */
-              className="pr-input"
-              disabled={isReadOnly}
-            />
+          <div className="table-wrapper">
+            <table className="pr-items-table">
+              <thead>
+                <tr>
+                  <th>Item Code</th>
+                  <th>Quantity</th>
+                  <th>Unit of Measure</th>
+                  <th>Item Description</th>
+                  <th>Remarks</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="pr-items-empty">
+                      No items yet. Add an item to get started.
+                    </td>
+                  </tr>
+                ) : (
+                  items.map((item, index) => (
+                    <tr key={index}>
+                      <td>
+                        <input
+                          type="text"
+                          name="item_code"
+                          value={item.item_code}
+                          onChange={(event) => handleItemChange(index, event)}
+                          className="pr-input"
+                          disabled={isReadOnly}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          name="qty"
+                          min="0"
+                          value={item.qty}
+                          onChange={(event) => handleItemChange(index, event)}
+                          className="its-numeric-input pr-input"
+                          disabled={isReadOnly}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          name="unit_measure"
+                          value={item.unit_measure}
+                          onChange={(event) => handleItemChange(index, event)}
+                          className="pr-input"
+                          disabled={isReadOnly}
+                        />
+                      </td>
+                      <td>
+                        <textarea
+                          name="item_description"
+                          value={item.item_description}
+                          onChange={(event) => handleItemChange(index, event)}
+                          className="pr-textarea"
+                          rows={2}
+                          disabled={isReadOnly}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          name="remarks"
+                          value={item.remarks}
+                          onChange={(event) => handleItemChange(index, event)}
+                          className="pr-input"
+                          disabled={isReadOnly}
+                        />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="pr-table-action"
+                          onClick={() => removeItemRow(index)}
+                          disabled={isReadOnly}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-
-          {/* "Add Item" button and table are removed */}
         </section>
+        {/* --- End of Item Details section --- */}
 
         {/* --- Mode of Transport section --- */}
         <section className="pr-form-section" id="dispatch">
@@ -695,7 +760,7 @@ function InterbranchTransferSlip({ onLogout }) {
                     className="pr-radio-input"
                   />
                   <label
-                    htmlFor="dispatch_column"
+                    htmlFor="dispatch_courier"
                     className="pr-radio-label"
                   >
                     <span className="pr-radio-control"></span>
@@ -748,7 +813,9 @@ function InterbranchTransferSlip({ onLogout }) {
                     value={formData.dispatch_other_text}
                     onChange={handleFieldChange}
                     className="pr-input"
-                    disabled={isReadOnly || formData.dispatch_method_type !== "Other"}
+                    disabled={
+                      isReadOnly || formData.dispatch_method_type !== "Other"
+                    }
                     style={{ marginLeft: "10px", flex: 1 }}
                   />
                 </div>
@@ -756,7 +823,7 @@ function InterbranchTransferSlip({ onLogout }) {
             </div>
 
             {/* --- RIGHT COLUMN: Transport Details --- */}
-            <div>
+            <div className="its-input-col">
               <div className="pr-field">
                 <label className="pr-label" htmlFor="vehicle_no">
                   Vehicle No
@@ -820,18 +887,19 @@ function InterbranchTransferSlip({ onLogout }) {
             type="button"
             className="pr-submit"
             onClick={submitRequest}
+            disabled={isReadOnly || isSaving} // Disable if read-only or saving
           >
-            Submit for approval
+            {isSaving ? "Submitting..." : "Submit for approval"}
           </button>
           {request && (
             <button
               type="button"
-              className="pr-sidebar-logout"
+              className="pr-sidebar-logout" // Re-using class, might want a different one
               onClick={() => {
                 setRequest(null);
-                setFormData(createInitialFormState(storedUser)); // Reset form
-                // No longer need to reset currentItem
-                setNextReferenceCode(null);
+                setFormData(initialFormData(storedUser)); // Reset form
+                setItems([]); // Reset items
+                setNextReferenceCode(null); // Will trigger refetch
               }}
               disabled={isSaving}
             >

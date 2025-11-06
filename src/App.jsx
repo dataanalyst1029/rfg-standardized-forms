@@ -16,6 +16,7 @@ import SubmittedCashAdvance from "./submitted-request/SubmittedCashAdvance";
 import SubmittedCashAdvanceLiquidation from "./submitted-request/SubmittedCashAdvanceLiquidation";
 import SubmittedReimbursement from "./submitted-request/SubmittedReimbursement";
 import SubmittedPaymentRequest from "./submitted-request/SubmittedPaymentRequest";
+import SubmittedInterbranchTransferSlip from "./submitted-request/SubmittedInterbranchTransferSlip";
 import RevolvingFund from "./forms/RevolvingFund";
 import CashAdvanceRequest from "./forms/CashAdvanceRequest";
 import CashAdvanceLiquidation from "./forms/CashAdvanceLiquidation";
@@ -385,6 +386,17 @@ function App() {
           element={
             user ? (
               <SubmittedRequests formSlug="hr-leave-application" />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/interbranch-transfer-slip/submitted"
+          element={
+            user ? (
+              <SubmittedInterbranchTransferSlip onLogout={handleLogout} currentUserId={user.id} />
             ) : (
               <Navigate to="/" replace />
             )
