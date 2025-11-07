@@ -1,0 +1,73 @@
+.cc-acknowledgement-block {
+  border: 1px solid #000;
+  padding: 16px;
+  border-radius: 8px; /* Optional: adds rounded corners */
+  margin-top: 24px; /* Adds space below the subtitle */
+  background-color: #fdfdfd; /* A very light off-white */
+}
+
+.cc-acknowledgement-block p {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+/* Styles the numbered list */
+.cc-acknowledgement-list {
+  margin-left: 20px; /* Indents the list */
+  padding-left: 16px; /* Adds space for the numbers */
+  margin-bottom: 12px;
+}
+
+.cc-acknowledgement-list li {
+  line-height: 1.6;
+  margin-bottom: 8px; /* Space between list items */
+}
+
+.cc-grid-three {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* 2. Adds top margin to the whole signature block */
+.cc-signature-block {
+  margin-top: 32px;
+}
+
+/* 3. This creates the "underline" */
+.cc-signature-line {
+  border-bottom: 2px solid #a0aec0; /* A soft gray underline */
+  padding-bottom: 8px;
+  min-height: 80px; /* Ensures all lines are the same height */
+  display: flex;
+  align-items: flex-end; /* Aligns text and signature to the bottom */
+  justify-content: center;
+}
+
+/* 4. Styles the signature image */
+.cc-signature-image {
+  height: 70px; /* Controls the height of the signature */
+  width: auto;
+  max-width: 100%;
+  object-fit: contain; /* Prevents stretching */
+}
+
+/* 5. Styles the text inside the signature line */
+.cc-signature-line p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #2d3748;
+}
+
+/* 6. (Optional) Style for the "No Signature" text */
+.cc-signature-missing {
+  font-style: italic;
+  font-size: 13px !important;
+  color: #718096 !important;
+}
+
+.cc-label-bottom {
+  text-align: center; /* This centers the text inside the label */
+  margin-top: 4px; /* Optional: adds a little space above the label */
+}

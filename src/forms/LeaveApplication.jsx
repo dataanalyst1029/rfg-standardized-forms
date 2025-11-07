@@ -58,7 +58,7 @@ function LeaveApplication({ onLogout }) {
   const [activeSection, setActiveSection] = useState("details");
 
   const role = (storedUser.role || "").toLowerCase();
-  const isUserAccount = role === "user";
+  const isUserAccount = role === "user" || role === "staff";
 
   const availableDepartments = formData.branch
     ? departments.filter((dept) => {
@@ -86,7 +86,7 @@ function LeaveApplication({ onLogout }) {
 
     const fetchNextCode = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/leave_request/next-code`);
+        const res = await fetch(`${API_BASE_URL}/api/leave_requests/next-code`);
         if (!res.ok) {
           throw new Error("Failed to load next reference code");
         }
@@ -248,6 +248,7 @@ function LeaveApplication({ onLogout }) {
     setIsSaving(true);
 
     const payload = {
+      form_code: nextReferenceCode,
       requester_name: formData.requester_name,
       employee_id: formData.employee_id,
       branch: formData.branch,
@@ -267,7 +268,7 @@ function LeaveApplication({ onLogout }) {
     };
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/leave_request`, {
+      const res = await fetch(`${API_BASE_URL}/api/leave_requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
