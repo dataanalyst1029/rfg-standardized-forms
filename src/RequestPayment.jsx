@@ -17,7 +17,7 @@ function RevolvingFundRequest() {
     const [isDeclining, setIsDeclining] = useState(false);
     const [declineReason, setDeclineReason] = useState("");
 
-        const fetchRequests = async () => {
+    const fetchRequests = async () => {
         setLoading(true);
         try {
             const response = await fetch(`${API_BASE_URL}/api/payment_request`);

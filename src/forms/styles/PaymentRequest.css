@@ -49,3 +49,9 @@
   border-color: rgba(239, 68, 68, 0.35);
 }
 
+.prf-section-title {
+  margin: 1;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #3f3f3f;
+}
