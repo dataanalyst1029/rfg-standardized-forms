@@ -36,9 +36,9 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
   const [userData, setUserData] = useState({ name: "", signature: "" });
 
   const [receiveInputs, setReceiveInputs] = useState({
-  received_by: "",
-  received_signature: "",
-});
+    received_by: "",
+    received_signature: "",
+  });
 
 
   useEffect(() => {
@@ -418,42 +418,65 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                             )}
                           </td>
                         </tr>
-                        <tr>
-                          <th><small>Received by</small></th>
-                          <td>
-                            <input
-                              type="text"
-                              className="prf-input"
-                              value={userData.name}
-                              onChange={(e) =>
-                                setReceiveInputs({ ...receiveInputs, received_by: e.target.value })
-                              }
-                              required
-                            />
-                          </td>
-                          <th>Signature</th>
-                          <td className="receive-signature">
-                            <input
-                              type="text"
-                              className="prf-input requests-signature"
-                              style={{ border: "transparent", color: "black" }}
-                              value={userData.signature}
-                              onChange={(e) =>
-                                setReceiveInputs({ ...receiveInputs, received_signature: e.target.value })
-                              }
-                              readOnly
-                              required
-                            />
-                            {receiveInputs.received_signature ? (
-                              <img
-                                src={`${API_BASE_URL}/uploads/signatures/${receiveInputs.received_signature}`}
-                                alt="Signature"
-                                className="img-sign-prf"
+                        {(selectedRequest.status === "Received" || selectedRequest.status === "Completed") && (
+                          <tr>
+                            <th><small>Received by</small></th>
+                            <td>
+                              <input
+                                type="text"
+                                className="prf-input"
+                                value={userData.name}
+                                onChange={(e) =>
+                                  setReceiveInputs({ ...receiveInputs, received_by: e.target.value })
+                                }
+                                required
                               />
-                            ) : (
-                              <div className="img-sign-prf empty-sign"></div>
-                            )}
-                          </td>
+                            </td>
+                            <th><small>Signature</small></th>
+                            <td className="receive-signature">
+                              <input
+                                type="text"
+                                className="prf-input requests-signature"
+                                style={{ border: "transparent", color: "black" }}
+                                value={userData.signature}
+                                onChange={(e) =>
+                                  setReceiveInputs({ ...receiveInputs, received_signature: e.target.value })
+                                }
+                                readOnly
+                                required
+                              />
+                              {receiveInputs.received_signature ? (
+                                <img
+                                  src={`${API_BASE_URL}/uploads/signatures/${receiveInputs.received_signature}`}
+                                  alt="Signature"
+                                  className="img-sign-prf"
+                                />
+                              ) : (
+                                <div className="img-sign-prf empty-sign"></div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                        <tr>
+                          <th style={{color: '#fff'}}>-</th>
+                          <th style={{color: '#fff'}}>-</th>
+                          <th style={{color: '#fff'}}>-</th>
+                          <th style={{color: '#fff'}}>-</th>
+                        </tr>
+                        <tr>
+                          <th colSpan={4} style={{textAlign: "center", background: "#1a1b1bff", color: "#adadadff"}}>ACCOUNTING DEPARTMENT USE ONLY</th>
+                        </tr>
+                        <tr>
+                          <th><small>GL Code</small></th>
+                          <td><small>{selectedRequest.gl_code}</small></td>
+                          <th><small>OR Number</small></th>
+                          <td><small>{selectedRequest.or_no}</small></td>
+                        </tr>
+                        <tr>
+                          <th><small>Amount</small></th>
+                          <td><small>{selectedRequest.gl_amount}</small></td>
+                          <th><small>Check Number</small></th>
+                          <td><small>{selectedRequest.check_number}</small></td>
                         </tr>
                       </table>
                     </div>

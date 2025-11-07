@@ -221,7 +221,7 @@ function FormsList({ onLogout }) {
               (form) =>
                 !(
                   formData.role === "user" &&
-                  (form === "Revolving Fund" || form === "Cash Advance Liquidation Form")
+                  (form === "Reimbursement Form" || form === "Cash Advance Liquidation Form" || form === "CA Receipt Form")
                 )
             )
             .map((form) => (

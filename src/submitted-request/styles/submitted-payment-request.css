@@ -247,19 +247,19 @@
 
 .receive-signature .img-sign-prf {
   position: absolute;
-  top: 30%;
+  top: 50%;
   left: 20%;
   width: 120px;
   height: auto;
   object-fit: contain;
-  transform: translate(-50%, -40%);
+  transform: translate(-50%, -50%);
   z-index: 1;
   max-width: 25vw;
   margin-top: 8px;
 }
 
 .submitted-prf-request-card {
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
   color: var(--card-text, #111);
   transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }

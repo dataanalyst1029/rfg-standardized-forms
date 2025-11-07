@@ -466,6 +466,7 @@ function ManageUsersAccess() {
                 <option value="Endorse">Endorse</option>
                 <option value="HR Approve">HR Approve</option>
                 <option value="Accomplish">Accomplish</option>
+                <option value="Accounting">Accounting</option>
               </select>
 
               <div className="admin-modal-footer">

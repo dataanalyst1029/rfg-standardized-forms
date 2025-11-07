@@ -365,6 +365,11 @@
 }
 
 /* Color variants based on status */
+.floating-decline-reason.completed {
+  background-color: rgba(148, 148, 148, 0.95); /* Gray */
+  color: rgba(0, 0, 0, 0.95); /* Black */
+}
+
 .floating-decline-reason.received {
   background-color: rgba(46, 120, 204, 0.95); /* Blue */
 }

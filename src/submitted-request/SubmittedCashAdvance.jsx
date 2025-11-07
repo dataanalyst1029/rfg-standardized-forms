@@ -31,6 +31,14 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
     });
   };
 
+  const storedId = sessionStorage.getItem("id");
+  const [userData, setUserData] = useState({ name: "", signature: "" });
+
+  const [receiveInputs, setReceiveInputs] = useState({
+    received_by: "",
+    received_signature: "",
+  });
+
   useEffect(() => {
     const fetchRequests = async () => {
       try {
@@ -100,324 +108,66 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
     setSelectedRequestCode(e.target.value);
   };
 
-  const handlePrint = () => {
-    if (!cardRef.current) return;
+  const handleReceive = async (request) => {
+    try {
+      if (!request?.id) {
+        alert("Missing request ID. Cannot update status.");
+        console.error("Missing request ID:", request);
+        return;
+      }
 
-    const printContents = cardRef.current.outerHTML;
-    const printWindow = window.open("", "", "width=900,height=650");
+      const confirmReceive = window.confirm(
+        `Mark ${request.ca_request_code} as Received?`
+      );
+      if (!confirmReceive) return;
 
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print Cash Advance Budget Request</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
-              background: #fff;
-              position: relative;
-            }
+      // ✅ Log what we're about to send
+      console.log("Updating cash advance budget request:", request.id);
 
-            h2, h3, h4 {
-              margin-bottom: 8px;
-            }
+      // ✅ Get current user details (with fallback)
+      const userRes = await fetch(`${API_BASE_URL}/api/users/${currentUserId}`);
+      if (!userRes.ok) throw new Error("Failed to fetch user data");
+      const userData = await userRes.json();
 
-            .submitted-revolving-request-card {
-              margin-bottom: 2rem;
-              padding: 1rem;
-              background-color: var(--card-bg, #ffffff);
-              color: var(--card-text, #111);
-              transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-            }
+      const payload = {
+        status: "Received",
+        received_by: userData.name || receiveInputs.received_by,
+        received_signature: userData.signature || receiveInputs.received_signature,
+      };
 
-            .record-request{
-              background: #ffffff;
-              padding: 1.15rem 1.4rem;
-              margin: 0 auto;
-              box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
-              color: var(--card-text, #222);
-              display: flex;
-              flex-direction: column;
-              gap: 1.05rem;
-            }
+      // ✅ Update request on backend
+      const res = await fetch(`${API_BASE_URL}/api/cash_advance_request/${request.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-            .request-header {
-              display: flex;
-              align-items: flex-start;
-              justify-content: space-between;
-              gap: 1.5rem;
-              border-bottom: 2px solid #ddd;
-              padding-bottom: 0.6rem;
-            }
+      // ✅ Safely handle non-JSON responses
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        console.warn("Non-JSON response from backend");
+      }
 
-            .header-brand {
-              display: flex;
-              align-items: center;
-              gap: 0.65rem;
-            }
+      if (!res.ok) {
+        console.error("Backend response error:", data);
+        alert(`Failed to update status: ${data.error || "Unknown error"}`);
+        return;
+      }
 
-            .header-logo {
-              width: 150px; 
-            }
-            
-            .header-request-code {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-end;
-            }
+      alert(`Cash Advance Budget Request ${request.ca_request_code} marked as Received ✅`);
 
-            .table table {
-              width: 100%;
-              border-collapse: collapse;
-              border: 1px solid #ddd;  
-            } 
-
-            .table table th,
-            .table table td {
-              border: 1px solid #ddd;
-              padding: .5rem;
-              text-align: left;
-            }
-
-            .rf-signature-row {
-              margin-top: 1.5rem;
-              display: flex;
-              justify-content: center;
-              align-items: flex-end;
-              gap: 4rem;
-              flex-wrap: wrap;
-            }
-
-            .rf-signature-block {
-              min-width: 220px;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              gap: 0.3rem;
-            }
-
-            .rf-signature-line {
-              display: inline-block;
-              min-width: 220px;
-              text-align: center;
-              padding-bottom: 0.2rem;
-              border-bottom: 1px solid currentColor;
-              font-weight: 600;
-            }
-
-            .rf-signature-line.muted {
-              font-style: italic;
-              color: var(--card-meta, #555);
-            }
-
-            .rf-signature-image {
-              max-width: 160px;
-              height: auto;
-              object-fit: contain;
-            }
-
-            .rf-no-border {
-              border: none !important;
-              background: transparent !important;
-              box-shadow: none !important;
-              padding: 0 !important;
-            }
-
-            .rf-status-row {
-              margin-top: 1rem;
-            }
-
-            .rfrf-items-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 0.75rem;
-              font-size: 0.95rem;
-              border: 1px solid var(--table-border, #aaaaaa);
-              background-color: var(--table-bg, #fff);
-              color: var(--table-text, #333);
-            }
-
-            .rfrf-items-table thead tr th {
-              background: var(--color-table-header);
-              text-transform: uppercase;
-              padding: 0.3rem 0.8rem;
-              font-size: 0.72rem;
-              letter-spacing: 0.08em;
-              color: var(--color-text-muted);
-            }
-
-            .rfrf-items-table td {
-              border: 1px solid var(--table-border, #dcdcdc);
-              padding: 0.5rem 0.75rem;
-              text-align: left;
-            }
-
-            .rfrf-items-table tbody tr:hover {
-              background-color: var(--table-hover, #ececec);
-            }
-
-            .rfrf-items-table td.text-center {
-              text-align: center !important;
-              vertical-align: middle;
-            }
-
-            .signature-section{
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-            }
-
-            .signature-section > div > div {
-              width: 100%;
-            }
-
-            .signature-format .s-by {
-              font-weight: bold;
-            }
-
-            .signature-format .s-name {
-              border-bottom: 1px solid #555;
-              font-size: 1rem;
-              padding: 0 1rem;
-            }
-
-            .signature-format {
-              display: flex;
-              flex-direction: row;
-              text-align: center;
-              justify-content: space-evenly;
-              padding: 16px;
-              width: 100%;
-              margin-top: 2rem;
-            }
-
-            .signature-format label {
-              display: flex;
-              flex-direction: column;
-              font-size: 0.9rem;
-            }
-
-            .submitter-signature {
-              position: relative;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-            }
-
-            .submitter-signature .sub-sign {
-              color: transparent;
-              border-bottom: 1px solid #555;
-              font-size: 1rem;
-              padding: 0 1rem;
-            }
-
-            .submitter-signature .img-sign {
-              position: absolute;
-              top: 0;
-              left: 50%;
-              width: 120px;
-              height: auto;
-              object-fit: contain;
-              transform: translate(-53%, -50%);
-              z-index: 0;
-              max-width: 25vw;
-              margin-top: 8px;
-            }
-
-
-            .floating-buttons {
-              position: fixed;
-              bottom: 20px;
-              right: 20px;
-              display: flex;
-              gap: 10px;
-              z-index: 9999;
-            }
-
-            .action-btn {
-              width: 44px;
-              height: 44px;
-              border-radius: 50%;
-              border: none;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-              color: white;
-              font-size: 20px;
-              transition: transform 0.2s ease;
-            }
-
-            .action-btn:hover {
-              transform: scale(1.1);
-            }
-
-            .print-btn {
-              background-color: #007bff;
-            }
-
-            .pdf-btn {
-              background-color: #28a745;
-            }
-
-            @media print {
-              .floating-buttons {
-                display: none !important;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="floating-buttons">
-            <button class="action-btn print-btn" onclick="window.print()" title="Print">🖨️</button>
-            <button class="action-btn pdf-btn" id="downloadPDF" title="Download PDF">📥</button>
-          </div>
-
-          ${printContents}
-
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-          <script>
-            async function toBase64Image(img) {
-              const response = await fetch(img.src, {mode: 'cors'});
-              const blob = await response.blob();
-              return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(blob);
-              });
-            }
-
-            document.getElementById("downloadPDF").addEventListener("click", async function() {
-              const element = document.body.cloneNode(true);
-              const buttons = element.querySelector('.floating-buttons');
-              if (buttons) buttons.remove();
-
-              const imgs = element.querySelectorAll('img');
-              for (let img of imgs) {
-                try {
-                  const base64 = await toBase64Image(img);
-                  img.src = base64;
-                } catch (err) {
-                  console.warn('Could not convert image:', img.src);
-                }
-              }
-
-              const opt = {
-                margin: 0.5,
-                filename: 'Revolving Request.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-              };
-
-              html2pdf().from(element).set(opt).save();
-            });
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+      // ✅ Update UI instantly
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.id === request.id ? { ...r, ...payload } : r
+        )
+      );
+    } catch (err) {
+      console.error("Error receiving cash advance budget request:", err);
+      alert("Error updating status. Check console for details.");
+    }
   };
 
   const selectedRequest = requests.find(
@@ -477,17 +227,6 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
             </p>
           </div>
 
-          {selectedRequest && (
-            <button
-              onClick={handlePrint}
-              className="print-btn"
-              style={{
-                
-              }}
-            >
-              🖨️ Print
-            </button>
-          )}
         </header>
 
         <div className="submitted-requests-container">
@@ -516,8 +255,14 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
               </div>
 
               {selectedRequest && (
+                <button className="print-btn" onClick={() => window.print()}>
+                  🖨️ Print
+                </button>
+              )}
+
+              {selectedRequest && (
                 <div
-                  className="submitted-revolving-request-card"
+                  className="submitted-ca-request-card"
                   ref={cardRef}
                   style={{ marginTop: "1rem" }} >
 
@@ -550,17 +295,23 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                           <th>Department</th>
                           <td>{selectedRequest.department}</td>
                         </tr>
+                         <tr>
+                          <th style={{color: '#fff'}}>-</th>
+                          <th style={{color: '#fff'}}>-</th>
+                          <th style={{color: '#fff'}}>-</th>
+                          <th style={{color: '#fff'}}>-</th>
+                        </tr>
+                        <tr>
+                          <th>Nature of Activity</th>
+                          <td>{selectedRequest.nature_activity}</td>
+                          <th>Inclusive date(s)</th>
+                          <td>{`${new Date(selectedRequest.inclusive_date_from).toLocaleDateString()} - ${new Date(selectedRequest.inclusive_date_to).toLocaleDateString()}`}</td>
+                        </tr>
+                        <tr>
+                          <th>Purpose</th>
+                          <td colSpan={3}>{selectedRequest.purpose}</td>
+                        </tr>
                       </table>
-                    </div>
-                    <div class="replenish-amount">
-                        <p>
-                            <strong>Nature of Activity:</strong>{" "}
-                            <em>{selectedRequest.nature_activity}</em>
-                        </p>
-                        <p>
-                            <strong>Inclusive date(s):</strong>{" "}
-                            <em>{new Date(selectedRequest.inclusive_date_from).toLocaleDateString()} - {new Date(selectedRequest.inclusive_date_to).toLocaleDateString()}</em>
-                        </p>
                     </div>
                     <div>
                       {loadingItems ? (
@@ -605,67 +356,140 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                       )}
                     </div>
 
-                    <div className="pr-items-card">
-                      <label htmlFor="purpose">
-                        <strong>Purpose:</strong>{" "}
-                        <em>{selectedRequest.purpose}</em>
-                      </label>
-                    </div>
-                    <div className="signature-section">
-                      <div className="signature-format">
-                        <div className="submitter-signature">
-                          <label htmlFor="submitted-by">
-                            <span className="s-name">{selectedRequest.requested_by}</span>
-                            <span className="s-by">Submitted by</span>
-                          </label>
-                        </div>
-                        <div className="submitter-signature">
-                          <label htmlFor="submitted-signature">
-                            <span className="sub-sign">{selectedRequest.request_signature}</span>
+                    <div className="table">
+                      <p hidden>ID: {selectedRequest.id}</p>
+                      <table>
+                        <tr>
+                          
+                        </tr>
+                        <tr>
+                          <th><small>Requested by</small></th>
+                          <td><small><input className="prf-input" value={selectedRequest.requested_by}/></small></td>
+                          <th><small>Signature</small></th>
+                          <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.request_signature} readOnly required/></small>
                             {selectedRequest.request_signature ? (
-                              <img
-                              src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.request_signature}`}
-                              alt="Signature"
-                              className="img-sign"/>
-                              ) : (
-                                  <div className="img-sign empty-sign"></div>
-                              )}
-                            <span className="s-by">Signature</span>
-                          </label>
-                        </div>
-                      </div>
-                      <div class="signature-format">
-                        <div className="submitter-signature">
-                          <label htmlFor="submitted-by">
-                            <span className="s-name">{selectedRequest.approved_by}</span>
-                            <span className="s-by">Approved by</span>
-                          </label>
-                        </div>
-                        <div className="submitter-signature">
-                          <label htmlFor="submitted-signature">
-                            <span className="sub-sign">{selectedRequest.approve_signature}</span>
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.request_signature}`}
+                                alt="Signature"
+                                className="img-sign-prf"
+                            />
+                            ) : (
+                            <div className="img-sign-prf empty-sign"></div>
+                            )}
+                          </td>
+                        </tr>
+                        <tr>
+                          <th><small>Approved by</small></th>
+                          <td><small><input type="text" className="prf-input" value={selectedRequest.approved_by}/></small></td>
+                          <th><small>Signature</small></th>
+                          <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.approve_signature} readOnly required/></small>
                             {selectedRequest.approve_signature ? (
-                              <img
-                              src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approve_signature}`}
-                              alt="Signature"
-                              className="img-sign"/>
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approve_signature}`}
+                                alt="Signature"
+                                className="img-sign-prf"
+                            />
+                            ) : (
+                            <div className="img-sign-prf empty-sign"></div>
+                            )}
+                          </td>
+                        </tr>
+                        {(selectedRequest.status === "Received" || selectedRequest.status === "Completed") && (
+                          <tr>
+                            <th><small>Received by</small></th>
+                            <td>
+                              <input
+                                type="text"
+                                className="prf-input"
+                                value={selectedRequest.received_by}
+                                onChange={(e) =>
+                                  setReceiveInputs({ ...receiveInputs, received_by: e.target.value })
+                                }
+                                required
+                              />
+                            </td>
+                            <th><small>Signature</small></th>
+                            <td className="receive-signature">
+                              <input
+                                type="text"
+                                className="prf-input requests-signature"
+                                style={{ border: "transparent", color: "black" }}
+                                value={selectedRequest.received_signature}
+                                onChange={(e) =>
+                                  setReceiveInputs({ ...receiveInputs, received_signature: e.target.value })
+                                }
+                                readOnly
+                                required
+                              />
+                              {selectedRequest.received_signature ? (
+                                <img
+                                  src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.received_signature}`}
+                                  alt="Signature"
+                                  className="img-sign-prf"
+                                />
                               ) : (
-                                  <div className="img-sign empty-sign"></div>
+                                <div className="img-sign-prf empty-sign"></div>
                               )}
-                            <span className="s-by">Signature</span>
-                          </label>
-                        </div>
-                      </div>
+                            </td>
+                          </tr>
+                        )}
+                        <tr>
+                          <th style={{color: '#fff', borderColor: 'transparent'}}>-</th>
+                          <th style={{color: '#fff', borderColor: 'transparent'}}>-</th>
+                          <th style={{color: '#fff', borderColor: 'transparent'}}>-</th>
+                          <th style={{color: '#fff', borderColor: 'transparent'}}>-</th>
+                        </tr>
+                        <tr>
+                          <th colSpan={4} style={{textAlign: "center", background: "#1a1b1bff", color: "#adadadff"}}>ACCOUNTING DEPARTMENT USE ONLY</th>
+                        </tr>
+                        <tr>
+                          <td colSpan={2}><em>Released through</em></td>
+                          <td colSpan={2}><em>**If check issuance</em></td>
+                        </tr>
+                        <tr>
+                          <td><small>Check**</small></td>
+                          <td><small><input type="text" className="prf-input" value={selectedRequest.check} readOnly/></small></td>
+                          <td><small>Check No.</small></td>
+                          <td><small><input type="text" className="prf-input" value={selectedRequest.check_no} readOnly/></small></td>
+                        </tr>
+
+                        <tr>
+                          <td><small>Petty Cash Voucher</small></td>
+                          <td><small><input type="text" className="prf-input" value={selectedRequest.voucher_petty_cash} readOnly/></small></td>
+                          <td><small>Bank G/L Code</small></td>
+                          <td><small><input type="text" className="prf-input" value={selectedRequest.bank_gl_code} readOnly/></small></td>
+                        </tr>
+                        
+                      </table>
                     </div>
-                    {selectedRequest.declined_reason && (
-                      <div className="decline-reason">
-                        <label htmlFor="declined-reason">
-                          <strong>Declined Reason: </strong>
-                          <em>{selectedRequest.declined_reason}</em>
-                        </label>
+
+                    {(selectedRequest.status || selectedRequest.declined_reason) && (
+                      <div className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}>
+                        <div className="floating-decline-content">
+                          {selectedRequest.status && (
+                            <p className="status-text">
+                              <strong>Status:</strong> {selectedRequest.status}
+                            </p>
+                          )}
+                          {selectedRequest.declined_reason && (
+                            <>
+                              <strong>Declined Reason:</strong>
+                              <p>{selectedRequest.declined_reason}</p>
+                            </>
+                          )}
+                        </div>
                       </div>
                     )}
-                  </div>                
+                  </div>  
+                  {selectedRequest.status === "Approved" && (
+                    <button
+                      className="floating-receive-btn"
+                      onClick={() => handleReceive({ ...selectedRequest })}
+                      disabled={selectedRequest.status === "Received"}
+                    >
+                      {selectedRequest.status === "Received" ? "✅ Received" : "Receive"}
+                    </button>
+                  )}                 
                 </div>
               )}
             </>

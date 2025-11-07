@@ -18,3 +18,23 @@
   animation: modalFadeOut 0.3s ease forwards;
 }
 
+.accounting-only {
+  background-color: #1f2430;
+  padding: .7rem;
+  text-align: center;
+}
+
+.accounting-only strong {
+  color: #fff;
+}
+
+.input-error {
+  border: 1px solid red;
+}
+
+.error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 3px;
+  display: block;
+}
