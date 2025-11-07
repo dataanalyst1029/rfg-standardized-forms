@@ -1251,6 +1251,99 @@ app.put("/api/update_cash_advance_request", uploadForm.none(), async (req, res) 
 });
 
 
+app.use(express.json());
+
+app.put("/api/cash_advance_request/:id", async (req, res) => {
+  const { id } = req.params;
+  const { status, received_by, received_signature } = req.body;
+
+  console.log("Received PUT /api/cash_advance_request/:id", { id, status, received_by, received_signature });
+
+  if (!id) {
+    return res.status(400).json({ error: "Missing request ID" });
+  }
+
+  try {
+    const updateResult = await pool.query(
+      `UPDATE cash_advance_request
+       SET status = $1,
+           received_by = $2,
+           received_signature = $3
+       WHERE id = $4
+       RETURNING *;`,
+      [status, received_by, received_signature, id]
+    );
+
+    if (updateResult.rowCount === 0) {
+      return res.status(404).json({ error: "Cash advance budget request not found" });
+    }
+
+    console.log("Cash advance budget request updated successfully:", updateResult.rows[0]);
+    res.json({
+      message: "Cash advance budget request updated successfully",
+      updated: updateResult.rows[0],
+    });
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: err.message || "Database error" });
+  }
+});
+
+app.put("/api/update_cash_advance_budget_request_accounting", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      ca_request_code,
+      check,
+      check_no,
+      voucher_petty_cash,
+      bank_gl_code,
+      status,
+    } = req.body;
+
+    if (!ca_request_code) {
+      return res.status(400).json({ message: "ca_request_code is required." });
+    }
+
+    let query = `
+      UPDATE payment_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Completed") {
+      query += `,
+        check = $${paramIndex++},
+        check_no = $${paramIndex++},
+        voucher_petty_cash = $${paramIndex++},
+        bank_gl_code = $${paramIndex++}
+      `;
+      values.push(check, check_no, voucher_petty_cash, bank_gl_code);
+    }
+
+    query += ` WHERE ca_request_code = $${paramIndex} RETURNING *`;
+    values.push(ca_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Payment request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Payment request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating payment request:", err);
+    res.status(500).json({ message: "Server error updating payment request." });
+  }
+});
+
+
 /* ------------------------
    CASH ADVANCE LIQUIDATION API
 ------------------------ */
@@ -2219,6 +2312,60 @@ app.put("/api/payment_request/:id", async (req, res) => {
   } catch (err) {
     console.error("Database error:", err);
     res.status(500).json({ error: err.message || "Database error" });
+  }
+});
+
+app.put("/api/update_payment_request_accounting", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      prf_request_code,
+      gl_code,
+      or_no,
+      gl_amount,
+      check_number,
+      status,
+    } = req.body;
+
+    if (!prf_request_code) {
+      return res.status(400).json({ message: "prf_request_code is required." });
+    }
+
+    let query = `
+      UPDATE payment_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Completed") {
+      query += `,
+        gl_code = $${paramIndex++},
+        or_no = $${paramIndex++},
+        gl_amount = $${paramIndex++},
+        check_number = $${paramIndex++}
+      `;
+      values.push(gl_code, or_no, gl_amount, check_number);
+    }
+
+    query += ` WHERE prf_request_code = $${paramIndex} RETURNING *`;
+    values.push(prf_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Payment request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Payment request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating payment request:", err);
+    res.status(500).json({ message: "Server error updating payment request." });
   }
 });
 
