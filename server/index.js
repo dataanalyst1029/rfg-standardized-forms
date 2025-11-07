@@ -2465,16 +2465,16 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
 
     const result = await client.query(  // Insert main request record
       `INSERT INTO interbranch_transfer_slip
-      (form_code, date_transferred, from_branch, from_address, from_area_ops_controller, date_received, to_branch, to_address, to_area_ops_controller, dispatch_method, vehicle_no, driver_name, driver_contact, expected_date, prepared_by, approved_by, received_by, prepared_date, approved_date, dispatched_date, received_date, prepared_signature, approved_signature, dispatched_signature, received_signature, is_shortage, is_overage, short_reason, over_reason)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28, $29)
+      (form_code, date_transferred, from_branch, from_address, from_area_ops_controller, date_received, to_branch, to_address, to_area_ops_controller, dispatch_method, vehicle_no, driver_name, driver_contact, expected_date, prepared_by, prepared_date, prepared_signature)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       RETURNING id`,
       [
         form_code,
-        date_transferred || new Date(),
+        date_transferred,
         from_branch,
         from_address,
         from_area_ops_controller,
-        date_received || new Date(),
+        date_received,
         to_branch,
         to_address,
         to_area_ops_controller,
@@ -2484,20 +2484,8 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
         driver_contact,
         expected_date,
         prepared_by || null,
-        approved_by || null,
-        received_by || null,
         prepared_date || null,
-        approved_date || null,
-        dispatched_date || null,
-        received_date || null,
         prepared_signature || null,
-        approved_signature || null,
-        dispatched_signature || null,
-        received_signature || null,
-        is_shortage || null,
-        is_overage || null,
-        short_reason || null,
-        over_reason || null,
       ]
     );
 
@@ -2731,6 +2719,7 @@ app.post("/api/maintenance_requests", async (req, res) => {  // Create new maint
     performed_by,
     date_completed,
     completion_remarks,
+    submitted_by,
     submitted_at,
     approved_by,
     approved_at,
@@ -2746,8 +2735,8 @@ app.post("/api/maintenance_requests", async (req, res) => {  // Create new maint
 
     const result = await client.query(  // Insert main request record
       `INSERT INTO maintenance_requests
-      (form_code, requester_name, branch, department, employee_id, request_date, signature, date_needed, work_description, asset_tag, performed_by, date_completed, completion_remarks)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      (form_code, requester_name, branch, department, employee_id, request_date, signature, date_needed, work_description, asset_tag, performed_by, date_completed, completion_remarks, submitted_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, $14)
       RETURNING id`,
       [
         form_code,
@@ -2763,6 +2752,7 @@ app.post("/api/maintenance_requests", async (req, res) => {  // Create new maint
         performed_by,
         date_completed,
         completion_remarks,
+        submitted_by
       ]
     );
 
