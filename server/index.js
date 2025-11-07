@@ -2729,94 +2729,6 @@ app.get("/api/interbranch_transfer_slip_items", async (req, res) => {
   }
 });
 
-/*
-app.get("/api/payment_request_item", async (req, res) => {  // Fetch items for a specific payment request
-  const { request_id } = req.query;
-
-  try {
-    let query = `
-      SELECT id, request_id, item, quantity, unit_price, amount, expense_charges, location
-      FROM payment_request_item
-    `;
-    const params = [];
-
-    if (request_id) {  // If specific request_id is provided
-      query += " WHERE request_id = $1";
-      params.push(request_id);
-    }
-
-    query += " ORDER BY id ASC";  // Sort items in ascending order
-
-    const result = await pool.query(query, params);
-    res.json(result.rows);  // Return list of items
-  } catch (err) {
-    console.error("❌ Error fetching payment request items:", err);
-    res.status(500).json({ message: "Server error fetching payment request items" });
-  }
-});
-
-
-   //UPDATE PAYMENT REQUEST
-
-app.put("/api/update_payment_request", uploadForm.none(), async (req, res) => {  // Update existing payment request
-  try {
-    const {
-      prf_request_code,
-      approved_by,
-      approved_signature,
-      status,
-      declined_reason,
-    } = req.body;
-
-    if (!prf_request_code) {  // Validate input
-      return res.status(400).json({ message: "prf_request_code is required." });
-    }
-
-    let query = `
-      UPDATE payment_request
-      SET status = $1,
-          updated_at = NOW()
-    `;
-
-    const values = [status];  // Initial parameter values
-    let paramIndex = 2;  // Index counter for dynamic params
-
-    if (status === "Approved") {  // If request approved
-      query += `,
-        approved_by = $${paramIndex++},
-        approved_signature = $${paramIndex++}
-      `;
-      values.push(approved_by, approved_signature);
-    }
-
-    if (status === "Declined") {  // If request declined
-      query += `,
-        declined_reason = $${paramIndex++}
-      `;
-      values.push(declined_reason || "");
-    }
-
-    query += ` WHERE prf_request_code = $${paramIndex} RETURNING *`;  // Return updated record
-    values.push(prf_request_code);
-
-    const result = await pool.query(query, values);
-
-    if (result.rowCount === 0) {  // If no record updated
-      return res.status(404).json({ message: "Payment request not found." });
-    }
-
-    res.json({
-      success: true,
-      message: "Payment request updated successfully.",  // Success response
-      data: result.rows[0],
-    });
-  } catch (err) {
-    console.error("❌ Error updating payment request:", err);
-    res.status(500).json({ message: "Server error updating payment request." });
-  }
-});
-/*
-
 /* ------------------------
    MAINTENANCE REQUESTS API
 ------------------------ */
@@ -2920,6 +2832,213 @@ app.post("/api/maintenance_requests", async (req, res) => {  // Create new maint
     client.release();  // Release DB client
   }
 });
+
+/* ------------------------
+   LEAVE REQUESTS API
+------------------------ */
+app.get("/api/leave_requests/next-code", async (req, res) => {  // Generate next available leave request code
+  try {
+    const year = new Date().getFullYear();  // Get current year for code prefix
+
+    const result = await pool.query(  // Query latest code that matches current year
+      `SELECT form_code 
+       FROM leave_requests 
+       WHERE form_code LIKE $1 
+       ORDER BY form_code DESC 
+       LIMIT 1`,
+      [`LAF-${year}-%`]  // Pattern for current year’s codes
+    );
+
+    let nextCode;  // Variable to store generated code
+    if (result.rows.length > 0) {  // If a record exists for this year
+      const lastCode = result.rows[0].form_code;  // Get latest code
+      const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
+      const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
+      nextCode = `LAF-${year}-${nextNum}`;  // Construct next code
+    } else {
+      nextCode = `LAF-${year}-000001`;  // If none found, start from 000001
+    }
+
+    res.json({ nextCode });  // Return next code to client
+  } catch (err) {
+    console.error("❌ Error generating next leave application form code:", err);  // Log error
+    res.status(500).json({ message: "Server error generating next code" });  // Send error response
+  }
+});
+
+app.post("/api/leave_requests", async (req, res) => {  // Create new leave request
+  const {
+    form_code,
+    status,
+    requester_name,
+    branch,
+    department,
+    employee_id,
+    position,
+    request_date,
+    signature,
+    leave_type,
+    leave_start,
+    leave_end,
+    leave_hours,
+    purpose,
+    submitted_by,
+    submitted_at,
+    endorsed_by,
+    endorsed_at,
+    approved_by,
+    approved_at,
+    hr_notes,
+    available_vacation,
+    available_sick,
+    available_emergency, 
+
+    items = [],  // Default to empty array if no items
+  } = req.body;
+
+  const client = await pool.connect();  // Get DB client for transaction  
+  try {
+    await client.query("BEGIN");  // Start transaction
+
+    const result = await client.query(  // Insert main request record
+      `INSERT INTO leave_requests
+      (form_code, requester_name, branch, department, position, request_date, signature, leave_type, leave_start, leave_end, leave_hours, purpose, submitted_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      RETURNING id`,
+      [
+        form_code,
+        requester_name,
+        branch,
+        department,
+        position,
+        request_date,
+        signature,
+        leave_type,
+        leave_start,
+        leave_end,
+        leave_hours,
+        purpose,
+        submitted_by
+      ]
+    );
+
+    const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
+    if (!requestId) throw new Error("Failed to get leave application ID");  // Validate presence of ID
+
+    await client.query("COMMIT");  // Commit transaction
+
+    res.status(201).json({
+      success: true,
+      message: `Leave Application Form ${form_code} saved successfully!`,  // Success message
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");  // Rollback on failure
+    console.error("❌ Error saving leave application form:", err);
+    res.status(500).json({ message: "Server error saving leave application form" });  // Send error response
+  } finally {
+    client.release();  // Release DB client
+  }
+});
+
+/* -------------------------
+   CREDIT CARD RECEIPT API
+--------------------------- */
+app.get("/api/credit_card_acknowledgement_receipt/next-code", async (req, res) => {  // Generate next available credit card receipt code
+  try {
+    const year = new Date().getFullYear();  // Get current year for code prefix
+
+    const result = await pool.query(  // Query latest code that matches current year
+      `SELECT form_code 
+       FROM credit_card_acknowledgement_receipt 
+       WHERE form_code LIKE $1 
+       ORDER BY form_code DESC 
+       LIMIT 1`,
+      [`CCA-${year}-%`]  // Pattern for current year’s codes
+    );
+
+    let nextCode;  // Variable to store generated code
+    if (result.rows.length > 0) {  // If a record exists for this year
+      const lastCode = result.rows[0].form_code;  // Get latest code
+      const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
+      const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
+      nextCode = `CCA-${year}-${nextNum}`;  // Construct next code
+    } else {
+      nextCode = `CCA-${year}-000001`;  // If none found, start from 000001
+    }
+
+    res.json({ nextCode });  // Return next code to client
+  } catch (err) {
+    console.error("❌ Error generating next credit card acknowledgement receipt form code:", err);  // Log error
+    res.status(500).json({ message: "Server error generating next code" });  // Send error response
+  }
+});
+
+app.post("/api/credit_card_acknowledgement_receipt", async (req, res) => {  // Create new credit card acknowledgement receipt
+  const {
+    form_code,
+    status,
+    cardholder_name,
+    employee_id,
+    department,
+    position,
+    bank,
+    issuer,
+    card_number,
+    date_received,
+    received_by_name,
+    received_by_date,
+    received_by_signature,
+    issued_by_name,
+    issued_by_date,
+    issued_by_signature,
+
+    items = [],  // Default to empty array if no items
+  } = req.body;
+
+  const client = await pool.connect();  // Get DB client for transaction  
+  try {
+    await client.query("BEGIN");  // Start transaction
+
+    const result = await client.query(  // Insert main request record
+      `INSERT INTO leave_requests
+      (form_code, requester_name, branch, department, position, request_date, signature, leave_type, leave_start, leave_end, leave_hours, purpose, submitted_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      RETURNING id`,
+      [
+        form_code,
+        requester_name,
+        branch,
+        department,
+        position,
+        request_date,
+        signature,
+        leave_type,
+        leave_start,
+        leave_end,
+        leave_hours,
+        purpose,
+        submitted_by
+      ]
+    );
+
+    const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
+    if (!requestId) throw new Error("Failed to get leave application ID");  // Validate presence of ID
+
+    await client.query("COMMIT");  // Commit transaction
+
+    res.status(201).json({
+      success: true,
+      message: `Leave Application Form ${form_code} saved successfully!`,  // Success message
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");  // Rollback on failure
+    console.error("❌ Error saving leave application form:", err);
+    res.status(500).json({ message: "Server error saving leave application form" });  // Send error response
+  } finally {
+    client.release();  // Release DB client
+  }
+});
+
 /* ------------------------
    START SERVER
 ------------------------ */

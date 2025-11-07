@@ -55,7 +55,9 @@ const emptyItem = {
 
 // --- ADDED THIS ---
 const NAV_SECTIONS = [
-  { id: "its-main", label: "New Interbranch Transfer" },
+  { id: "details", label: "Transfer Details" },
+  { id: "items", label: "Item Details" },
+  { id: "dispatch", label: "Mode of Transport" },
   { id: "submitted", label: "View Submitted Requests" },
 ];
 // --- END ADD ---
@@ -343,18 +345,32 @@ function InterbranchTransferSlip({ onLogout }) {
   const isTransportMethodSelected = formData.dispatch_method !== "";
 
   // Navigate between sidebar sections
-  // --- REPLACED THIS FUNCTION ---
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
       navigate("/forms/interbranch-transfer-slip/submitted");
-    } else {
-      // This handles scrolling to the top if "New Interbranch Transfer" is clicked
-      setActiveSection(sectionId);
-      const target = document.getElementById(sectionId);
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    } 
+    
+    setActiveSection(sectionId);
+
+    const mainContainer = document.getElementById("its-main");
+    const target = document.getElementById(sectionId);
+
+    const header = mainContainer?.querySelector(".pr-topbar");
+
+    if (mainContainer && target) {
+      const headerHeight = header ? header.offsetHeight : 0;  // Get header height
+
+      const targetTop = target.offsetTop;                     // Get target's position relative to container's content
+
+      const scrollToPosition = targetTop - headerHeight;      // Scroll to target position - header height (leaves space for header)
+
+      mainContainer.scrollTo({
+        top: scrollToPosition < 0 ? 0 : scrollToPosition,
+        behavior: "smooth",
+      })
     }
   };
-  // --- END REPLACE ---
 
   // Render main layout
   return (
@@ -363,25 +379,23 @@ function InterbranchTransferSlip({ onLogout }) {
         <div className="pr-sidebar-header">
           {/* Updated title */}
           <h2>Interbranch Transfer</h2>
-          <span>{currentStatus.toUpperCase()}</span>
+          <span>Standardized Form</span>
         </div>
 
         {/* Sidebar navigation sections */}
-        {/* --- REPLACED THIS NAV --- */}
         <nav className="pr-sidebar-nav">
           {NAV_SECTIONS.map((section) => (
             <button
               key={section.id}
               type="button"
-              className={section.id === "its-main" ? "is-active" : ""}
+              className={activeSection === section.id ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}
             </button>
           ))}
         </nav>
-        {/* --- END REPLACE --- */}
-
+    
         <div className="pr-sidebar-footer">
           <span className="pr-sidebar-meta">
             Provide as much context as possible for the transfer.
@@ -399,9 +413,7 @@ function InterbranchTransferSlip({ onLogout }) {
       </aside>
 
       {/* Main form area */}
-      {/* --- MODIFIED THIS LINE --- */}
       <main className="pr-main" id="its-main">
-      {/* --- END MODIFY --- */}
         <button
           type="button"
           className="form-back-button"

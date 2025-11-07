@@ -27,6 +27,7 @@ import MaintenanceRepair from "./forms/MaintenanceRepair";
 import OvertimeApproval from "./forms/OvertimeApproval";
 import LeaveApplication from "./forms/LeaveApplication";
 import InterbranchTransferSlip from "./forms/InterbranchTransferSlip";
+import CreditCardAcknowledgementReceipt from "./forms/CreditCardAcknowledgementReceipt";
 import "./styles/App.css";
 import SubmittedCAReceipt from "./submitted-request/SubmittedCAReceipt";
 
@@ -238,6 +239,18 @@ function App() {
             user && 
             (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
               <InterbranchTransferSlip onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/credit-card-acknowledgement-receipt"
+          element={
+            user && 
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
+              <CreditCardAcknowledgementReceipt onLogout={handleLogout} />
             ) : (
               <Navigate to="/" replace />
             )
