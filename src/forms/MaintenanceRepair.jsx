@@ -31,7 +31,7 @@ function MaintenanceRepair({ onLogout }) {
   const [nextReferenceCode, setNextReferenceCode] = useState(null);
   const [activeSection, setActiveSection] = useState("details");
   const role = (storedUser.role || "").toLowerCase();
-  const isUserAccount = role === "user";
+  const isUserAccount = role === "user" || role === "staff";
 
   const availableDepartments = formData.branch
     ? departments.filter((dept) => {
@@ -54,7 +54,7 @@ function MaintenanceRepair({ onLogout }) {
 
     const fetchNextCode = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/maintenance_repair/next-code`);
+        const res = await fetch(`${API_BASE_URL}/api/maintenance_requests/next-code`);
         if (!res.ok) {
           throw new Error("Failed to load next reference code");
         }
@@ -193,6 +193,7 @@ function MaintenanceRepair({ onLogout }) {
     setIsSaving(true);
 
     const payload = {
+      form_code: nextReferenceCode,
       requester_name: formData.requester_name,
       branch: formData.branch,
       department: formData.department,
@@ -208,8 +209,10 @@ function MaintenanceRepair({ onLogout }) {
       submitted_by: storedUser.id || null,
     };
 
+    console.log("Submitting payload:", payload);
+
     try {
-      const res = await fetch(`${API_BASE_URL}/api/maintenance_repair`, {
+      const res = await fetch(`${API_BASE_URL}/api/maintenance_requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

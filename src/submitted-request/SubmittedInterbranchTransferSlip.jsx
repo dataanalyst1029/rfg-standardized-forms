@@ -11,8 +11,9 @@ const NAV_SECTIONS = [
   { id: "new-request", label: "New Interbranch Transfer" },
 ];
 
+// --- MODIFIED ---
 const formatDate = (value) => {
-  if (!value) return "-";
+  if (!value) return ""; // Was "-", now ""
   // Check if value is already just a date 'YYYY-MM-DD'
   if (typeof value === "string" && value.length === 10 && value.includes("-")) {
     const parts = value.split("-");
@@ -47,6 +48,7 @@ const formatDate = (value) => {
     day: "numeric",
   });
 };
+// --- END MODIFICATION ---
 
 const displayText = (value, fallback = "-") => {
   if (value === null || value === undefined) {
@@ -177,30 +179,32 @@ function SubmittedInterbranchTransferSlip({
         __placeholder: true,
       }));
 
-  const preparedByValue = displayText(selectedRequest?.prepared_by, "N/A");
+  // --- MODIFIED: Changed fallbacks from text to "" ---
+  const preparedByValue = displayText(selectedRequest?.prepared_by, ""); // Was "N/A"
   const preparedDateValue = formatDate(selectedRequest?.prepared_date);
   const preparedSignatureValue = selectedRequest?.prepared_signature;
 
   const approvedByValue = displayText(
     selectedRequest?.approved_by,
-    "Awaiting approval",
+    "", // Was "Awaiting approval"
   );
   const approvedDateValue = formatDate(selectedRequest?.approved_date);
   const approvedSignatureValue = selectedRequest?.approved_signature;
 
   const dispatchedByValue = displayText(
     selectedRequest?.dispatched_by,
-    "Pending dispatch",
+    "", // Was "Pending dispatch"
   );
   const dispatchedDateValue = formatDate(selectedRequest?.dispatched_date);
   const dispatchedSignatureValue = selectedRequest?.dispatched_signature;
 
   const receivedByValue = displayText(
     selectedRequest?.received_by,
-    "Pending acknowledgement",
+    "", // Was "Pending acknowledgement"
   );
   const receivedDateValue = formatDate(selectedRequest?.received_date);
   const receivedSignatureValue = selectedRequest?.received_signature;
+  // --- END MODIFICATION ---
 
   const handleSelectChange = (event) => {
     setSelectedCode(event.target.value);
@@ -844,8 +848,8 @@ function SubmittedInterbranchTransferSlip({
           </div>
 
           {selectedRequest && (
-            <button type="button" className="print-btn" onClick={handlePrint}>
-              Print
+            <button onClick={handlePrint} className="print-btn">
+              🖨️ Print
             </button>
           )}
         </header>

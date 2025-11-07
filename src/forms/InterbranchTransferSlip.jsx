@@ -8,7 +8,6 @@ import { API_BASE_URL } from "../config/api.js";
 // Helper: generates default form values
 const initialFormData = (storedUser) => ({
   // Form fields
-  form_code: null,
   date_transferred: "",
   from_branch: storedUser.branch || "",
   from_address: "",
@@ -37,15 +36,6 @@ const initialFormData = (storedUser) => ({
   received_date: "",
   // MODIFIED: Set to null initially, will be fetched
   prepared_signature: null, 
-  approved_signature: "",
-  dispatched_signature: "",
-  received_signature: "",
-
-  // Other info
-  is_shortage: false,
-  is_overage: false,
-  short_reason: "",
-  over_reason: "",
 
   // Item Details fields removed from here
 
@@ -198,12 +188,15 @@ function InterbranchTransferSlip({ onLogout }) {
     setFormData((prev) => {
       // If user selects a radio option (dispatch method)
       if (name === "dispatch_method") {
+        const isOther = value === "Other";
         return {
           ...prev,
           dispatch_method_type: value, // track which radio was chosen
           // If selecting Other, keep previous custom text as dispatch_method,
           // otherwise set dispatch_method directly to the selected fixed value.
-          dispatch_method: value === "Other" ? prev.dispatch_other_text : value,
+          dispatch_method: isOther
+          ? `Other: ${prev.dispatch_other_text}`
+          : value,
         };
       }
 
@@ -213,7 +206,7 @@ function InterbranchTransferSlip({ onLogout }) {
           ...prev,
           dispatch_other_text: value,
           dispatch_method_type: "Other",
-          dispatch_method: value, // live-sync custom text with the main field
+          dispatch_method: `Other: ${value}`, // live-sync custom text with the main field
         };
       }
 
