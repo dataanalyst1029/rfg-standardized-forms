@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./styles/LeaveApplication.css";
+import "./styles/CAReceipt.css";
+import "./styles/CreditCardAcknowledgementReceipt.css";
 import { API_BASE_URL } from "../config/api.js";
 
 const LEAVE_TYPES = [
@@ -14,13 +16,13 @@ const LEAVE_TYPES = [
 ];
 
 const createInitialFormState = (storedUser) => ({
-  requester_name: storedUser.name || "",
-  employee_id: storedUser.employee_id || "",
+  requester_name: "", // Will be populated by fetch
+  employee_id: "", // Will be populated by fetch
   branch: storedUser.branch || "",
   department: storedUser.department || "",
   position: "",
   request_date: new Date().toISOString().split("T")[0],
-  signature: storedUser.name || "",
+  signature: null, // Will be populated by fetch
   leave_type: "",
   leave_other_text: "",
   leave_start: "",
@@ -66,8 +68,12 @@ function LeaveApplication({ onLogout }) {
         if (dept.branch_id === null || dept.branch_id === undefined) {
           return true;
         }
-        const branchRecord = branches.find((branch) => branch.branch_name === formData.branch);
-        return branchRecord ? Number(dept.branch_id) === Number(branchRecord.id) : true;
+        const branchRecord = branches.find(
+          (branch) => branch.branch_name === formData.branch,
+        );
+        return branchRecord
+          ? Number(dept.branch_id) === Number(branchRecord.id)
+          : true;
       })
     : departments;
 
@@ -75,6 +81,28 @@ function LeaveApplication({ onLogout }) {
     () => calculateLeaveDays(formData.leave_start, formData.leave_end),
     [formData.leave_start, formData.leave_end],
   );
+
+  useEffect(() => {
+    if (storedUser.id) {
+      fetch(`${API_BASE_URL}/users/${storedUser.id}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch user data");
+          return res.json();
+        })
+        .then((data) => {
+          // Update formData with the full user data, including signature
+          setFormData((prev) => ({
+            ...prev,
+            requester_name: data.name || prev.requester_name,
+            employee_id: data.employee_id || prev.employee_id,
+            signature: data.signature || null, // <-- This fills the signature
+          }));
+        })
+        .catch((err) => {
+          console.error("Error fetching user data:", err);
+        });
+    }
+  }, [storedUser.id]);
 
   useEffect(() => {
     let isMounted = true;
@@ -98,7 +126,7 @@ function LeaveApplication({ onLogout }) {
       } catch (error) {
         console.error("Error fetching next leave code:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     };
 
@@ -126,20 +154,28 @@ function LeaveApplication({ onLogout }) {
         if (branchData.length) {
           const matchedBranch = branchData.find(
             (branch) =>
-              (branch.branch_name || "").toLowerCase() === (storedUser.branch || "").toLowerCase(),
+              (branch.branch_name || "").toLowerCase() ===
+              (storedUser.branch || "").toLowerCase(),
           );
           if (matchedBranch) {
-            setFormData((prev) => ({ ...prev, branch: matchedBranch.branch_name }));
+            setFormData((prev) => ({
+              ...prev,
+              branch: matchedBranch.branch_name,
+            }));
           }
         }
 
         if (deptData.length && storedUser.department) {
           const matchedDept = deptData.find(
             (dept) =>
-              (dept.department_name || "").toLowerCase() === storedUser.department.toLowerCase(),
+              (dept.department_name || "").toLowerCase() ===
+              storedUser.department.toLowerCase(),
           );
           if (matchedDept) {
-            setFormData((prev) => ({ ...prev, department: matchedDept.department_name }));
+            setFormData((prev) => ({
+              ...prev,
+              department: matchedDept.department_name,
+            }));
           }
         }
       } catch (error) {
@@ -156,7 +192,9 @@ function LeaveApplication({ onLogout }) {
     }
     if (
       formData.department &&
-      availableDepartments.some((dept) => dept.department_name === formData.department)
+      availableDepartments.some(
+        (dept) => dept.department_name === formData.department,
+      )
     ) {
       return;
     }
@@ -181,20 +219,11 @@ function LeaveApplication({ onLogout }) {
   };
 
   const handleBranchChange = (event) => {
-    const value = event.target.value;
-    const branchRecord = branches.find((branch) => branch.branch_name === value);
-    const branchDepartments = branchRecord
-      ? departments.filter((dept) => {
-          if (dept.branch_id === null || dept.branch_id === undefined) {
-            return true;
-          }
-          return Number(dept.branch_id) === Number(branchRecord.id);
-        })
-      : [];
     setFormData((prev) => ({
       ...prev,
-      branch: value,
-      department: branchDepartments[0]?.department_name || "",
+      branch: event.target.value,
+      // The useEffect hook [line 186] will automatically handle
+      // setting the department based on this branch change.
     }));
   };
 
@@ -265,7 +294,7 @@ function LeaveApplication({ onLogout }) {
           : formData.leave_type,
       leave_start: formData.leave_start,
       leave_end: formData.leave_end,
-      leave_hours: totalLeaveDays,
+      leave_hours: totalLeaveDays*8,
       purpose: formData.purpose,
       submitted_by: storedUser.id || null,
     };
@@ -290,7 +319,6 @@ function LeaveApplication({ onLogout }) {
     }
   };
 
-  const currentStatus = request?.status || "submitted";
   const isReadOnly = Boolean(request);
 
   const handleNavigate = (sectionId) => {
@@ -298,20 +326,35 @@ function LeaveApplication({ onLogout }) {
       navigate("/forms/hr-leave-application/submitted");
       return;
     }
+
     setActiveSection(sectionId);
+
+    const mainContainer = document.getElementById("lar-main");
     const target = document.getElementById(sectionId);
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    const header = mainContainer?.querySelector(".pr-topbar");
+
+    if (mainContainer && target) {
+      const headerHeight = header ? header.offsetHeight : 0;
+
+      const targetTop = target.offsetTop;
+
+      const scrollToPosition = targetTop - headerHeight;
+
+      mainContainer.scrollTo({
+        top: scrollToPosition < 0 ? 0 : scrollToPosition,
+        behavior: "smooth",
+      })
     }
   };
 
-  if(loading)
-    return(
+  if (loading)
+    return (
       <div className="loading-container">
         <div className="spinner"></div>
         <span>Loading Leave Application Form</span>
       </div>
-  );
+    );
 
   return (
     <div className="pr-layout">
@@ -319,7 +362,7 @@ function LeaveApplication({ onLogout }) {
         <div className="pr-sidebar-header">
           <h2
             onClick={handleBackToForms}
-            style={{ cursor: "pointer", color: "#007bff"}}
+            style={{ cursor: "pointer", color: "#007bff" }}
             title="Back to Forms Library"
           >
             Leave Application
@@ -330,6 +373,7 @@ function LeaveApplication({ onLogout }) {
           {[
             { id: "details", label: "Request details" },
             { id: "leave-type", label: "Leave information" },
+            { id: "signature-details", label: "Signature details" },
             { id: "submitted", label: "View submitted requests" },
           ].map((section) => (
             <button
@@ -347,13 +391,17 @@ function LeaveApplication({ onLogout }) {
             Submit requests early based on the leave policy guidelines.
           </span>
           {onLogout && (
-            <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
+            <button
+              type="button"
+              className="pr-sidebar-logout"
+              onClick={onLogout}
+            >
               Sign out
             </button>
           )}
         </div>
       </aside>
-      <main className="pr-main">
+      <main className="pr-main" id="lar-main">
         <header className="pr-topbar">
           <div>
             <h1 className="topbar-title">Leave Application Form</h1>
@@ -380,33 +428,48 @@ function LeaveApplication({ onLogout }) {
           </div>
         </header>
 
-        {message && <div className={`leave-alert leave-alert--${message.type}`}>{message.text}</div>}
+        {message && (
+          <div className={`leave-alert leave-alert--${message.type}`}>
+            {message.text}
+          </div>
+        )}
 
         <section className="pr-form-section" id="details">
           <h2 className="pr-section-title">Requestor details</h2>
           <p className="pr-section-subtitle">
-            Confirm your information. HR uses these details to locate your leave records.
+            Confirm your information. HR uses these details to locate your leave
+            records.
           </p>
           <div className="pr-grid-two">
             <div className="pr-field">
-              <label className="pr-label" htmlFor="requester_name">Name</label>
+              <label className="pr-label" htmlFor="requester_name">
+                Name
+              </label>
               <input
                 id="requester_name"
                 name="requester_name"
                 value={formData.requester_name}
-                onChange={handleFieldChange}
                 className="pr-input"
-                disabled={isReadOnly}
+                readOnly
               />
             </div>
             <div className="pr-field">
-              <label className="pr-label" htmlFor="employee_id">Employee ID</label>
-              <input id="employee_id" value={formData.employee_id} className="pr-input" readOnly />
+              <label className="pr-label" htmlFor="employee_id">
+                Employee ID
+              </label>
+              <input
+                id="employee_id"
+                value={formData.employee_id}
+                className="pr-input"
+                readOnly
+              />
             </div>
           </div>
           <div className="pr-grid-two">
             <div className="pr-field">
-              <label className="pr-label" htmlFor="branch">Branch</label>
+              <label className="pr-label" htmlFor="branch">
+                Branch
+              </label>
               <select
                 id="branch"
                 name="branch"
@@ -424,7 +487,9 @@ function LeaveApplication({ onLogout }) {
               </select>
             </div>
             <div className="pr-field">
-              <label className="pr-label" htmlFor="department">Department</label>
+              <label className="pr-label" htmlFor="department">
+                Department
+              </label>
               {availableDepartments.length ? (
                 <select
                   id="department"
@@ -436,7 +501,10 @@ function LeaveApplication({ onLogout }) {
                 >
                   <option value="">Select department</option>
                   {availableDepartments.map((department) => (
-                    <option key={department.id} value={department.department_name}>
+                    <option
+                      key={department.id}
+                      value={department.department_name}
+                    >
                       {department.department_name}
                     </option>
                   ))}
@@ -456,22 +524,13 @@ function LeaveApplication({ onLogout }) {
           </div>
           <div className="pr-grid-two">
             <div className="pr-field">
-              <label className="pr-label" htmlFor="position">Position</label>
+              <label className="pr-label" htmlFor="position">
+                Position
+              </label>
               <input
                 id="position"
                 name="position"
                 value={formData.position}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="signature">Signature</label>
-              <input
-                id="signature"
-                name="signature"
-                value={formData.signature}
                 onChange={handleFieldChange}
                 className="pr-input"
                 disabled={isReadOnly}
@@ -502,7 +561,9 @@ function LeaveApplication({ onLogout }) {
           </div>
           {formData.leave_type === "others" && (
             <div className="pr-field">
-              <label className="pr-label" htmlFor="leave_other_text">Specify leave type</label>
+              <label className="pr-label" htmlFor="leave_other_text">
+                Specify leave type
+              </label>
               <input
                 id="leave_other_text"
                 name="leave_other_text"
@@ -515,7 +576,9 @@ function LeaveApplication({ onLogout }) {
           )}
           <div className="pr-grid-two">
             <div className="pr-field">
-              <label className="pr-label" htmlFor="leave_start">Leave start</label>
+              <label className="pr-label" htmlFor="leave_start">
+                Leave start
+              </label>
               <input
                 type="date"
                 id="leave_start"
@@ -527,7 +590,9 @@ function LeaveApplication({ onLogout }) {
               />
             </div>
             <div className="pr-field">
-              <label className="pr-label" htmlFor="leave_end">Leave end</label>
+              <label className="pr-label" htmlFor="leave_end">
+                Leave end
+              </label>
               <input
                 type="date"
                 id="leave_end"
@@ -542,10 +607,16 @@ function LeaveApplication({ onLogout }) {
           </div>
           <div className="pr-field">
             <label className="pr-label">Total days</label>
-            <input value={totalLeaveDays.toString()} readOnly className="pr-input" />
+            <input
+              value={totalLeaveDays.toString()}
+              readOnly
+              className="pr-input"
+            />
           </div>
           <div className="pr-field">
-            <label className="pr-label" htmlFor="purpose">Remarks / Purpose</label>
+            <label className="pr-label" htmlFor="purpose">
+              Remarks / Purpose
+            </label>
             <textarea
               id="purpose"
               name="purpose"
@@ -555,6 +626,45 @@ function LeaveApplication({ onLogout }) {
               rows={4}
               disabled={isReadOnly}
             />
+          </div>
+        </section>
+
+        <section className="pr-form-section" id="signature-details">
+          <h2 className="pr-section-title">Signature details</h2>
+          <p className="pr-section-subtitle">Confirm your signature.</p>
+          <div className="pr-grid-two">
+            <div className="pr-field">
+              <label className="car-reference-value" htmlFor="requester_name">
+                Requested by
+              </label>
+              <input
+                type="text"
+                id="requester_name"
+                name="requester_name"
+                value={formData.requester_name}
+                className="car-input"
+                readOnly
+              />
+            </div>
+            <div className="pr-field receive-signature">
+              <label className="car-reference-value">Signature</label>
+              <input
+                type="text"
+                name="signature"
+                className="car-input received-signature"
+                value={formData.signature || null}
+                readOnly
+              />
+              {formData.signature ? (
+                <img
+                  src={`${API_BASE_URL}/uploads/signatures/${formData.signature}`}
+                  alt="Signature"
+                  className="img-sign"
+                />
+              ) : (
+                <p className="cc-signature-missing">No signature found</p>
+              )}
+            </div>
           </div>
         </section>
 
@@ -573,7 +683,15 @@ function LeaveApplication({ onLogout }) {
               className="pr-sidebar-logout"
               onClick={() => {
                 setRequest(null);
-                setFormData(createInitialFormState(storedUser));
+                // Keep user data (name, id, signature) but reset the form
+                setFormData((prev) => ({
+                  ...createInitialFormState(storedUser), // Get a fresh form
+                  requester_name: prev.requester_name, // Keep fetched name
+                  employee_id: prev.employee_id, // Keep fetched ID
+                  signature: prev.signature, // Keep fetched signature
+                  branch: prev.branch, // Keep selected branch
+                  department: prev.department, // Keep selected dept
+                }));
                 setNextReferenceCode(null);
                 setMessage(null);
               }}

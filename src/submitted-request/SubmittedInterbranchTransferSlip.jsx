@@ -808,7 +808,7 @@ function SubmittedInterbranchTransferSlip({
           >
             Interbranch Transfer
           </h2>
-          <span>{currentStatus.toUpperCase()}</span>
+          <span>Submitted</span>
         </div>
 
         <nav className="pr-sidebar-nav">

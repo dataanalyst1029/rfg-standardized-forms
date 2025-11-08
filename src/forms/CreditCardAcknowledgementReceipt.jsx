@@ -511,11 +511,10 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
               and/or cancellation of the card.
             </p>
           </div>
-          <p>Received by</p>
 
           <div className="pr-grid-two cc-signature-block">
             <div className="pr-field">
-              <label className="car-reference-value">Name</label>
+              <label className="car-reference-value">Received by</label>
               <input
                 type="text"
                 name="received_by_name"

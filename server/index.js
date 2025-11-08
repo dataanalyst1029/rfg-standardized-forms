@@ -2941,6 +2941,20 @@ app.post("/api/leave_requests", async (req, res) => {  // Create new leave reque
   }
 });
 
+app.get("/api/leave_requests", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT *
+      FROM leave_requests
+      ORDER BY created_at DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching leave applications:", err);
+    res.status(500).json({ message: "Server error fetching leave applications" });
+  }
+});
+
 /* -------------------------
    CREDIT CARD RECEIPT API
 --------------------------- */
