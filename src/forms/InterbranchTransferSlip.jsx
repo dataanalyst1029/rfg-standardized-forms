@@ -69,6 +69,7 @@ function InterbranchTransferSlip({ onLogout }) {
   // State declarations
   const [request, setRequest] = useState(null);
   const [formData, setFormData] = useState(initialFormData(storedUser));
+  const [loading, setLoading] = useState(true);
   // Updated to use 'items' state for multiple items
   const [items, setItems] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -131,6 +132,8 @@ function InterbranchTransferSlip({ onLogout }) {
         if (isMounted) setNextReferenceCode(data.nextCode || null);
       } catch (error) {
         console.error("Error fetching next reference code:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -372,13 +375,25 @@ function InterbranchTransferSlip({ onLogout }) {
     }
   };
 
+  if(loading)
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <span>Loading Interbranch Transfer Slip</span>
+      </div>
+  )
+
   // Render main layout
   return (
     <div className="pr-layout">
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          {/* Updated title */}
-          <h2>Interbranch Transfer</h2>
+          <h2
+            onClick={handleBackToForms}
+            style={{ cursor:"pointer", color:"#007bff"}}
+            title="Back to Forms Library"
+          >
+            Interbranch Transfer</h2>
           <span>Standardized Form</span>
         </div>
 
@@ -414,14 +429,6 @@ function InterbranchTransferSlip({ onLogout }) {
 
       {/* Main form area */}
       <main className="pr-main" id="its-main">
-        <button
-          type="button"
-          className="form-back-button"
-          onClick={handleBackToForms}
-        >
-          ← <span>Back to forms library</span>
-        </button>
-
         {/* Form header and reference code */}
         <header className="pr-topbar">
           <div>

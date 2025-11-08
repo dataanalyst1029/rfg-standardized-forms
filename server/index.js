@@ -2902,14 +2902,15 @@ app.post("/api/leave_requests", async (req, res) => {  // Create new leave reque
 
     const result = await client.query(  // Insert main request record
       `INSERT INTO leave_requests
-      (form_code, requester_name, branch, department, position, request_date, signature, leave_type, leave_start, leave_end, leave_hours, purpose, submitted_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      (form_code, requester_name, branch, department, employee_id, position, request_date, signature, leave_type, leave_start, leave_end, leave_hours, purpose, submitted_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, $14)
       RETURNING id`,
       [
         form_code,
         requester_name,
         branch,
         department,
+        employee_id,
         position,
         request_date,
         signature,
@@ -3000,40 +3001,39 @@ app.post("/api/credit_card_acknowledgement_receipt", async (req, res) => {  // C
     await client.query("BEGIN");  // Start transaction
 
     const result = await client.query(  // Insert main request record
-      `INSERT INTO leave_requests
-      (form_code, requester_name, branch, department, position, request_date, signature, leave_type, leave_start, leave_end, leave_hours, purpose, submitted_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      `INSERT INTO credit_card_acknowledgement_receipt
+      (form_code, cardholder_name, employee_id, department, position, bank, issuer, card_number, date_received, received_by_name, received_by_date, received_by_signature)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       RETURNING id`,
       [
         form_code,
-        requester_name,
-        branch,
+        cardholder_name,
+        employee_id,
         department,
         position,
-        request_date,
-        signature,
-        leave_type,
-        leave_start,
-        leave_end,
-        leave_hours,
-        purpose,
-        submitted_by
+        bank,
+        issuer,
+        card_number,
+        date_received,
+        received_by_name,
+        received_by_date,
+        received_by_signature
       ]
     );
 
     const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
-    if (!requestId) throw new Error("Failed to get leave application ID");  // Validate presence of ID
+    if (!requestId) throw new Error("Failed to get credit card acknowledgement receipt ID");  // Validate presence of ID
 
     await client.query("COMMIT");  // Commit transaction
 
     res.status(201).json({
       success: true,
-      message: `Leave Application Form ${form_code} saved successfully!`,  // Success message
+      message: `Credit Card Acknowledgement Receipt ${form_code} saved successfully!`,  // Success message
     });
   } catch (err) {
     await client.query("ROLLBACK");  // Rollback on failure
-    console.error("❌ Error saving leave application form:", err);
-    res.status(500).json({ message: "Server error saving leave application form" });  // Send error response
+    console.error("❌ Error saving credit card acknowledgement receipt:", err);
+    res.status(500).json({ message: "Server error saving credit card acknowledgement receipt" });  // Send error response
   } finally {
     client.release();  // Release DB client
   }

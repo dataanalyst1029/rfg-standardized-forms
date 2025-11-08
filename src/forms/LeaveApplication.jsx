@@ -49,6 +49,7 @@ function LeaveApplication({ onLogout }) {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState(createInitialFormState(storedUser));
+  const [loading, setLoading] = useState(true);
   const [branches, setBranches] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [request, setRequest] = useState(null);
@@ -96,6 +97,8 @@ function LeaveApplication({ onLogout }) {
         }
       } catch (error) {
         console.error("Error fetching next leave code:", error);
+      } finally {
+        setLoading(false)
       }
     };
 
@@ -302,12 +305,26 @@ function LeaveApplication({ onLogout }) {
     }
   };
 
+  if(loading)
+    return(
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <span>Loading Leave Application Form</span>
+      </div>
+  );
+
   return (
     <div className="pr-layout">
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2>Leave Application</h2>
-          <span>{currentStatus.toUpperCase()}</span>
+          <h2
+            onClick={handleBackToForms}
+            style={{ cursor: "pointer", color: "#007bff"}}
+            title="Back to Forms Library"
+          >
+            Leave Application
+          </h2>
+          <span>Standardized form</span>
         </div>
         <nav className="pr-sidebar-nav">
           {[
@@ -337,9 +354,6 @@ function LeaveApplication({ onLogout }) {
         </div>
       </aside>
       <main className="pr-main">
-        <button type="button" className="form-back-button" onClick={handleBackToForms}>
-          ← <span>Back to forms library</span>
-        </button>
         <header className="pr-topbar">
           <div>
             <h1 className="topbar-title">Leave Application Form</h1>

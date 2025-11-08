@@ -40,6 +40,7 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
   // State declarations
   const [request, setRequest] = useState(null);
   const [formData, setFormData] = useState(initialFormData(storedUser));
+  const [loading, setLoading] = useState(true);
   // Removed [items, setItems] state
   const [departments, setDepartments] = useState([]);
   const [message, setMessage] = useState(null);
@@ -101,6 +102,8 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
         if (isMounted) setNextReferenceCode(data.nextCode || null);
       } catch (error) {
         console.error("Error fetching next reference code:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -167,6 +170,10 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
       return showMessage("error", "Please enter the bank name.");
     if (!formData.date_received)
       return showMessage("error", "Please enter the date received.");
+    if (!formData.department)
+      return showMessage("error", "Please enter the department.");
+    if (!formData.position)
+      return showMessage("error", "Please enter the position.");
     // --- END VALIDATION ---
 
     setIsSaving(true);
@@ -175,7 +182,6 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
     const payload = {
       ...formData,
       form_code: nextReferenceCode,
-      // 'items' array removed
     };
 
     console.log("Submitting payload:", payload);
@@ -231,12 +237,24 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
     }
   };
 
+  if(loading)
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <span>Loading Credit Card Acknowledgement Receipt</span>
+      </div>
+    );
+
   // Render main layout
   return (
     <div className="pr-layout">
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2>Credit Card Acknowledgement Receipt</h2>
+          <h2
+            onClick={handleBackToForms}
+            style={{cursor: "pointer", color:"#007bff"}}
+            title="Back to Forms Library"
+          >Credit Card Acknowledgement</h2>
           <span>Standardized Form</span>
         </div>
 
@@ -272,14 +290,6 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
 
       {/* Main form area */}
       <main className="pr-main" id="its-main">
-        <button
-          type="button"
-          className="form-back-button"
-          onClick={handleBackToForms}
-        >
-          ← <span>Back to forms library</span>
-        </button>
-
         {/* Form header and reference code */}
         <header className="pr-topbar">
           <div>
@@ -338,7 +348,7 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
                 value={formData.cardholder_name}
                 onChange={handleFieldChange}
                 className="pr-input"
-                disabled={isReadOnly}
+                readOnly
               />
             </div>
             <div className="pr-grid-two">
@@ -353,6 +363,7 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
                   value={formData.bank}
                   onChange={handleFieldChange}
                   className="pr-input"
+                  required
                   disabled={isReadOnly}
                 />
               </div>
@@ -386,7 +397,8 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
                 value={formData.employee_id}
                 onChange={handleFieldChange}
                 className="pr-input"
-                disabled={isReadOnly}
+                required
+                readOnly
               />
             </div>
             <div className="pr-field">
@@ -399,6 +411,7 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
                 value={formData.card_number}
                 onChange={handleFieldChange} // Added onChange
                 className="pr-input"
+                required
                 disabled={isReadOnly}
               />
             </div>
@@ -418,6 +431,7 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
                     value={formData.department}
                     onChange={handleFieldChange} // Added onChange
                     className="pr-input"
+                    required
                     disabled={isReadOnly}
                   >
                     <option value="">Select department</option>
@@ -438,6 +452,7 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
                     value={formData.position}
                     onChange={handleFieldChange}
                     className="pr-input"
+                    required
                     disabled={isReadOnly}
                   />
                 </div>
@@ -550,9 +565,18 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
               className="pr-sidebar-logout" 
               onClick={() => {
                 setRequest(null);
-                setFormData(initialFormData(storedUser)); // Reset form
-                // 'setItems' removed
                 setNextReferenceCode(null); // Will trigger refetch
+
+                setFormData(prev => ({
+                  ...emptyForm,
+
+                  cardholder_name: prev.cardholder_name,
+                  employee_id: prev.employee_id,
+                  received_by_name: prev.received_by_name,
+                  received_by_signature: prev.received_by_signature,
+                  received_by_date: new Date().toISOString().split("T")[0], 
+                }));
+                
               }}
               disabled={isSaving}
             >

@@ -24,6 +24,7 @@ function MaintenanceRepair({ onLogout }) {
 
   const [request, setRequest] = useState(null);
   const [formData, setFormData] = useState(createInitialFormState(storedUser));
+  const [loading, setLoading] = useState(true)
   const [branches, setBranches] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [message, setMessage] = useState(null);
@@ -64,6 +65,8 @@ function MaintenanceRepair({ onLogout }) {
         }
       } catch (error) {
         console.error("Error fetching next maintenance code:", error);
+      } finally {
+        setLoading(false)
       }
     };
 
@@ -246,12 +249,25 @@ function MaintenanceRepair({ onLogout }) {
     }
   };
 
+  if(loading)
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <span>Loading Maintenance/Repair Form</span>
+      </div>
+  )
+
   return (
     <div className="pr-layout">
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2>Maintenance / Repair</h2>
-          <span>{currentStatus.toUpperCase()}</span>
+          <h2
+            onClick={handleBackToForms}
+            style={{ cursor: "pointer", color: "#007bff"}}
+            title="Back to Forms Library"
+          >
+            Maintenance / Repair</h2>
+          <span>Standardized form</span>
         </div>
         <nav className="pr-sidebar-nav">
           {[
@@ -283,10 +299,6 @@ function MaintenanceRepair({ onLogout }) {
       </aside>
 
       <main className="pr-main">
-        <button type="button" className="form-back-button" onClick={handleBackToForms}>
-          ← <span>Back to forms library</span>
-        </button>
-
         <header className="pr-topbar">
           <div>
             <h1 className="topbar-title">Maintenance / Repair Request</h1>
