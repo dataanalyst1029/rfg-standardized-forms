@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"; // Removed useMemo
 import { useNavigate } from "react-router-dom";
 import "./styles/InterbranchTransfer.css";
 import "./styles/PurchaseRequest.css";
+import "./styles/CAReceipt.css";
 import "./styles/CreditCardAcknowledgementReceipt.css"
 import { API_BASE_URL } from "../config/api.js";
 
@@ -497,34 +498,37 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
           </div>
           <p>Received by</p>
 
-          <div className="cc-grid-three cc-signature-block">
+          <div className="pr-grid-two cc-signature-block">
             <div className="pr-field">
-                <div className="cc-signature-line">
-                    <p>{formData.received_by_name}</p>
-                </div>
-                <label className="pr-label cc-label-bottom">Name</label>
+              <label className="car-reference-value">Name</label>
+              <input
+                type="text"
+                name="received_by_name"
+                className="car-input"
+                value={formData.received_by_name || ""}
+                required
+                readOnly
+              />
             </div>
 
-            <div className="pr-field">
-                <div className="cc-signature-line">
-                    <p>{formData.received_by_date}</p>
-                </div>
-                <label className="pr-label cc-label-bottom">Date</label>
-            </div>
-
-            <div className="pr-field">
-                <div className="cc-signature-line">
+            <div className="pr-field receive-signature">
+              <label className="car-reference-value">Signature</label>
+              <input
+                type="text"
+                name="received_by_signature"
+                className="car-input received-signature"
+                value={formData.received_by_signature || null}
+                readOnly
+              />
                     {formData.received_by_signature ? (
                     <img
                         src={`${API_BASE_URL}/uploads/signatures/${formData.received_by_signature}`}
-                        alt="User Signature"
-                        className="cc-signature-image"
+                        alt="Signature"
+                        className="img-sign"
                     />
                     ) : (
                         <p className="cc-signature-missing">No signature found</p>
-                    )}
-                </div>
-                <label className="pr-label cc-label-bottom">Signature</label>
+                    )}                
             </div>
           </div>
 
