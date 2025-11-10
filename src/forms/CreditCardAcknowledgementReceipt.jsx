@@ -30,6 +30,7 @@ const initialFormData = (storedUser) => ({
 // Navigation sections (cleaned)
 const NAV_SECTIONS = [
   { id: "details", label: "Credit Card Details" },
+  { id: "acknowledgement", label: "Acknowledgment" },
   { id: "submitted", label: "View Submitted Receipts" },
 ];
 
@@ -220,7 +221,7 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
 
     setActiveSection(sectionId);
 
-    const mainContainer = document.getElementById("its-main");
+    const mainContainer = document.getElementById("cca-main");
     const target = document.getElementById(sectionId);
 
     const header = mainContainer?.querySelector(".pr-topbar");
@@ -289,7 +290,7 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
       </aside>
 
       {/* Main form area */}
-      <main className="pr-main" id="its-main">
+      <main className="pr-main" id="cca-main">
         {/* Form header and reference code */}
         <header className="pr-topbar">
           <div>
@@ -476,7 +477,7 @@ function CreditCardAcknowledgementReceipt({ onLogout }) {
         </section>
 
         {/* --- Acknowledgement details section --- */}
-        <section className="pr-form-section" id="details">
+        <section className="pr-form-section" id="acknowledgement">
             <h2 className="pr-section-title">Acknowledgment</h2>
             <p className="pr-section-subtitle">
                 Ensure that you have read the conditions and confirm the entries below are correct.

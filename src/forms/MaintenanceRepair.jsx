@@ -242,10 +242,25 @@ function MaintenanceRepair({ onLogout }) {
       navigate("/forms/maintenance-or-repair/submitted");
       return;
     }
+
     setActiveSection(sectionId);
+
+    const mainContainer = document.getElementById("mr-main");
     const target = document.getElementById(sectionId);
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    const header = mainContainer?.querySelector(".pr-topbar");
+
+    if (mainContainer && target) {
+      const headerHeight = header ? header.offsetHeight : 0;
+
+      const targetTop = target.offsetTop;
+
+      const scrollToPosition = targetTop - headerHeight;
+
+      mainContainer.scrollTo({
+        top: scrollToPosition < 0 ? 0: scrollToPosition,
+        behavior: "smooth",
+      })
     }
   };
 
@@ -298,7 +313,7 @@ function MaintenanceRepair({ onLogout }) {
         </div>
       </aside>
 
-      <main className="pr-main">
+      <main className="pr-main" id="mr-main">
         <header className="pr-topbar">
           <div>
             <h1 className="topbar-title">Maintenance / Repair Request</h1>

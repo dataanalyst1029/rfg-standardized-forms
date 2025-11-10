@@ -319,10 +319,10 @@ function RevolvingFundRequest({ onLogout }) {
 
       const targetTop = target.offsetTop;
 
-      const scrollToPostion = targetTop - headerHeight;
+      const scrollToPosition = targetTop - headerHeight;
 
       mainContainer.scrollTo({
-        top: scrollToPostion,
+        top: scrollToPosition < 0 ? 0 : scrollToPosition,
         behavior: "smooth",
       })
     }

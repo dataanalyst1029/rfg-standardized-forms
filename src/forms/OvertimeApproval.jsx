@@ -314,10 +314,25 @@ function OvertimeApproval({ onLogout }) {
       navigate("/forms/hr-overtime-approval/submitted");
       return;
     }
+
     setActiveSection(sectionId);
+
+    const mainContainer = document.getElementById("oa-main");
     const target = document.getElementById(sectionId);
+
+    const header = mainContainer?.querySelector(".pr-topbar");
+
     if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      const headerHeight = header ? header.offsetHeight : 0;
+
+      const targetTop = target.offsetTop;
+
+      const scrollToPosition = targetTop - headerHeight;
+
+      mainContainer.scrollTo({
+        top: scrollToPosition < 0 ? 0 : scrollToPosition,
+        behavior: "smooth",
+      })
     }
   };
 
@@ -355,7 +370,7 @@ function OvertimeApproval({ onLogout }) {
           )}
         </div>
       </aside>
-      <main className="pr-main">
+      <main className="pr-main" id="oa-main">
         <button type="button" className="form-back-button" onClick={handleBackToForms}>
           ← <span>Back to forms library</span>
         </button>

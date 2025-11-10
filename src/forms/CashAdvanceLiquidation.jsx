@@ -327,10 +327,26 @@ function PurchaseRequest({ onLogout }) {
 const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
     navigate("/submitted-cash-advance-liquidation"); 
-    } else {
+    }
+
     setActiveSection(sectionId);
-    const element = document.getElementById(sectionId);
-    if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    const mainContainer = document.getElementById("cal-main");
+    const target = document.getElementById(sectionId);
+
+    const header = mainContainer?.querySelector(".pr-topbar");
+
+    if (mainContainer && target) {
+      const headerHeight = header ? header.offsetHeight : 0;
+
+      const targetTop = target.offsetTop;
+
+      const scrollToPosition = targetTop - headerHeight;
+
+      mainContainer.scrollTo({
+        top: scrollToPosition < 0 ? 0 : scrollToPosition,
+        behavior: "smooth",
+      })
     }
 };
 
@@ -406,7 +422,7 @@ const handleNavigate = (sectionId) => {
         </div>
       </aside>
 
-      <main className="pr-main">
+      <main className="pr-main" id="cal-main">
         <header className="pr-topbar">
           <div>
             <h1>New Cash Advance Liquidation</h1>
