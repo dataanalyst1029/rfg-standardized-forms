@@ -2833,6 +2833,20 @@ app.post("/api/maintenance_requests", async (req, res) => {  // Create new maint
   }
 });
 
+app.get("/api/maintenance_requests", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT *
+      FROM maintenance_requests
+      ORDER BY created_at DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching maintenance/repair requests:", err);
+    res.status(500).json({ message: "Server error fetching maintenance/repair requests" });
+  }
+});
+
 /* ------------------------
    LEAVE REQUESTS API
 ------------------------ */
@@ -3052,6 +3066,21 @@ app.post("/api/credit_card_acknowledgement_receipt", async (req, res) => {  // C
     client.release();  // Release DB client
   }
 });
+
+app.get("/api/credit_card_acknowledgement_receipt", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT *
+      FROM credit_card_acknowledgement_receipt
+      ORDER BY created_at DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching credit card acknowledgement receipts:", err);
+    res.status(500).json({ message: "Server error fetching credit card acknowledgement receipts" });
+  }
+});
+
 
 /* ------------------------
    START SERVER

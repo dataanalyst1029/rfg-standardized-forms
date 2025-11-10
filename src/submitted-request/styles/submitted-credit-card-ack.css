@@ -1,0 +1,113 @@
+/* File: src/styles/submitted-credit-card-ack.css
+  This file styles the on-screen submitted credit card receipt.
+  The print styles are embedded in the component's handlePrint function.
+*/
+
+/* --- Details Table --- */
+.cca-details-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.cca-details-table th,
+.cca-details-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  background: #fff;
+  color: #333;
+}
+
+.cca-details-table th {
+  font-weight: 600;
+  width: 140px; /* Label width */
+  background-color: #f9f9f9;
+}
+
+.cca-details-table td {
+  width: 35%; /* Value width */
+}
+
+/* --- Section Header --- */
+.cca-section-header {
+  background: #333;
+  color: #fff;
+  font-weight: bold;
+  padding: 8px 12px;
+  font-size: 1rem;
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+/* --- Acknowledgement Block --- */
+.cca-ack-block {
+  border: 1px solid #ccc;
+  border-top: none;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  background: #fff;
+}
+
+.cca-ack-block p,
+.cca-ack-block ol {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.cca-ack-block ol {
+  padding-left: 1.5rem;
+}
+
+.cca-ack-block li {
+  margin-bottom: 0.25rem;
+}
+
+/* --- Signature Table --- */
+.cca-sig-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: -1.5rem; /* Connects to header */
+  font-size: 0.9rem;
+}
+
+.cca-sig-table th,
+.cca-sig-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: left;
+  height: 6rem; /* Give space for signature */
+  vertical-align: top;
+  background: #fff;
+}
+
+.cca-sig-table thead th {
+  text-align: center;
+  font-weight: 600;
+  background-color: #f9f9f9;
+}
+
+.cca-sig-table tbody th {
+  font-weight: 600;
+  width: 140px; /* Label width */
+  background-color: #f9f9f9;
+}
+
+.cca-sig-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.cca-sig-table .cca-sig-col {
+  width: 30%;
+}
+
+.signature-img {
+  max-width: 120px;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}

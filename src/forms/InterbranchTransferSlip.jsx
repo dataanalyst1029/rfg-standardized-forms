@@ -350,7 +350,7 @@ function InterbranchTransferSlip({ onLogout }) {
   // Navigate between sidebar sections
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/forms/interbranch-transfer-slip/submitted");
+      navigate("/forms/submitted-interbranch-transfer-slip");
       return;
     } 
     
@@ -446,14 +446,11 @@ function InterbranchTransferSlip({ onLogout }) {
             </span>
             <span className="pr-reference-label">Request date</span>
             <span>
-              <input
-                type="date"
-                name="request_date"
-                value={formData.request_date}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
+                {new Date(formData.request_date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </span>
           </div>
         </header>
