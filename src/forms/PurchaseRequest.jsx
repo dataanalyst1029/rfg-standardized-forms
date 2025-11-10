@@ -18,11 +18,8 @@ const initialFormData = {
 const emptyItem = { quantity: "", purchase_item: "" };
 
 const NAV_SECTIONS = [
-  { id: "details", label: "Request details" },
-  { id: "contact", label: "Contact & routing" },
-  { id: "purpose", label: "Purpose" },
-  { id: "items", label: "Line items" },
-  { id: "submitted", label: "View submitted requests" },
+  { id: "pr-main", label: "New Purchase Request" },
+  { id: "submitted", label: "View Submitted Requests" },
 ];
 
 function PurchaseRequest({ onLogout }) {
@@ -38,8 +35,20 @@ function PurchaseRequest({ onLogout }) {
   const [userData, setUserData] = useState({ name: "", contact_no: "" });
   const navigate = useNavigate();
   const [message, setMessage] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
 
-  // ✅ Load user info from session storage + fetch full user record
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   useEffect(() => {
     const storedId = sessionStorage.getItem("id");
     const storedName = sessionStorage.getItem("name");
@@ -290,24 +299,34 @@ function PurchaseRequest({ onLogout }) {
         </div>
       )}
 
-      <aside className="pr-sidebar">
+      {isMobileView && (
+        <button
+          className="burger-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          ☰
+        </button>
+      )}
+
+      <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
-          <h2 
-            onClick={() => navigate("/forms-list")} 
+          <h2
+            onClick={() => navigate("/forms-list")}
             style={{ cursor: "pointer", color: "#007bff" }}
             title="Back to Forms Library"
           >
             Purchase Request
           </h2>
-          <span>Standardized form</span>
+          <span className="pr-subtitle">Standardized form</span>
         </div>
+
 
         <nav className="pr-sidebar-nav">
           {NAV_SECTIONS.map((section) => (
             <button
               key={section.id}
               type="button"
-              className={section.id === activeSection ? "is-active" : ""}
+              className={section.id === "pr-main" ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}
@@ -501,66 +520,70 @@ function PurchaseRequest({ onLogout }) {
               </button>
             </div>
 
-            <table className="pr-items-table">
-              <thead>
-                <tr>
-                  <th>Quantity</th>
-                  <th>Item description</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.length === 0 ? (
+            <div className="pr-items-table-wrapper">
+              <table className="pr-items-table">
+                <thead>
                   <tr>
-                    <td colSpan={3} className="pr-items-empty">
-                      No items yet. Add an item to get started.
-                    </td>
+                    <th>Item description</th>
+                    <th>Quantity</th>
+                    <th>Action</th>
                   </tr>
-                ) : (
-                  items.map((item, index) => (
-                    <tr key={index}>
-                      <td>
-                        <input
-                          type="number"
-                          min="1"
-                          name="quantity"
-                          value={item.quantity}
-                          onChange={(event) => handleItemChange(index, event)}
-                          className="pr-input"
-                          placeholder="Quantity"
-                          required
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          name="purchase_item"
-                          value={item.purchase_item}
-                          onChange={(event) => handleItemChange(index, event)}
-                          className="pr-input"
-                          placeholder="Item name or description"
-                          required
-                        />
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="pr-table-action"
-                          onClick={() => removeItemRow(index)}
-                        >
-                          Remove
-                        </button>
+                </thead>
+                <tbody>
+                  {items.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="pr-items-empty">
+                        No items yet. Add an item to get started.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    items.map((item, index) => (
+                      <tr key={index}>
+                        <td style={{width: '100%'}}>
+                          <input
+                            type="text"
+                            name="purchase_item"
+                            value={item.purchase_item}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            style={{width: '98%'}}
+                            placeholder="Item description"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="1"
+                            name="quantity"
+                            value={item.quantity}
+                            onChange={(event) => handleItemChange(index, event)}
+                            className="pr-input"
+                            placeholder="0"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="pr-table-action"
+                            onClick={() => removeItemRow(index)}
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
           </section>
 
           <div className="pr-form-actions">
             <button type="submit" className="pr-submit" disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit purchase request"}
+              {isSubmitting ? "Purchasing..." : "Purchase"}
             </button>
           </div>
         </form>

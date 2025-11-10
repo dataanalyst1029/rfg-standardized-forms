@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../config/api.js";
 import { useNavigate } from "react-router-dom";
 import "./styles/submitted-request.css";
+import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
-  { id: "submitted", label: "Submitted purchase requests" },
   { id: "new-request", label: "New purchase request" },
+  { id: "submitted", label: "Submitted purchase requests" },
 ];
 
 function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false }) {
@@ -16,6 +17,19 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
   const [loadingItems, setLoadingItems] = useState(false);
   const cardRef = useRef(null);
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const formatDate = (dateValue) => {
     if (!dateValue) return "—";
@@ -28,6 +42,14 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
       day: "numeric",
     });
   };
+
+  // const storedId = sessionStorage.getItem("id");
+  // const [userData, setUserData] = useState({ name: "", signature: "" });
+
+  // const [receiveInputs, setReceiveInputs] = useState({
+  //   received_by: "",
+  //   received_signature: "",
+  // });
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -58,6 +80,21 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
     fetchRequests();
   }, [currentUserId, showAll]);
+
+  // useEffect(() => {
+  //   if (!storedId) return;
+
+  //   fetch(`${API_BASE_URL}/users/${storedId}`)
+  //     .then((res) => res.json())
+  //     .then((data) => {
+  //       setUserData(data);
+  //       setReceiveInputs({
+  //         received_by: data.name || "",
+  //         received_signature: data.signature || "",
+  //       });
+  //     })
+  //     .catch((err) => console.error("Error fetching user data:", err));
+  // }, [storedId]);
 
   useEffect(() => {
     const selected = requests.find(
@@ -98,215 +135,6 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
     setSelectedRequestCode(e.target.value);
   };
 
-  const handlePrint = () => {
-    if (!cardRef.current) return;
-
-    const printContents = cardRef.current.outerHTML;
-    const printWindow = window.open("", "", "width=900,height=650");
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print Purchase Request</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
-              background: #fff;
-              position: relative;
-            }
-
-            h2, h3, h4 {
-              margin-bottom: 8px;
-            }
-
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 10px;
-            }
-
-            th, td {
-              border: 1px solid #ddd;
-              padding: 8px;
-              text-align: left;
-            }
-
-            th.text-center, td.text-center {
-              text-align: center;
-            }
-
-            .approved-content {
-              margin-top: 3rem;
-            }
-
-            .purchase-dept-family{
-              margin-top: 3rem;
-            }
-
-            .purchase-dept-box {
-              page-break-inside: avoid;
-              border: 1px solid #ddd;
-              margin-top: 1.5rem;
-              padding: 1.5rem 3rem;
-            }
-
-            .purchase-dept-title {
-              text-align: center;
-              font-weight: 600;
-              margin-bottom: 1rem;
-            }
-            .purchase-dept-content input:focus {
-              border-bottom: 1px solid #444;
-              outline: none;
-            }
-
-            .purchase-dept-content {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-end;
-              margin-bottom: 1.5rem;
-              position: relative;
-            }
-
-            .purchase-dept-content div {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              width: 45%;
-            }
-
-            .purchase-dept-content input {
-              border: none;
-              border-bottom: 1px solid #000;
-              text-align: center;
-              font-weight: bold;
-              margin-bottom: 4px;
-              width: 80%;
-            }
-
-            .purchase-dept-content p {
-              font-style: italic;
-              margin: 0;
-            }
-
-            .purchase-signature {
-              position: relative;
-              width: 45%;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-            }
-
-            .signature-image {
-              position: absolute;
-              top: -123px;
-              width: 150px;
-              height: auto;
-              object-fit: contain;
-            }
-
-            .purchase-signature p {
-              border-top: 1px solid;
-              width: 80%;
-              text-align: center;
-            }
-
-            .floating-buttons {
-              position: fixed;
-              bottom: 20px;
-              right: 20px;
-              display: flex;
-              gap: 10px;
-              z-index: 9999;
-            }
-
-            .action-btn {
-              width: 44px;
-              height: 44px;
-              border-radius: 50%;
-              border: none;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-              color: white;
-              font-size: 20px;
-              transition: transform 0.2s ease;
-            }
-
-            .action-btn:hover {
-              transform: scale(1.1);
-            }
-
-            .print-btn {
-              background-color: #007bff;
-            }
-
-            .pdf-btn {
-              background-color: #28a745;
-            }
-
-            @media print {
-              .floating-buttons {
-                display: none !important;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="floating-buttons">
-            <button class="action-btn print-btn" onclick="window.print()" title="Print">🖨️</button>
-            <button class="action-btn pdf-btn" id="downloadPDF" title="Download PDF">📥</button>
-          </div>
-
-          ${printContents}
-
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-          <script>
-            async function toBase64Image(img) {
-              const response = await fetch(img.src, {mode: 'cors'});
-              const blob = await response.blob();
-              return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(blob);
-              });
-            }
-
-            document.getElementById("downloadPDF").addEventListener("click", async function() {
-              const element = document.body.cloneNode(true);
-              const buttons = element.querySelector('.floating-buttons');
-              if (buttons) buttons.remove();
-
-              const imgs = element.querySelectorAll('img');
-              for (let img of imgs) {
-                try {
-                  const base64 = await toBase64Image(img);
-                  img.src = base64;
-                } catch (err) {
-                  console.warn('Could not convert image:', img.src);
-                }
-              }
-
-              const opt = {
-                margin: 0.5,
-                filename: 'Purchase_Request.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-              };
-
-              html2pdf().from(element).set(opt).save();
-            });
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
-
   const selectedRequest = requests.find(
     (req) => req.purchase_request_code === selectedRequestCode
   );
@@ -319,17 +147,84 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
     </div>
   );
 
+  // const handleReceive = async (request) => {
+  //   try {
+  //     if (!request?.id) {
+  //       alert("Missing request ID. Cannot update status.");
+  //       console.error("Missing request ID:", request);
+  //       return;
+  //     }
+
+  //     const confirmReceive = window.confirm(
+  //       `Mark ${request.purchase_request_code} as Received?`
+  //     );
+  //     if (!confirmReceive) return;
+
+  //     console.log("Updating purchase request:", request.id);
+
+  //     const userRes = await fetch(`${API_BASE_URL}/api/users/${currentUserId}`);
+  //     if (!userRes.ok) throw new Error("Failed to fetch user data");
+  //     const userData = await userRes.json();
+
+  //     const payload = {
+  //       status: "Received",
+  //       received_by: userData.name || receiveInputs.received_by,
+  //       received_signature: userData.signature || receiveInputs.received_signature,
+  //     };
+
+  //     const res = await fetch(`${API_BASE_URL}/api/purchase_request/${request.id}`, {
+  //       method: "PUT",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(payload),
+  //     });
+
+  //     let data = {};
+  //     try {
+  //       data = await res.json();
+  //     } catch {
+  //       console.warn("Non-JSON response from backend");
+  //     }
+
+  //     if (!res.ok) {
+  //       console.error("Backend response error:", data);
+  //       alert(`Failed to update status: ${data.error || "Unknown error"}`);
+  //       return;
+  //     }
+
+  //     alert(`Purchase Request ${request.purchase_request_code} marked as Received ✅`);
+
+  //     setRequests((prev) =>
+  //       prev.map((r) =>
+  //         r.id === request.id ? { ...r, ...payload } : r
+  //       )
+  //     );
+  //   } catch (err) {
+  //     console.error("Error receiving purchase:", err);
+  //     alert("Error updating status. Check console for details.");
+  //   }
+  // };
+
   return (
     <div className="pr-layout">
-      <aside className="pr-sidebar">
+      {isMobileView && (
+        <button
+          className="burger-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          ☰
+        </button>
+      )}
+
+       <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
           <h2
             onClick={() => navigate("/forms-list")}
             style={{ cursor: "pointer", color: "#007bff" }}
+            title="Back to Forms Library"
           >
             Purchase Request
           </h2>
-          <span>Standardized form</span>
+          <span className="pr-subtitle">Standardized form</span>
         </div>
 
         <nav className="pr-sidebar-nav">
@@ -347,7 +242,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
         <div className="pr-sidebar-footer">
           <span className="pr-sidebar-meta">
-            Review your submitted purchase requests.
+            View your submitted purchase requests.
           </span>
           <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
             Sign out
@@ -365,16 +260,11 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
           </div>
 
           {selectedRequest && (
-            <button
-              onClick={handlePrint}
-              className="print-btn"
-              style={{
-                
-              }}
-            >
+            <button className="print-btn" onClick={() => window.print()}>
               🖨️ Print
             </button>
           )}
+
         </header>
 
         <div className="submitted-requests-container">
@@ -404,89 +294,172 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
               {selectedRequest && (
                 <div
-                  className="submitted-request-card"
+                  className="submitted-prf-request-card"
                   ref={cardRef}
                   style={{ marginTop: "1rem" }} >
-                
-                  <h2>{selectedRequest.purchase_request_code}</h2>
-                  <p hidden>ID: {selectedRequest.id}</p>
-                  <p>Requested by: <i>{selectedRequest.request_by}</i></p>
-                  <p>Date: <i>{formatDate(selectedRequest.request_date)}</i></p>
-                  <p>Branch: <i>{selectedRequest.branch}</i></p>
-                  <p>Department: <i>{selectedRequest.department}</i></p>
-                  <p>Purpose: <i>{selectedRequest.purpose}</i></p>
 
-                  <div style={{ marginTop: "1.5rem" }}>
-                    <h3>Requested Items</h3>
-                    {loadingItems ? (
-                      <p>Loading items…</p>
-                    ) : items.length === 0 ? (
-                      <p>No items found for this request.</p>
-                    ) : (
-                      <table className="p-items-table">
-                        <thead>
-                          <tr>
-                            <th className="text-left">Item Name</th>
-                            <th className="text-center">Quantity</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {items.map((item) => (
-                            <tr key={item.id}>
-                              <td>{item.purchase_item}</td>
-                              <td className="text-center">{item.quantity}</td>
-                            </tr>
-                          ))}
-                        </tbody>
+                  <div class="record-request">
+                    <header className="request-header">
+                      <div class="header-brand">
+                        <img src={rfgLogo} alt="Ribshack Food Group" className="header-logo" />
+                      </div>
+                      <div className="header-request-code">
+                        <i className="request-code">{selectedRequest.purchase_request_code}</i>
+                      </div>
+                    </header>
+
+                    <div className="table">
+                      <p hidden>ID: {selectedRequest.id}</p>
+                      <table>
+                        <tr>
+                          <th><small>Date Request</small></th>
+                          <td><small>{formatDate(selectedRequest.request_date)}</small></td>
+                        </tr>
+                        <tr>
+                          <th><small>Requested by</small></th>
+                          <td><small>{selectedRequest.request_by}</small></td>
+                          <th><small>Contact Number</small></th>
+                          <td><small>{selectedRequest.contact_no}</small></td>
+                        </tr>
+                        <tr>
+                          <th><small>Branch</small></th>
+                          <td><small>{selectedRequest.branch}</small></td>
+                          <th><small>Department</small></th>
+                          <td><small>{selectedRequest.department}</small></td>
+                        </tr>
+                        <tr>
+                            <th><small>Address</small></th>
+                            <td><small>{selectedRequest.address}</small></td>
+                            <th><small>Purpose</small></th>
+                            <td><small>{selectedRequest.purpose}</small></td>
+                        </tr>
                       </table>
+                    </div>
+                    <div>
+                      {loadingItems ? (
+                        <p>Loading items…</p>
+                        ) : items.length === 0 ? (
+                          <p>No items found for this request.</p>
+                        ) : (
+                          <table className="p-items-table">
+                          <thead>
+                            <tr>
+                              <th className="text-center">Quantity</th>
+                              <th className="text-left">Item Name</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((item) => (
+                              <tr key={item.id}>
+                                <td className="text-center">{item.quantity}</td>
+                                <td>{item.purchase_item}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                    <div className="table">
+                      <table>
+                        <tr>
+                          <th><small>Approved by</small></th>
+                          <td><small><input type="text" className="prf-input" value={selectedRequest.approved_by}/></small></td>
+                          <th><small>Signature</small></th>
+                          <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.approved_signature} readOnly required/></small>
+                            {selectedRequest.approved_signature ? (
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approved_signature}`}
+                                alt="Signature"
+                                className="img-sign-prf"
+                            />
+                            ) : (
+                            <div className="img-sign-prf empty-sign"></div>
+                            )}
+                          </td>
+                        </tr>
+                        {/* {(selectedRequest.status === "Received" || selectedRequest.status === "Completed") && (
+                          <tr>
+                            <th><small>Received by</small></th>
+                            <td>
+                              <input
+                                type="text"
+                                className="prf-input"
+                                value={userData.name}
+                                onChange={(e) =>
+                                  setReceiveInputs({ ...receiveInputs, received_by: e.target.value })
+                                }
+                                required
+                              />
+                            </td>
+                            <th><small>Signature</small></th>
+                            <td className="receive-signature">
+                              <input
+                                type="text"
+                                className="prf-input requests-signature"
+                                style={{ border: "transparent", color: "black" }}
+                                value={userData.signature}
+                                onChange={(e) =>
+                                  setReceiveInputs({ ...receiveInputs, received_signature: e.target.value })
+                                }
+                                readOnly
+                                required
+                              />
+                              {receiveInputs.received_signature ? (
+                                <img
+                                  src={`${API_BASE_URL}/uploads/signatures/${receiveInputs.received_signature}`}
+                                  alt="Signature"
+                                  className="img-sign-prf"
+                                />
+                              ) : (
+                                <div className="img-sign-prf empty-sign"></div>
+                              )}
+                            </td>
+                          </tr>
+                        )} */}
+                        <tr>
+                          <th style={{color: '#fff', borderColor: 'transparent'}}>-</th>
+                          <th style={{color: '#fff', borderColor: 'transparent'}}>-</th>
+                          <th style={{color: '#fff', borderColor: 'transparent'}}>-</th>
+                          <th style={{color: '#fff', borderColor: 'transparent'}}>-</th>
+                        </tr>
+                        <tr>
+                          <th colSpan={4} style={{textAlign: "center", background: "#1a1b1bff", color: "#adadadff"}}>ACCOUNTING DEPARTMENT USE ONLY</th>
+                        </tr>
+                        <tr>
+                          <th><small>Date ordered</small></th>
+                          <td><small><small>{formatDate(selectedRequest.date_ordered)}</small></small></td>
+                          <th><small>PO Number</small></th>
+                          <td><small>{selectedRequest.po_number}</small></td>
+                        </tr>
+                      </table>
+                    </div>
+                    {(selectedRequest.status || selectedRequest.declined_reason) && (
+                      <div className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}>
+                        <div className="floating-decline-content">
+                          {selectedRequest.status && (
+                            <p className="status-text">
+                              <strong>Status:</strong> {selectedRequest.status}
+                            </p>
+                          )}
+                          {selectedRequest.declined_reason && (
+                            <>
+                              <strong>Declined Reason:</strong>
+                              <p>{selectedRequest.declined_reason}</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <div className="approved-content">
-                    <div className="purchase-dept-content">
-                      <div>
-                        <span>{selectedRequest.approved_by}</span>
-                        <p>Approved by</p>
-                      </div>
-
-                      <div className="purchase-signature">
-                        {selectedRequest.approved_signature ? (
-                          <>
-                            <img
-                              src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approved_signature}`}
-                              alt="Signature"
-                              className="signature-image"
-                            />
-                            <p>Signature</p>
-                          </>
-                        ) : (
-                          <p><i>No signature available</i></p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="purchase-dept-box">
-                    <h4 className="purchase-dept-title">Purchasing Department Use Only</h4>
-                    <div className="purchase-dept-family">
-                      <div className="purchase-dept-content">
-                        <div>
-                          <input value={selectedRequest.date_ordered ? formatDate(selectedRequest.date_ordered) : ""}  readOnly/>
-                            <p>Date Ordered</p>
-                          </div>
-                          <div>
-                            <input value={selectedRequest.po_number} readOnly/>
-                            <p>PO Number</p>
-                          </div>
-                      </div>
-                    </div>
-                  </div>
-                  {selectedRequest.declined_reason && (
-                    <div>
-                      <label htmlFor="declined-reason">
-                        <strong>Declined Reason: </strong>
-                        <em>{selectedRequest.declined_reason}</em>
-                      </label>
-                    </div>
-                  )}
+                  {/* {selectedRequest.status === "Approved" && (
+                    <button
+                      className="floating-receive-btn"
+                      onClick={() => handleReceive({ ...selectedRequest })}
+                      disabled={selectedRequest.status === "Received"}
+                    >
+                      {selectedRequest.status === "Received" ? "✅ Received" : "Receive"}
+                    </button>
+                  )}   */}
                 </div>
               )}
             </>

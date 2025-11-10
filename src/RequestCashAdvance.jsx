@@ -4,7 +4,7 @@ import { API_BASE_URL } from "./config/api.js";
 
 const PAGE_SIZES = [5, 10, 20];
 
-function RevolvingFundRequest() {
+function CashAdvanceRequest() {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState(null);
@@ -13,12 +13,13 @@ function RevolvingFundRequest() {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalRequest, setModalRequest] = useState(null);
+    const [modalType, setModalType] = useState(null);
     const [isApproving, setIsApproving] = useState(false);
     const [isCompleting, setIsCompleting] = useState(false);
     const [isDeclining, setIsDeclining] = useState(false);
     const [declineReason, setDeclineReason] = useState("");
 
-        const fetchRequests = async () => {
+    const fetchRequests = async () => {
         setLoading(true);
         try {
             const response = await fetch(`${API_BASE_URL}/api/cash_advance_request`);
@@ -45,6 +46,7 @@ function RevolvingFundRequest() {
     const [showLoadingModal, setShowLoadingModal] = useState(false);
     const [showConfirmDecline, setShowConfirmDecline] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
+    const [formData, setFormData] = useState({ check: false });
 
     useEffect(() => {
         const fetchAccess = async () => {
@@ -139,33 +141,33 @@ function RevolvingFundRequest() {
 
     const openModal = (request) => {
         setModalRequest(request);
+        setModalType("ca");
         setModalOpen(true);
     };
 
     const openModalReceived = (request) => {
         setModalRequest(request);
+        setModalType("received"); 
         setModalOpen(true);
     };
 
     const handleCloseModal = () => {
         setIsClosing(true);
         setTimeout(() => {
-        setIsClosing(false);
-        setModalOpen(false);
-        setModalRequest(null);
-        setShowLoadingModal(false);
-        setShowConfirmDecline(false);
+            setIsClosing(false);
+            setModalOpen(false);
+            setModalRequest(null);
+            setModalType(null);
         }, 300);
     };
 
     const handleCloseModalReceived = () => {
         setIsClosing(true);
         setTimeout(() => {
-        setIsClosing(false);
-        setModalOpen(false);
-        setModalRequest(null);
-        setShowLoadingModal(false);
-        setShowConfirmDecline(false);
+            setIsClosing(false);
+            setModalOpen(false);
+            setModalRequest(null);
+            setModalType(null);
         }, 300);
     };
 
@@ -384,7 +386,7 @@ function RevolvingFundRequest() {
                 </label>
             </div>
 
-            {modalOpen && modalRequest && (
+            {modalOpen && modalRequest && modalType === "ca" && (
                 <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
                     <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
                         <div className="admin-modal-panel request-modals">
@@ -396,7 +398,7 @@ function RevolvingFundRequest() {
                                 ×
                             </button>
 
-                            <h2>{modalRequest.ca_request_code}</h2>
+                            <h2>Cash Advance Budget Request - {modalRequest.ca_request_code}</h2>
 
                             <section className="pr-form-section" id="details">
                                 <div className="pr-grid-two">
@@ -821,7 +823,8 @@ function RevolvingFundRequest() {
                 </div>
             )}
 
-            {modalOpen && modalRequest && (
+            {/* Accounting Dept */}
+            {modalOpen && modalRequest && modalType === "received" && (
                 <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
                     <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
                         <div className="admin-modal-panel request-modals">
@@ -833,7 +836,7 @@ function RevolvingFundRequest() {
                                 ×
                             </button>
 
-                            <h2>{modalRequest.ca_request_code}</h2>
+                            <h2>Cash Advance Budget Request - {modalRequest.ca_request_code}</h2>
 
                             <section className="pr-form-section" id="details">
                                 <div className="pr-grid-two">
@@ -1078,51 +1081,90 @@ function RevolvingFundRequest() {
                                     </div>
 
                                     <div className="pr-grid-two">
-                                    <div className="pr-field">
-                                        <label className="pr-label" htmlFor="check">Check</label>
-                                        <input
-                                        type="text"
-                                        name="check"
-                                        className="pr-input"
-                                        required
-                                        />
-                                        <span className="error-message"></span>
-                                    </div>
+                                        <div className="pr-field">
+                                            <label className="pr-label" htmlFor="check">Check**</label>
+                                            <input
+                                            type="checkbox"
+                                            name="check"
+                                            id="check"
+                                            className="checkbox"
+                                            value={true}
+                                            checked={formData.check}
+                                            onChange={(e) => {
+                                                const isChecked = e.target.checked;
+                                                setFormData({
+                                                ...formData,
+                                                check: isChecked,
+                                                check_no: isChecked ? formData.check_no : "",
+                                                });
+                                            }}
+                                            />
+                                            <span className="error-message"></span>
+                                        </div>
 
-                                    <div className="pr-field">
-                                        <label className="pr-label" htmlFor="check_no">Check Number</label>
-                                        <input
-                                        type="text"
-                                        name="check_no"
-                                        className="pr-input"
-                                        required
-                                        />
-                                        <span className="error-message"></span>
-                                    </div>
+                                        <div className="pr-field">
+                                            {formData.check && (
+                                                <div className="pr-field">
+                                                <label className="pr-label" htmlFor="check_no">Check Number</label>
+                                                <input
+                                                    type="text"
+                                                    name="check_no"
+                                                    id="check_no"
+                                                    className="pr-input"
+                                                    value={formData.check_no || ""}
+                                                    onChange={(e) =>
+                                                    setFormData({ ...formData, check_no: e.target.value })
+                                                    }
+                                                    required
+                                                />
+                                                <span className="error-message"></span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="pr-grid-two">
-                                    <div className="pr-field">
-                                        <label className="pr-label" htmlFor="voucher_petty_cash">Petty Cash Voucher</label>
-                                        <input
-                                        type="text"
-                                        name="voucher_petty_cash"
-                                        className="pr-input"
-                                        required
-                                        />
-                                        <span className="error-message"></span>
-                                    </div>
+                                        <div className="pr-field">
+                                                <label className="pr-label" htmlFor="voucher_petty_cash">Petty Cash Voucher</label>
+                                                <input
+                                                type="checkbox"
+                                                name="voucher_petty_cash"
+                                                id="voucher_petty_cash"
+                                                className="checkbox"
+                                                value={true}
+                                                checked={formData.voucher_petty_cash}
+                                                onChange={(e) => {
+                                                    const isChecked = e.target.checked;
+                                                    setFormData({
+                                                    ...formData,
+                                                    voucher_petty_cash: isChecked,
+                                                    bank_gl_code: isChecked ? formData.bank_gl_code : "", 
+                                                    });
+                                                }}
+                                                required
+                                            />
+                                            <span className="error-message"></span>
+                                        </div>
 
-                                    <div className="pr-field">
-                                        <label className="pr-label" htmlFor="bank_gl_code">Bank G/L Code</label>
-                                        <input
-                                        type="text"
-                                        name="bank_gl_code"
-                                        className="pr-input"
-                                        required
-                                        />
-                                        <span className="error-message"></span>
-                                    </div>
+                                        <div className="pr-field">
+                                            {formData.voucher_petty_cash && (
+                                                <div className="pr-field">
+                                                    <label className="pr-label" htmlFor="bank_gl_code">Bank G/L Code</label>
+                                                    <input
+                                                        type="text"
+                                                        name="bank_gl_code"
+                                                        id="bank_gl_code"
+                                                        className="pr-input"
+                                                        value={formData.bank_gl_code || ""}
+                                                        onChange={(e) =>
+                                                        setFormData({ ...formData, bank_gl_code: e.target.value })
+                                                        }
+                                                        required
+                                                    />
+                                                    <span className="error-message"></span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </section>
 
@@ -1134,37 +1176,40 @@ function RevolvingFundRequest() {
                                     onClick={async () => {
                                         setIsCompleting(true);
                                         const form = document.querySelector(".request-footer-form-accounting");
-                                        const inputs = form.querySelectorAll("input[required]");
+                                        const errorMessages = form.querySelectorAll(".error-message");
+                                        errorMessages.forEach(el => (el.textContent = ""));
+                                        form.querySelectorAll(".input-error").forEach(el => el.classList.remove("input-error"));
+
                                         let valid = true;
 
-                                        // Reset all previous errors
-                                        form.querySelectorAll(".error-message").forEach(el => (el.textContent = ""));
-                                        inputs.forEach(input => input.classList.remove("input-error"));
-
-                                        // Validate each required input
-                                        inputs.forEach(input => {
-                                        if (!input.value.trim()) {
-                                            valid = false;
-                                            input.classList.add("input-error");
-                                            input.nextElementSibling.textContent = "Required field";
+                                        if (formData.check && !formData.check_no?.trim()) {
+                                        valid = false;
+                                        const checkNoInput = form.querySelector("#check_no");
+                                        checkNoInput.classList.add("input-error");
+                                        checkNoInput.nextElementSibling.textContent = "Required field";
                                         }
-                                        });
+
+                                        if (formData.voucher_petty_cash && !formData.bank_gl_code?.trim()) {
+                                        valid = false;
+                                        const bankGLInput = form.querySelector("#bank_gl_code");
+                                        bankGLInput.classList.add("input-error");
+                                        bankGLInput.nextElementSibling.textContent = "Required field";
+                                        }
 
                                         if (!valid) {
                                         setIsCompleting(false);
-                                        return; // stop submission
+                                        return;
                                         }
 
-                                        // Continue if valid
-                                        const formData = new FormData(form);
-                                        formData.append("ca_request_code", modalRequest.ca_request_code);
-                                        formData.append("status", "Completed");
+                                        const formDataToSend = new FormData(form);
+                                        formDataToSend.append("ca_request_code", modalRequest.ca_request_code);
+                                        formDataToSend.append("status", "Completed");
                                         setShowLoadingModal(true);
 
                                         try {
                                         const response = await fetch(`${API_BASE_URL}/api/update_cash_advance_budget_request_accounting`, {
                                             method: "PUT",
-                                            body: formData,
+                                            body: formDataToSend,
                                         });
 
                                         if (!response.ok) throw new Error("Failed to complete request");
@@ -1195,4 +1240,4 @@ function RevolvingFundRequest() {
         </div>
     );
 }
-export default RevolvingFundRequest;
+export default CashAdvanceRequest;

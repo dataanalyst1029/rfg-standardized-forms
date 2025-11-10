@@ -14,7 +14,9 @@ function RequestPurchase() {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalRequest, setModalRequest] = useState(null);
+    const [modalType, setModalType] = useState(null);
     const [isApproving, setIsApproving] = useState(false);
+    const [isCompleting, setIsCompleting] = useState(false);
     const [isDeclining, setIsDeclining] = useState(false);
     const [declineReason, setDeclineReason] = useState("");
 
@@ -40,12 +42,32 @@ function RequestPurchase() {
 
     const storedId = sessionStorage.getItem("id");
     const [userData, setUserData] = useState({ name: "", signature: "" });
-
+    const [userAccess, setUserAccess] = useState([]);
+    const [userRole, setUserRole] = useState("staff");
     const [showLoadingModal, setShowLoadingModal] = useState(false);
     const [showConfirmDecline, setShowConfirmDecline] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
+    const [formData, setFormData] = useState({ check: false });
 
+    useEffect(() => {
+        const fetchAccess = async () => {
+        if (!storedId) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/user-access/${storedId}`);
+            const data = await response.json();
+            if (response.ok) {
+            setUserAccess(data.access_forms || []);
+            setUserRole(data.role || "staff");
+            } else {
+            console.error("Failed to load access:", data.error);
+            }
+        } catch (err) {
+            console.error("Error fetching access:", err);
+        }
+        };
 
+        fetchAccess();
+    }, [storedId]);
 
     useEffect(() => {
     if (!storedId) return;
@@ -73,12 +95,10 @@ function RequestPurchase() {
     const filteredRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
 
-    // ✅ Step 1: Filter only "Pending" requests
     let pendingRequests = requests.filter(
         (req) => req.status?.toLowerCase() === "pending"
     );
 
-    // ✅ Step 2: If there’s a search term, apply search filter
     if (term) {
         pendingRequests = pendingRequests.filter((req) =>
         [
@@ -101,6 +121,12 @@ function RequestPurchase() {
         Math.ceil(filteredRequests.length / rowsPerPage) || 1
     );
 
+    const receivedRequests = useMemo(() => {
+        return requests.filter(
+            (req) => req.status?.toLowerCase() === "approved"
+        );
+    }, [requests]);
+
     const visibleRequests = useMemo(() => {
         const start = (page - 1) * rowsPerPage;
 
@@ -111,22 +137,37 @@ function RequestPurchase() {
         return pendingRequests.slice(start, start + rowsPerPage);
     }, [filteredRequests, page, rowsPerPage]);
 
-    const openModal = (request) => {
+     const openModal = (request) => {
         setModalRequest(request);
+        setModalType("pr");
+        setModalOpen(true);
+    };
+
+    const openModalReceived = (request) => {
+        setModalRequest(request);
+        setModalType("appr"); 
         setModalOpen(true);
     };
 
     const handleCloseModal = () => {
         setIsClosing(true);
         setTimeout(() => {
-        setIsClosing(false);
-        setModalOpen(false);
-        setModalRequest(null);
-        setShowLoadingModal(false);
-        setShowConfirmDecline(false);
-        }, 300); // matches your fade-out animation
+            setIsClosing(false);
+            setModalOpen(false);
+            setModalRequest(null);
+            setModalType(null);
+        }, 300);
     };
 
+    const handleCloseModalReceived = () => {
+        setIsClosing(true);
+        setTimeout(() => {
+            setIsClosing(false);
+            setModalOpen(false);
+            setModalRequest(null);
+            setModalType(null);
+        }, 300);
+    };
 
     return (
         <div className="admin-view">
@@ -161,66 +202,131 @@ function RequestPurchase() {
                 </div>
             )}
 
-            <div className="admin-table-wrapper">
-                <table className="admin-table purchase-table">
-                <thead>
-                    <tr>
-                    <th style={{ textAlign: "center" }}>Ref. No.</th>
-                    <th style={{ textAlign: "center" }}>Request Date</th>
-                    <th style={{ textAlign: "left" }}>Requested By</th>
-                    <th style={{ textAlign: "left" }}>Branch</th>
-                    <th style={{ textAlign: "left" }}>Department</th>
-                    <th style={{ textAlign: "left" }}>Purpose</th>
-                    <th style={{ textAlign: "center" }}>Status</th>
-                    <th style={{ textAlign: "center" }}>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {loading ? (
-                    <tr>
-                        <td colSpan={8} className="admin-empty-state">
-                        Loading purchase requests...
-                        </td>
-                    </tr>
-                    ) : visibleRequests.length === 0 ? (
-                    <tr>
-                        <td colSpan={8} className="admin-empty-state">
-                        {search
-                            ? "No requests match your search."
-                            : "No purchase requests found."}
-                        </td>
-                    </tr>
-                    ) : (
-                    visibleRequests.map((req) => (
-                        <tr key={req.id}>
-                        <td style={{ textAlign: "center" }}>
-                            {req.purchase_request_code}
-                        </td>
-                        <td style={{ textAlign: "center" }}>
-                            {new Date(req.request_date).toLocaleDateString()}
-                        </td>
-                        <td style={{ textAlign: "left" }}>{req.request_by}</td>
-                        <td style={{ textAlign: "left" }}>{req.branch}</td>
-                        <td style={{ textAlign: "left" }}>{req.department}</td>
-                        <td style={{ textAlign: "left" }}>{req.purpose}</td>
-                        <td style={{ textAlign: "center" }}>
-                            {req.status.toUpperCase()}
-                        </td>
-                        <td style={{ textAlign: "center" }}>
-                            <button
-                            className="admin-primary-btn"
-                            onClick={() => openModal(req)}
-                            title="View Details"
-                            >
-                            🔍
-                            </button>
-                        </td>
+            {userRole.toLowerCase() === "approve" && (
+                <div className="admin-table-wrapper">
+                    <table className="admin-table purchase-table">
+                    <thead>
+                        <tr>
+                        <th style={{ textAlign: "center" }}>Ref. No.</th>
+                        <th style={{ textAlign: "center" }}>Request Date</th>
+                        <th style={{ textAlign: "left" }}>Requested By</th>
+                        <th style={{ textAlign: "left" }}>Branch</th>
+                        <th style={{ textAlign: "left" }}>Department</th>
+                        <th style={{ textAlign: "left" }}>Purpose</th>
+                        <th style={{ textAlign: "center" }}>Status</th>
+                        <th style={{ textAlign: "center" }}>Action</th>
                         </tr>
-                    ))
-                    )}
-                </tbody>
-                </table>
-            </div>
+                    </thead>
+                    <tbody>
+                        {loading ? (
+                        <tr>
+                            <td colSpan={8} className="admin-empty-state">
+                            Loading purchase requests...
+                            </td>
+                        </tr>
+                        ) : visibleRequests.length === 0 ? (
+                        <tr>
+                            <td colSpan={8} className="admin-empty-state">
+                            {search
+                                ? "No requests match your search."
+                                : "No purchase requests found."}
+                            </td>
+                        </tr>
+                        ) : (
+                        visibleRequests.map((req) => (
+                            <tr key={req.id}>
+                            <td style={{ textAlign: "center" }}>
+                                {req.purchase_request_code}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                                {new Date(req.request_date).toLocaleDateString()}
+                            </td>
+                            <td style={{ textAlign: "left" }}>{req.request_by}</td>
+                            <td style={{ textAlign: "left" }}>{req.branch}</td>
+                            <td style={{ textAlign: "left" }}>{req.department}</td>
+                            <td style={{ textAlign: "left" }}>{req.purpose}</td>
+                            <td style={{ textAlign: "center" }}>
+                                {req.status.toUpperCase()}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                                <button
+                                className="admin-primary-btn"
+                                onClick={() => openModal(req)}
+                                title="View Details"
+                                >
+                                🔍
+                                </button>
+                            </td>
+                            </tr>
+                        ))
+                        )}
+                    </tbody>
+                    </table>
+                </div>
+            )}
+
+            {userRole.toLowerCase() === "accounting" && (
+                <div className="admin-table-wrapper">
+                    <table className="admin-table purchase-table">
+                    <thead>
+                        <tr>
+                        <th style={{ textAlign: "center" }}>Ref. No.</th>
+                        <th style={{ textAlign: "center" }}>Request Date</th>
+                        <th style={{ textAlign: "left" }}>Requested By</th>
+                        <th style={{ textAlign: "left" }}>Branch</th>
+                        <th style={{ textAlign: "left" }}>Department</th>
+                        <th style={{ textAlign: "left" }}>Purpose</th>
+                        <th style={{ textAlign: "center" }}>Status</th>
+                        <th style={{ textAlign: "center" }}>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {loading ? (
+                        <tr>
+                            <td colSpan={8} className="admin-empty-state">
+                            Loading payment requests...
+                            </td>
+                        </tr>
+                        ) : receivedRequests.length === 0 ? (
+                        <tr>
+                            <td colSpan={8} className="admin-empty-state">
+                            {search
+                                ? "No received requests match your search."
+                                : "No received purchase requests found."}
+                            </td>
+                        </tr>
+                        ) : (
+                        receivedRequests.map((req) => (
+                            <tr key={req.id}>
+                            <td style={{ textAlign: "center" }}>
+                                {req.purchase_request_code}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                                {new Date(req.request_date).toLocaleDateString()}
+                            </td>
+                            <td style={{ textAlign: "left" }}>{req.request_by}</td>
+                            <td style={{ textAlign: "left" }}>{req.branch}</td>
+                            <td style={{ textAlign: "left" }}>{req.department}</td>
+                            <td style={{ textAlign: "left" }}>{req.purpose}</td>
+                            <td style={{ textAlign: "center" }}>
+                                {req.status.toUpperCase()}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                                <button
+                                className="admin-primary-btn"
+                                onClick={() => openModalReceived(req)}
+                                title="View Details"
+                                >
+                                🔍
+                                </button>
+                            </td>
+                            </tr>
+                        ))
+                        )}
+                    </tbody>
+                    </table>
+                </div>
+            )}
 
             <div className="admin-pagination">
                 <span className="admin-pagination-info">
@@ -266,7 +372,7 @@ function RequestPurchase() {
                 </label>
             </div>
 
-            {modalOpen && modalRequest && (
+            {modalOpen && modalRequest && modalType === "pr" && (
                 <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
                     <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
                         <div className="admin-modal-panel request-modal">
@@ -279,84 +385,137 @@ function RequestPurchase() {
                             </button>
 
                             <h2>{modalRequest.purchase_request_code}</h2>
-                            <p>
-                                <strong>Requested by:</strong>{" "}
-                                <em>{modalRequest.request_by}</em>
-                            </p>
-                            <p>
-                                <strong>Date:</strong>{" "}
-                                <em>{new Date(modalRequest.request_date).toLocaleDateString()}</em>
-                            </p>
-                            <p>
-                                <strong>Branch:</strong>{" "}
-                                <em>{modalRequest.branch}</em>
-                            </p>
-                            <p>
-                                <strong>Department:</strong>{" "}
-                                <em>{modalRequest.department}</em>
-                            </p>
-                            <p>
-                                <strong>Purpose:</strong>{" "}
-                                <em>{modalRequest.purpose}</em>
-                            </p>
 
-                            <h3>Requested Items</h3>
-                            {modalRequest.items && modalRequest.items.length > 0 ? (
-                            <table className="request-items-table">
-                                <thead>
-                                <tr>
-                                    <th>Item Name</th>
-                                    <th style={{ textAlign: "center" }}>Quantity</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {modalRequest.items.map((item) => (
-                                    <tr key={item.id}>
-                                    <td>{item.purchase_item}</td>
-                                    <td style={{ textAlign: "center" }}>{item.quantity}</td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
-                            ) : (
-                            <p>—</p>
-                            )}
+                            <section className="pr-form-section" id="details">
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Date
+                                        </label>
+                                        <input
+                                        value={new Date(modalRequest.request_date).toLocaleDateString()}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                    <div className="pr-field">
+                                    
+                                    </div>
+                                </div>
+
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Requested by
+                                        </label>
+                                        <input
+                                        value={modalRequest.request_by}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                    <div className="pr-field">
+                                    
+                                    </div>
+                                </div>
+
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Branch
+                                        </label>
+                                        <input
+                                        value={modalRequest.branch}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Department
+                                        </label>
+                                        <input
+                                        value={modalRequest.department}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Purpose
+                                        </label>
+                                        <textarea
+                                        value={modalRequest.purpose}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section className="pr-form-section" id="details">
+                                <h3>Requested Items</h3>
+                                {modalRequest.items && modalRequest.items.length > 0 ? (
+                                    <table className="request-items-table">
+                                        <thead>
+                                        <tr>
+                                            <th>Item Name</th>
+                                            <th style={{ textAlign: "center" }}>Quantity</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {modalRequest.items.map((item) => (
+                                            <tr key={item.id}>
+                                            <td>{item.purchase_item}</td>
+                                            <td style={{ textAlign: "center" }}>{item.quantity}</td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                    ) : (
+                                    <p>—</p>
+                                )}
+                            </section>
 
                             <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                                <div className="approver-content">
-                                    <div>
-                                        <label>
+                                <section className="pr-form-section" id="details">
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label className="car-reference-value">Approved by:</label>
                                             <input
                                                 type="text"
                                                 name="approved_by"
                                                 value={userData.name || ""}
+                                                className="car-input"
                                                 readOnly
-                                            />
-                                            <span>Approved by:</span>
-                                        </label>
-                                    </div>
+                                                />
+                                        </div>
 
-                                    <div className="approver-signature">
-                                        <label>
-                                            {userData.signature ? (
-                                            <img
-                                            src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                                            alt="Signature"
-                                            className="signature-img"/>
-                                            ) : (
-                                                <p>No signature available</p>
-                                            )}
+                                        <div className="pr-field receive-signature">
+                                            <label className="car-reference-value">Signature</label>
                                             <input
                                                 type="text"
                                                 name="approved_signature"
                                                 value={userData.signature || ""}
+                                                className="car-input received-signature"
                                                 required
                                                 readOnly
                                             />
-                                            <span>Signature:</span>
-                                        </label>
+                                                {userData.signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                                                alt="Signature"
+                                                className="img-sign"/>
+                                                ) : (
+                                                <p>No signature available</p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                </section>
+                                
                                 <div className="request-footer" hidden>
                                     <p className="purchase-header">
                                         <strong>Purchasing Department Use Only</strong>
@@ -535,6 +694,227 @@ function RequestPurchase() {
                                         </div>
                                     </div>
                                     )}
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {modalOpen && modalRequest && modalType === "appr" && (
+                <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
+                    <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+                        <div className="admin-modal-panel request-modal">
+                            <button
+                                className="admin-close-btn"
+                                onClick={handleCloseModalReceived}
+                                aria-label="Close"
+                                >
+                                ×
+                            </button>
+
+                            <h2>{modalRequest.purchase_request_code}</h2>
+
+                            <section className="pr-form-section" id="details">
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Date
+                                        </label>
+                                        <input
+                                        value={new Date(modalRequest.request_date).toLocaleDateString()}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                    <div className="pr-field">
+                                    
+                                    </div>
+                                </div>
+
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Requested by
+                                        </label>
+                                        <input
+                                        value={modalRequest.request_by}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                    <div className="pr-field">
+                                    
+                                    </div>
+                                </div>
+
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Branch
+                                        </label>
+                                        <input
+                                        value={modalRequest.branch}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Department
+                                        </label>
+                                        <input
+                                        value={modalRequest.department}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Purpose
+                                        </label>
+                                        <textarea
+                                        value={modalRequest.purpose}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section className="pr-form-section" id="details">
+                                <h3>Requested Items</h3>
+                                {modalRequest.items && modalRequest.items.length > 0 ? (
+                                    <table className="request-items-table">
+                                        <thead>
+                                        <tr>
+                                            <th>Item Name</th>
+                                            <th style={{ textAlign: "center" }}>Quantity</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {modalRequest.items.map((item) => (
+                                            <tr key={item.id}>
+                                            <td>{item.purchase_item}</td>
+                                            <td style={{ textAlign: "center" }}>{item.quantity}</td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                    ) : (
+                                    <p>—</p>
+                                )}
+                            </section>
+
+                            <form className="request-footer-form-accounting" onSubmit={(e) => e.preventDefault()}>
+                                <section className="pr-form-section" id="details">
+                                    <div className="accounting-only">
+                                    <strong>ACCOUNTING DEPARTMENT USE ONLY</strong>
+                                    </div>
+
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label className="pr-label" htmlFor="date_ordered">Date ordered</label>
+                                            <input
+                                                type="date"
+                                                name="date_ordered"
+                                                className="pr-input"
+                                                value={
+                                                formData.date_ordered ||
+                                                new Date().toISOString().split("T")[0] 
+                                                }
+                                                onChange={(e) =>
+                                                setFormData({ ...formData, date_ordered: e.target.value })
+                                                }
+                                                required
+                                            />
+                                            <span className="error-message"></span>
+                                        </div>
+
+                                        <div className="pr-field">
+                                            <label className="pr-label" htmlFor="po_number">PO Number</label>
+                                            <input
+                                                type="text"
+                                                name="po_number"
+                                                id="po_number"
+                                                className="pr-input"
+                                                value={formData.po_number || ""}
+                                                onChange={(e) =>
+                                                setFormData({ ...formData, po_number: e.target.value })
+                                                }
+                                                required
+                                            />
+                                            <span className="error-message"></span>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <div className="footer-modal">
+                                    <button
+                                    type="button"
+                                    className="admin-success-btn"
+                                    disabled={isCompleting}
+                                    onClick={async () => {
+                                        setIsCompleting(true);
+                                        const form = document.querySelector(".request-footer-form-accounting");
+                                        const errorMessages = form.querySelectorAll(".error-message");
+                                        errorMessages.forEach(el => (el.textContent = ""));
+                                        form.querySelectorAll(".input-error").forEach(el => el.classList.remove("input-error"));
+
+                                        let valid = true;
+
+                                        if (formData.check && !formData.check_no?.trim()) {
+                                        valid = false;
+                                        const checkNoInput = form.querySelector("#check_no");
+                                        checkNoInput.classList.add("input-error");
+                                        checkNoInput.nextElementSibling.textContent = "Required field";
+                                        }
+
+                                        if (formData.voucher_petty_cash && !formData.bank_gl_code?.trim()) {
+                                        valid = false;
+                                        const bankGLInput = form.querySelector("#bank_gl_code");
+                                        bankGLInput.classList.add("input-error");
+                                        bankGLInput.nextElementSibling.textContent = "Required field";
+                                        }
+
+                                        if (!valid) {
+                                        setIsCompleting(false);
+                                        return;
+                                        }
+
+                                        const formDataToSend = new FormData(form);
+                                        formDataToSend.append("purchase_request_code", modalRequest.purchase_request_code);
+                                        formDataToSend.append("status", "Completed");
+                                        setShowLoadingModal(true);
+
+                                        try {
+                                        const response = await fetch(`${API_BASE_URL}/api/update_purchase_request_accounting`, {
+                                            method: "PUT",
+                                            body: formDataToSend,
+                                        });
+
+                                        if (!response.ok) throw new Error("Failed to complete request");
+
+                                        setStatus({
+                                            type: "info",
+                                            message: "Purchase request completed successfully.",
+                                        });
+                                        handleCloseModalReceived();
+                                        fetchRequests();
+                                        } catch (err) {
+                                        console.error(err);
+                                        setStatus({ type: "error", message: err.message });
+                                        } finally {
+                                        setIsCompleting(false);
+                                        setShowLoadingModal(false);
+                                        }
+                                    }}
+                                    >
+                                    {isCompleting ? "Submitting..." : "✅ Submit"}
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>

@@ -608,3 +608,42 @@
 .confirm-modal-overlay.fade-out {
   animation: modalFadeOut 0.3s ease forwards;
 }
+
+/* Hide the default checkbox */
+.checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  background-color: #fff;
+}
+
+/* Hover effect */
+.checkbox:hover {
+  border-color: #007bff;
+}
+
+/* Checked state */
+.checkbox:checked {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+/* Add a checkmark using ::after */
+.checkbox:checked::after {
+  content: '';
+  position: absolute;
+  top: 0px;
+  left: 5px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}

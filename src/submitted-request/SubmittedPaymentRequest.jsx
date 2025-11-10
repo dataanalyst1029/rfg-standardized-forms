@@ -11,7 +11,7 @@ const NAV_SECTIONS = [
   { id: "new-request", label: "New payment request" },
 ];
 
-function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false }) {
+function SubmittedPaymentRequests({ onLogout, currentUserId, showAll = false }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequestCode, setSelectedRequestCode] = useState("");
@@ -519,4 +519,4 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
   );
 }
 
-export default SubmittedPurchaseRequests;
+export default SubmittedPaymentRequests;
