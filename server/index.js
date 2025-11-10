@@ -759,6 +759,95 @@ app.put("/api/update_purchase_request", uploadForm.none(), async (req, res) => {
   }
 });
 
+
+// app.use(express.json());
+
+// app.put("/api/purchase_request/:id", async (req, res) => {
+//   const { id } = req.params;
+//   const { status, received_by, received_signature } = req.body;
+
+//   console.log("Received PUT /api/purchase_request/:id", { id, status, received_by, received_signature });
+
+//   if (!id) {
+//     return res.status(400).json({ error: "Missing request ID" });
+//   }
+
+//   try {
+//     const updateResult = await pool.query(
+//       `UPDATE purchase_request
+//        SET status = $1,
+//            received_by = $2,
+//            received_signature = $3
+//        WHERE id = $4
+//        RETURNING *;`,
+//       [status, received_by, received_signature, id]
+//     );
+
+//     if (updateResult.rowCount === 0) {
+//       return res.status(404).json({ error: "Purchase request not found" });
+//     }
+
+//     console.log("Purchase request updated successfully:", updateResult.rows[0]);
+//     res.json({
+//       message: "Purchase request updated successfully",
+//       updated: updateResult.rows[0],
+//     });
+//   } catch (err) {
+//     console.error("Database error:", err);
+//     res.status(500).json({ error: err.message || "Database error" });
+//   }
+// });
+
+app.put("/api/update_purchase_request_accounting", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      purchase_request_code,
+      date_ordered,
+      po_number,
+      status,
+    } = req.body;
+
+    if (!purchase_request_code) {
+      return res.status(400).json({ message: "purchase request code is required." });
+    }
+
+    let query = `
+      UPDATE purchase_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Completed") {
+      query += `,
+        date_ordered = $${paramIndex++},
+        po_number = $${paramIndex++}
+      `;
+      values.push(date_ordered, po_number);
+    }
+
+    query += ` WHERE purchase_request_code = $${paramIndex} RETURNING *`;
+    values.push(purchase_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Purchase request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Purchase request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating purchase request:", err);
+    res.status(500).json({ message: "Server error updating purchase request." });
+  }
+});
+
 /* ------------------------
    REVOLVING FUND API
 ------------------------ */
@@ -1305,7 +1394,7 @@ app.put("/api/update_cash_advance_budget_request_accounting", uploadForm.none(),
     }
 
     let query = `
-      UPDATE payment_request
+      UPDATE cash_advance_request
       SET status = $1,
           updated_at = NOW()
     `;
@@ -1315,7 +1404,7 @@ app.put("/api/update_cash_advance_budget_request_accounting", uploadForm.none(),
 
     if (status === "Completed") {
       query += `,
-        check = $${paramIndex++},
+        "check" = $${paramIndex++},
         check_no = $${paramIndex++},
         voucher_petty_cash = $${paramIndex++},
         bank_gl_code = $${paramIndex++}
@@ -1329,19 +1418,20 @@ app.put("/api/update_cash_advance_budget_request_accounting", uploadForm.none(),
     const result = await pool.query(query, values);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Payment request not found." });
+      return res.status(404).json({ message: "Cash advance budget request not found." });
     }
 
     res.json({
       success: true,
-      message: "Payment request updated successfully.",
+      message: "Cash advance budget request updated successfully.",
       data: result.rows[0],
     });
   } catch (err) {
-    console.error("❌ Error updating payment request:", err);
-    res.status(500).json({ message: "Server error updating payment request." });
+    console.error("❌ Error updating cash advance budget request:", err);
+    res.status(500).json({ message: "Server error updating cash advance budget request." });
   }
 });
+
 
 
 /* ------------------------
