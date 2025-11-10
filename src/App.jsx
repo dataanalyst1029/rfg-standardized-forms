@@ -18,6 +18,8 @@ import SubmittedReimbursement from "./submitted-request/SubmittedReimbursement";
 import SubmittedPaymentRequest from "./submitted-request/SubmittedPaymentRequest";
 import SubmittedInterbranchTransferSlip from "./submitted-request/SubmittedInterbranchTransferSlip";
 import SubmittedLeaveApplication from "./submitted-request/SubmittedLeaveApplication";
+import SubmittedMaintenanceRepair from "./submitted-request/SubmittedMaintenanceRepair";
+import SubmittedCreditCardAcknowledgement from "./submitted-request/SubmittedCreditCardAcknowledgement";
 import RevolvingFund from "./forms/RevolvingFund";
 import CashAdvanceRequest from "./forms/CashAdvanceRequest";
 import CashAdvanceLiquidation from "./forms/CashAdvanceLiquidation";
@@ -377,9 +379,9 @@ function App() {
           path="/forms/maintenance-or-repair/submitted"
           element={
             user ? (
-              <SubmittedRequests formSlug="maintenance-or-repair" />
+              <SubmittedMaintenanceRepair formSlug="maintenance-or-repair" />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/forms/maintenance-or-repair" replace />
             )
           }
         />
@@ -407,21 +409,26 @@ function App() {
         />
 
         <Route
-          path="/forms/interbranch-transfer-slip/submitted"
+          path="/forms/submitted-interbranch-transfer-slip"
           element={
             user ? (
               <SubmittedInterbranchTransferSlip onLogout={handleLogout} currentUserId={user.id} />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/forms/interbranch-transfer-slip" replace />
             )
           }
         />
-        <Route
-          path="/submitted-interbranch-transfer-slip"
-          element={<Navigate to="/forms/interbranch-transfer-slip" replace/>}
-        >
 
-        </Route>
+        <Route
+          path="/forms/submitted-credit-card-acknowledgement"
+          element={
+             user ? (
+              <SubmittedCreditCardAcknowledgement onLogout={handleLogout} currentUserId={user.id} />
+             ) : (
+              <Navigate to="/forms/credit-card-acknowledgement-receipt" replace/>
+             )
+          }
+        />
 
       </Routes>
     </Router>

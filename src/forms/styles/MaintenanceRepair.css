@@ -16,3 +16,47 @@
   background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.35);
 }
+
+.mr-signature-field {
+  /* This container allows absolute positioning of the child image */
+  position: relative;
+}
+
+/* --- THIS IS THE UPDATED BLOCK ---
+  It makes the image taller, wider, and centers it.
+*/
+.mr-signature-overlay {
+  position: absolute;
+  /* Anchor to the bottom of the input */
+  bottom: 0;
+  /* Start from the horizontal center */
+  left: 50%;
+  /* Pull it back 50% of its own width to be truly centered */
+  transform: translateX(-50%);
+
+  /* Make the signature taller than the input box so it overlaps */
+  height: 70px; /* Adjust this value to make it taller or shorter */
+  
+  /* Use about 80% of the input's width */
+  width: 80%;
+  
+  padding: 0; /* Remove padding */
+  box-sizing: border-box;
+
+  /* 'contain' keeps the aspect ratio correct */
+  object-fit: contain;
+  /* 'center' positions the image within the 70px box */
+  object-position: center;
+
+  /* Prevents the image from being clicked */
+  pointer-events: none;
+  
+  /* This makes the black signature look like ink */
+  mix-blend-mode: multiply;
+}
+
+/* This selector is correct. It targets the .pr-input
+   that is INSIDE the .mr-signature-field */
+.mr-signature-field .pr-input {
+  color: transparent;
+}
