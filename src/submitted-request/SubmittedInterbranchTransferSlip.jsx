@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api.js";
-import "./styles/submitted-request.css";
-// Using payment request styles as a base
-import "./styles/submitted-payment-request.css";
+import "./styles/submitted-interbranch-transfer.css";
+// import "./styles/submitted-request.css";
+// import "./styles/submitted-cash-advance.css";
 import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
@@ -77,7 +77,7 @@ function SubmittedInterbranchTransferSlip({
   const [loadingItems, setLoadingItems] = useState(false);
   const cardRef = useRef(null);
 
-  const effectiveUserId = showAll
+ const effectiveUserId = showAll
     ? null
     : currentUserId || storedUser.id || null;
   const effectiveRole = storedUser.role || "";
@@ -226,238 +226,87 @@ function SubmittedInterbranchTransferSlip({
   };
 
   const handlePrint = () => {
-    if (!cardRef.current) {
-      return;
-    }
-    const printContents = cardRef.current.outerHTML;
-    const printWindow = window.open("", "", "width=1000,height=800");
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print Interbranch Transfer Slip - ${selectedRequest?.form_code || ""}</title>
-          <style>
-            /* --- ALL LAYOUT STYLES ARE NOW INCLUDED HERE --- */
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 0; 
-              padding: 0.25in; 
-              font-size: 10pt;
-            }
-            .pay-print-card { 
-              border: 1px solid #000; 
-              padding: 0.25in; 
-              margin: 0 auto; 
-              max-width: 8in; 
-              background: #fff;
-              color: #000;
-            }
-            .pay-header { 
-              display: flex; 
-              justify-content: space-between; 
-              align-items: flex-start; 
-              padding-bottom: 0.5rem; 
-            }
-            .pay-logo { max-width: 150px; }
-            .pay-header-meta { text-align: right; }
-            .pay-header-title { 
-              font-size: 1.5rem; 
-              font-weight: bold; 
-              text-align: center;
-              width: 100%;
-              padding-bottom: 0.25in;
-              border-bottom: 2px solid #000;
-            }
-            .pay-form-code { font-weight: bold; font-size: 1.1rem; }
-            
-            .its-grid-two {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 0.5in;
-              width: 100%;
-              margin-top: 0.25in;
-            }
-            .its-col-left, .its-col-right {
-              display: flex;
-              flex-direction: column;
-            }
-            .its-info-table {
-              width: 100%;
-              border-collapse: collapse;
-              border: 1px solid #000;
-            }
-            .its-info-table th, .its-info-table td {
-              border: 1px solid #000;
-              padding: 0.15in 0.1in;
-              text-align: left;
-              vertical-align: top;
-            }
-            .its-info-table th {
-              width: 40%;
-              font-weight: bold;
-              background: #f4f4f4;
-            }
-            
-            .its-items-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 0; /* Changed */
-              border: 1px solid #000;
-              border-top: none; /* Changed */
-            }
-            .its-items-table th, .its-items-table td {
-              border: 1px solid #000;
-              padding: 0.15in 0.1in;
-              text-align: left;
-            }
-            .its-items-table th {
-              background: #f4f4f4;
-              font-weight: bold;
-            }
-            .its-items-table .text-center { text-align: center; }
-            .its-items-table tr td {
-              height: 1.5rem; /* Ensure rows have height */
-            }
-            
-            .its-footnote {
-              font-size: 9pt;
-              font-style: italic;
-              margin-top: 5px;
-            }
-
-            .its-transport-table {
-              width: 100%;
-              border-collapse: collapse;
-              border: 1px solid #000; /* Added */
-            }
-            .its-transport-table th, .its-transport-table td {
-              padding: 0.15in 0.1in;
-              text-align: left;
-              border: 1px solid #000;
-            }
-            .its-transport-table th {
-              width: 40%;
-              font-weight: bold;
-              background: #f4f4f4;
-            }
-            .its-transport-header {
-              font-size: 1.2rem;
-              font-weight: bold;
-              text-align: center;
-              padding: 0.1in;
-              background: #000;
-              color: #fff;
-              border: 1px solid #000;
-              margin-top: 0.25in;
-              grid-column: 1 / -1; /* Span full width in grid */
-            }
-
-            .its-sig-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 0.25in;
-              border: 1px solid #000;
-            }
-            .its-sig-table th, .its-sig-table td {
-              border: 1px solid #000;
-              padding: 0.1in;
-              text-align: left;
-              vertical-align: top;
-            }
-            .its-sig-table th {
-              width: 20%;
-              font-weight: bold;
-              background: #f4f4f4;
-            }
-            .its-sig-table td:nth-of-type(1) { width: 30%; } /* Name */
-            .its-sig-table td:nth-of-type(2) { width: 30%; } /* Signature */
-            .its-sig-table td:nth-of-type(3) { width: 20%; } /* Date */
-            .its-sig-table .sig-box {
-              height: 2.5rem;
-              vertical-align: middle; /* Changed */
-              text-align: center; /* Added */
-            }
-
-            .its-received-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 0.25in;
-              border: 1px solid #000;
-            }
-            .its-received-table th, .its-received-table td {
-              border: 1px solid #000;
-              padding: 0.1in;
-              text-align: left;
-            }
-            .its-received-table th {
-              width: 20%;
-              font-weight: bold;
-              background: #f4f4f4;
-            }
-            .its-received-table .sig-box {
-              height: 2.5rem;
-              vertical-align: middle; /* Changed */
-              text-align: center; /* Added */
-            }
-
-            .its-receiving-section {
-              margin-top: 0.25in;
-              border: 1px solid #000;
-            }
-            .its-receiving-header {
-              font-size: 1.2rem;
-              font-weight: bold;
-              text-align: center;
-              padding: 0.1in;
-              background: #000;
-              color: #fff;
-              border-bottom: 1px solid #000;
-            }
-            .its-receiving-content {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-            }
-            .its-receiving-col {
-              padding: 0.2in;
-            }
-            .its-receiving-col:first-child {
-              border-right: 1px solid #000;
-            }
-            .its-receiving-col p {
-              margin: 0 0 10px 0;
-            }
-            .its-receiving-col .reason {
-              border-top: 1px solid #000;
-              padding-top: 10px;
-              margin-top: 10px;
-              min-height: 3rem;
-            }
-            
-            .signature-img {
-              max-width: 120px;
-              height: auto;
-              margin: 0 auto;
-              display: block;
-            }
-          </style>
-        </head>
-        <body>
-          ${printContents}
-        </body>
-      </html>
-    `);
-
-    // Need a timeout to allow styles to load before printing
-    setTimeout(() => {
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-    }, 1000);
+    window.print();
   };
 
-  const renderBody = () => {
-    if (loading) {
-      return <p>Loading submitted transfer slips...</p>;
+  const handleReceive = async (request) => {
+    try {
+      if (!request?.id) {
+        alert("Missing request ID. Cannot update status.");
+        console.error("Missing request ID:", request);
+        return;
+      }
+
+      const confirmReceive = window.confirm(
+        `Mark ${request.form_code} as Received?`,
+      );
+      if (!confirmReceive) return;
+
+      console.log("Updating transfer slip:", request.id);
+
+      // Get current user details to sign as the receiver
+      const userRes = await fetch(
+        `${API_BASE_URL}/api/users/${effectiveUserId}`,
+      );
+      if (!userRes.ok) throw new Error("Failed to fetch user data");
+      const userData = await userRes.json();
+
+      const payload = {
+        status: "Received",
+        received_by: userData.name,
+        received_signature: userData.signature,
+        received_date: new Date().toISOString(), // Set received date to now
+      };
+
+      // Update request on backend
+      const res = await fetch(
+        `${API_BASE_URL}/api/interbranch_transfer_slip/${request.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        console.warn("Non-JSON response from backend");
+      }
+
+      if (!res.ok) {
+        console.error("Backend response error:", data);
+        alert(`Failed to update status: ${data.error || "Unknown error"}`);
+        return;
+      }
+
+      alert(`Transfer Slip ${request.form_code} marked as Received ✅`);
+
+      // Update UI instantly
+      setRequests((prev) =>
+        prev.map((r) => (r.id === request.id ? { ...r, ...payload } : r)),
+      );
+    } catch (err) {
+      console.error("Error receiving transfer slip:", err);
+      alert("Error updating status. Check console for details.");
     }
+  };
+  // --- END FEATURE ---
+
+  const renderBody = () => {
+    // --- FEATURE: Added loading spinner (matches Payment Request) ---
+    if (loading) {
+      // Assumes .loading-container and .spinner styles are available globally
+      // (from submitted-request.css or similar)
+      return (
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <span>Loading submitted transfer slips…</span>
+        </div>
+      );
+    }
+    // --- END FEATURE ---
 
     if (error) {
       return <p className="pr-error-message">{error}</p>;
@@ -490,25 +339,22 @@ function SubmittedInterbranchTransferSlip({
         </div>
 
         {selectedRequest && (
-          <div className="pay-print-card" ref={cardRef}>
-            <header className="pay-header">
-              <div className="pay-header-brand">
+          <div className="submitted-its-request-card" ref={cardRef}>
+
+            <header className="request-header">
+              <div className="header-brand">
                 <img
                   src={rfgLogo}
                   alt="Ribshack Food Group"
-                  className="pay-logo"
+                  className="header-logo"
                 />
               </div>
-              <div className="pay-header-meta">
-                <span className="pay-form-code">
-                  {selectedRequest.form_code}
-                </span>
+              <div className="header-request-code">
+                <i className="request-code">{selectedRequest.form_code}</i>
               </div>
             </header>
 
-            <h1 className="pay-header-title">INTERBRANCH TRANSFER SLIP</h1>
-
-            <div className="its-grid-two">
+            <div className="its-grid-two" style={{ marginTop: "1rem" }}>
               <div className="its-col-left">
                 <table className="its-info-table">
                   <tbody>
@@ -567,52 +413,60 @@ function SubmittedInterbranchTransferSlip({
             >
               TRANSFER DETAILS
             </div>
-            <table className="its-items-table" style={{ marginTop: 0 }}>
-              <thead>
-                <tr>
-                  <th>Item Code</th>
-                  <th>Item Description</th>
-                  <th className="text-center">Qty</th>
-                  <th>Unit of Measure</th>
-                  <th>Remarks</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayItems.map((item) => {
-                  const isPlaceholder = Boolean(item.__placeholder);
-                  return (
-                    <tr key={item.id}>
-                      <td>
-                        {isPlaceholder
-                          ? "\u00a0"
-                          : displayText(item.item_code, "")}
-                      </td>
-                      <td>
-                        {isPlaceholder
-                          ? "\u00a0"
-                          : displayText(item.item_description, "")}
-                      </td>
-                      <td className="text-center">
-                        {isPlaceholder
-                          ? "\u00a0"
-                          : displayText(item.qty, "")}
-                      </td>
-                      <td>
-                        {isPlaceholder
-                          ? "\u00a0"
-                          : displayText(item.unit_measure, "")}
-                      </td>
-                      <td>
-                        {isPlaceholder
-                          ? "\u00a0"
-                          : displayText(item.remarks, "")}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            
+            {/* --- MODIFIED: Added loading state for items --- */}
+            {loadingItems ? (
+              <p style={{ textAlign: "center", padding: "1rem" }}>
+                Loading items...
+              </p>
+            ) : (
+              <table className="its-items-table" style={{ marginTop: 0 }}>
+                <thead>
+                  <tr>
+                    <th>Item Code</th>
+                    <th>Item Description</th>
+                    <th className="text-center">Qty</th>
+                    <th>Unit of Measure</th>
+                    <th>Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayItems.map((item) => {
+                    const isPlaceholder = Boolean(item.__placeholder);
+                    return (
+                      <tr key={item.id}>
+                        <td>
+                          {isPlaceholder
+                            ? "\u00a0"
+                            : displayText(item.item_code, "")}
+                        </td>
+                        <td>
+                          {isPlaceholder
+                            ? "\u00a0"
+                            : displayText(item.item_description, "")}
+                        </td>
+                        <td className="text-center">
+                          {isPlaceholder
+                            ? "\u00a0"
+                            : displayText(item.qty, "")}
+                        </td>
+                        <td>
+                          {isPlaceholder
+                            ? "\u00a0"
+                            : displayText(item.unit_measure, "")}
+                        </td>
+                        <td>
+                          {isPlaceholder
+                            ? "\u00a0"
+                            : displayText(item.remarks, "")}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+            {/* --- END MODIFICATION --- */}
+
             <p className="its-footnote">
               *Kindly indicate in the above table the item codes, description,
               quantity, and units of shortage/overage items
@@ -743,11 +597,6 @@ function SubmittedInterbranchTransferSlip({
                   </td>
                   <td>{dispatchedDateValue}</td>
                 </tr>
-              </tbody>
-            </table>
-
-            <table className="its-received-table">
-              <tbody>
                 <tr>
                   <th>Received by</th>
                   <td>{receivedByValue}</td>
@@ -792,6 +641,39 @@ function SubmittedInterbranchTransferSlip({
                 </div>
               </div>
             </div>
+
+            {/* --- FEATURE: Added Status Display (matches Payment Request) --- */}
+            {/* This assumes your API provides 'status' and 'declined_reason' fields */}
+            {(selectedRequest.status || selectedRequest.declined_reason) && (
+              <div
+                className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}
+              >
+                <div className="floating-decline-content">
+                  {selectedRequest.status && (
+                    <p className="status-text">
+                      <strong>Status:</strong> {selectedRequest.status}
+                    </p>
+                  )}
+                  {selectedRequest.declined_reason && (
+                    <>
+                      <strong>Declined Reason:</strong>
+                      <p>{selectedRequest.declined_reason}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {selectedRequest.status === "Approved" && (
+              <button
+                className="floating-receive-btn"
+                onClick={() => handleReceive({ ...selectedRequest })}
+                disabled={selectedRequest.status === "Received"}
+              >
+                {selectedRequest.status === "Received" ? "✅ Received" : "Receive"}
+              </button>
+            )}
+            {/* --- END FEATURE --- */}
           </div>
         )}
       </>
@@ -848,9 +730,11 @@ function SubmittedInterbranchTransferSlip({
           </div>
 
           {selectedRequest && (
+            // --- MODIFIED: onClick now uses the simplified print function ---
             <button onClick={handlePrint} className="print-btn">
               🖨️ Print
             </button>
+            // --- END MODIFICATION ---
           )}
         </header>
 
