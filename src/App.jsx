@@ -33,6 +33,7 @@ import InterbranchTransferSlip from "./forms/InterbranchTransferSlip";
 import CreditCardAcknowledgementReceipt from "./forms/CreditCardAcknowledgementReceipt";
 import "./styles/App.css";
 import SubmittedCAReceipt from "./submitted-request/SubmittedCAReceipt";
+import ThemeToggle from "./components/ThemeToggle.jsx";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -75,6 +76,7 @@ function App() {
 
   return (
     <Router>
+      <ThemeToggle className="app-theme-toggle" />
       <Routes>
         <Route
           path="/"

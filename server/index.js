@@ -563,6 +563,143 @@ app.get("/user-access/:id", async (req, res) => {
   }
 });
 
+app.get("/api/dashboard/summary", async (req, res) => {
+  try {
+    const workloadSources = [
+      { key: "purchase", label: "Purchase Requests", table: "purchase_request" },
+      { key: "revolving", label: "Revolving Fund", table: "revolving_fund_request" },
+      { key: "cashAdvance", label: "Cash Advance Requests", table: "cash_advance_request" },
+    ];
+
+    const workload = [];
+
+    for (const source of workloadSources) {
+      const { rows } = await pool.query(
+        `
+          SELECT COALESCE(status, 'Pending') AS status, COUNT(*)::int AS count
+          FROM ${source.table}
+          GROUP BY status
+        `,
+      );
+
+      const breakdown = {};
+      let total = 0;
+
+      rows.forEach((row) => {
+        const count = Number(row.count) || 0;
+        breakdown[row.status] = count;
+        total += count;
+      });
+
+      const pendingTotal =
+        (breakdown.Pending || 0) +
+        (breakdown["For Review"] || 0) +
+        (breakdown["For Approval"] || 0);
+
+      const declinedTotal = (breakdown.Declined || 0) + (breakdown.Rejected || 0);
+
+      workload.push({
+        key: source.key,
+        label: source.label,
+        total,
+        pending: pendingTotal,
+        approved: breakdown.Approved || 0,
+        declined: declinedTotal,
+        breakdown,
+      });
+    }
+
+    const { rows: outstandingRows } = await pool.query(`
+      WITH pending AS (
+        SELECT 
+          'Purchase Request' AS form_label,
+          'purchase_request' AS form_key,
+          purchase_request_code AS code,
+          request_by AS requester,
+          COALESCE(status, 'Pending') AS status,
+          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+        FROM purchase_request
+        WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+
+        UNION ALL
+
+        SELECT 
+          'Revolving Fund' AS form_label,
+          'revolving_fund_request' AS form_key,
+          revolving_request_code AS code,
+          submitted_by AS requester,
+          COALESCE(status, 'Pending') AS status,
+          COALESCE(updated_at, created_at, date_request, NOW()) AS activity_ts
+        FROM revolving_fund_request
+        WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+
+        UNION ALL
+
+        SELECT 
+          'Cash Advance' AS form_label,
+          'cash_advance_request' AS form_key,
+          ca_request_code AS code,
+          requested_by AS requester,
+          COALESCE(status, 'Pending') AS status,
+          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+        FROM cash_advance_request
+        WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+      )
+      SELECT 
+        *,
+        EXTRACT(EPOCH FROM (NOW() - activity_ts)) AS age_seconds
+      FROM pending
+      ORDER BY activity_ts DESC NULLS LAST
+      LIMIT 6;
+    `);
+
+    const alerts = outstandingRows.filter((row) => Number(row.age_seconds || 0) > 172800).length;
+
+    const { rows: engagementRows } = await pool.query(`
+      WITH submissions AS (
+        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        FROM purchase_request
+        UNION ALL
+        SELECT user_id, COALESCE(updated_at, created_at, date_request) AS activity_ts
+        FROM revolving_fund_request
+        UNION ALL
+        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        FROM cash_advance_request
+      ),
+      recent AS (
+        SELECT *
+        FROM submissions
+        WHERE activity_ts IS NOT NULL
+          AND activity_ts >= NOW() - INTERVAL '7 days'
+      )
+      SELECT
+        COALESCE((SELECT COUNT(*) FROM users), 0) AS total_users,
+        COALESCE((SELECT COUNT(DISTINCT user_id) FROM recent WHERE user_id IS NOT NULL), 0) AS active_users_7d,
+        COALESCE((SELECT COUNT(*) FROM recent), 0) AS submissions_7d
+    `);
+
+    res.json({
+      workload,
+      outstanding: outstandingRows.map((row) => ({
+        ...row,
+        age_seconds: Number(row.age_seconds || 0),
+      })),
+      engagement: engagementRows[0] || {
+        total_users: 0,
+        active_users_7d: 0,
+        submissions_7d: 0,
+      },
+      alerts,
+      refreshed_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Error generating dashboard summary:", err);
+    res.status(500).json({ message: "Server error generating dashboard summary" });
+  }
+});
+
+
+
 
 
 /* ------------------------

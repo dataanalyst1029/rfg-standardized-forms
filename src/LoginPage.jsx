@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./styles/LoginPage.css";
 import rfgLogo from "./assets/rfg_logo.png";
-import ThemeToggle from "./components/ThemeToggle.jsx";
 import { API_BASE_URL } from "./config/api.js";
 
 function LoginPage({ onLogin }) {
@@ -76,7 +75,6 @@ function LoginPage({ onLogin }) {
 
   return (
     <div className="login-container">
-      <ThemeToggle className="app-theme-toggle" />
       <div className="login-card">
         <div className="logo-container">
           <img src={rfgLogo} alt="RFG Logo" className="rfg-logo" />

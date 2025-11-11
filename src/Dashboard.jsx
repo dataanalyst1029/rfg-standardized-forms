@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatDistanceToNow } from "date-fns";
 import { API_BASE_URL } from "./config/api";
 import "./styles/Dashboard.css";
 import ManageUsers from "./ManageUsers.jsx";
 import ManageUsersAccess from "./ManageUsersAccess.jsx";
 import ManageBranches from "./ManageBranches.jsx";
 import ManageDepartments from "./ManageDepartments.jsx";
-import ThemeToggle from "./components/ThemeToggle.jsx";
 import RequestPurchase from "./RequestPurchase.jsx";
 import RequestRevolvingFund from "./RequestRevolvingFund";
 import RequestCashAdvance from "./RequestCashAdvance";
@@ -132,10 +132,10 @@ const RECENT_ACTIVITY = [
 ];
 
 const METRICS = [
-  { id: "users", label: "Total users", value: "145" },
-  { id: "requests", label: "Active requests", value: "32" },
-  { id: "approvals", label: "Pending approvals", value: "8" },
-  { id: "alerts", label: "System alerts", value: "3" },
+  { id: "users", label: "Total users" },
+  { id: "requests", label: "Active requests" },
+  { id: "approvals", label: "Pending approvals" },
+  { id: "alerts", label: "System alerts" },
 ];
 
 const flattenNavigation = (nav) =>
@@ -166,17 +166,175 @@ const getInitialView = () => {
 };
 
 
-function OverviewPanel() {
+function OverviewPanel({ summary, loading, error } = {}) {
+  const workloadCards = summary?.workload ?? [];
+  const outstandingItems = summary?.outstanding ?? [];
+  const engagement = summary?.engagement;
+  const alertsCount =
+    typeof summary?.alerts === "number"
+      ? summary.alerts
+      : outstandingItems.filter((item) => Number(item.age_seconds || 0) > 172800).length;
+
+  const metricValues = {
+    users: engagement?.total_users,
+    requests: workloadCards.reduce((sum, card) => sum + (card.pending || 0), 0),
+    approvals: outstandingItems.length,
+    alerts: alertsCount,
+  };
+
+  const formatMetric = (value) => {
+    if (typeof value === "number") {
+      return value.toLocaleString();
+    }
+    if (typeof value === "string") {
+      return value;
+    }
+    return "—";
+  };
+
+  const relativeTime = (value) => {
+    if (!value) return null;
+    try {
+      return formatDistanceToNow(new Date(value), { addSuffix: true });
+    } catch {
+      return null;
+    }
+  };
+
+  const statusTone = (status = "") => {
+    const normalized = status.toLowerCase();
+    if (normalized.includes("declin") || normalized.includes("reject")) return "danger";
+    if (normalized.includes("approve")) return "success";
+    return "pending";
+  };
+
+  const refreshedLabel = relativeTime(summary?.refreshed_at);
+
+  const workloadContent =
+    workloadCards.length === 0 && !loading ? (
+      <p className="panel-empty">No submissions yet.</p>
+    ) : (
+      <div className="dashboard-cards dashboard-cards--compact">
+        {workloadCards.map((card) => (
+          <article key={card.key} className="dashboard-card dashboard-card--compact">
+            <span className="dashboard-card-title">{card.label}</span>
+            <span className="dashboard-card-value">{formatMetric(card.total)}</span>
+            <div className="workload-breakdown">
+              <span className="status-pill status-pill--pending">
+                {formatMetric(card.pending)} pending
+              </span>
+              <span className="status-pill status-pill--success">
+                {formatMetric(card.approved)} approved
+              </span>
+              <span className="status-pill status-pill--danger">
+                {formatMetric(card.declined)} declined
+              </span>
+            </div>
+          </article>
+        ))}
+      </div>
+    );
+
+  const outstandingContent =
+    outstandingItems.length === 0 && !loading ? (
+      <p className="panel-empty">You're all caught up.</p>
+    ) : (
+      <ul className="outstanding-list">
+        {outstandingItems.map((item) => (
+          <li key={`${item.form_key}-${item.code}`} className="outstanding-item">
+            <div className="outstanding-info">
+              <p className="outstanding-code">{item.code}</p>
+              <span className="text-muted outstanding-context">
+                {item.form_label}
+                {item.requester ? ` • ${item.requester}` : ""}
+              </span>
+            </div>
+            <div className="outstanding-status">
+              <span className={`status-badge status-badge--${statusTone(item.status)}`}>
+                {item.status}
+              </span>
+              <span className="outstanding-meta">
+                {relativeTime(item.activity_ts) || "Awaiting update"}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+
+  const engagementRate =
+    engagement && engagement.total_users
+      ? Math.round((engagement.active_users_7d / engagement.total_users) * 100)
+      : null;
+
   return (
     <div className="dashboard-content">
       <section className="dashboard-cards">
         {METRICS.map((metric) => (
           <article key={metric.id} className="dashboard-card">
             <span className="dashboard-card-title">{metric.label}</span>
-            <span className="dashboard-card-value">{metric.value}</span>
+            <span className="dashboard-card-value">{formatMetric(metricValues[metric.id])}</span>
           </article>
         ))}
       </section>
+
+      <section className="dashboard-panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Workload snapshot</h2>
+            <p>Live requests by lifecycle stage.</p>
+          </div>
+          <span className="panel-meta">
+            {loading ? "Refreshing…" : refreshedLabel ? `Updated ${refreshedLabel}` : ""}
+          </span>
+        </div>
+        {error && <div className="panel-error">{error}</div>}
+        {workloadContent}
+      </section>
+
+      <div className="dashboard-grid">
+        <section className="dashboard-panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Outstanding actions</h2>
+              <p>Requests that still need attention.</p>
+            </div>
+          </div>
+          {outstandingContent}
+        </section>
+
+        <section className="dashboard-panel">
+          <div className="panel-heading">
+            <div>
+              <h2>User engagement</h2>
+              <p>Activity from the past 7 days.</p>
+            </div>
+          </div>
+          {engagement ? (
+            <div className="engagement-grid">
+              <article className="engagement-card">
+                <span className="engagement-label">Total users</span>
+                <strong>{formatMetric(engagement.total_users)}</strong>
+                <span className="engagement-meta">People with access</span>
+              </article>
+              <article className="engagement-card">
+                <span className="engagement-label">Active this week</span>
+                <strong>{formatMetric(engagement.active_users_7d)}</strong>
+                <span className="engagement-meta">
+                  {engagementRate !== null ? `${engagementRate}% of users` : "Tracking logins"}
+                </span>
+              </article>
+              <article className="engagement-card">
+                <span className="engagement-label">Submissions (7d)</span>
+                <strong>{formatMetric(engagement.submissions_7d)}</strong>
+                <span className="engagement-meta">New form entries</span>
+              </article>
+            </div>
+          ) : (
+            <p className="panel-empty">{loading ? "Loading engagement data…" : "No data yet."}</p>
+          )}
+        </section>
+      </div>
 
       <section className="recent-activity">
         <h2>Recent activity</h2>
@@ -209,10 +367,10 @@ function PlaceholderPanel({ title, description }) {
   );
 }
 
-function renderActiveView(view) {
+function renderActiveView(view, extraProps = {}) {
   switch (view) {
     case "overview":
-      return <OverviewPanel />;
+      return <OverviewPanel {...extraProps.overview} />;
     case "requests":
       return (
         <PlaceholderPanel
@@ -366,10 +524,52 @@ function Dashboard({ role, name, onLogout }) {
   const [activeView, setActiveView] = useState(getInitialView);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [dashboardSummary, setDashboardSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
   const storedId = sessionStorage.getItem("id");
   const [userAccess, setUserAccess] = useState([]);
   const [userRole, setUserRole] = useState([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchSummary = async () => {
+      if (!ignore) {
+        setSummaryLoading(true);
+      }
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/dashboard/summary`);
+        if (!response.ok) {
+          throw new Error("Unable to load dashboard overview");
+        }
+        const data = await response.json();
+        if (!ignore) {
+          setDashboardSummary(data);
+          setSummaryError(null);
+        }
+      } catch (err) {
+        console.error("Error loading dashboard summary:", err);
+        if (!ignore) {
+          setSummaryError(err.message || "Unable to load dashboard overview");
+        }
+      } finally {
+        if (!ignore) {
+          setSummaryLoading(false);
+        }
+      }
+    };
+
+    fetchSummary();
+    const interval = setInterval(fetchSummary, 60000);
+
+    return () => {
+      ignore = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchAccess = async () => {
@@ -398,6 +598,10 @@ function Dashboard({ role, name, onLogout }) {
   }, [activeView]);
 
   useEffect(() => {
+    setSidebarOpen(false);
+  }, [activeView]);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = sessionStorage.getItem(STORAGE_KEY);
       if (
@@ -418,6 +622,21 @@ function Dashboard({ role, name, onLogout }) {
     }
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const activeItem = useMemo(
     () =>
       navigationItems.find((item) => item.id === activeView) ||
@@ -430,7 +649,7 @@ function Dashboard({ role, name, onLogout }) {
     (typeof window !== "undefined" ? localStorage.getItem("name") : "");
 
   return (
-    <div className="dashboard-layout">
+    <div className={`dashboard-layout${isSidebarOpen ? " dashboard-layout--sidebar-open" : ""}`}>
       <aside className="dashboard-sidebar">
         <div className="sidebar-brand">
           <span className="sidebar-project-name">RFG Forms Console</span>
@@ -882,9 +1101,26 @@ function Dashboard({ role, name, onLogout }) {
           </button>
         </div>
       </aside>
+      {isSidebarOpen && (
+        <div
+          className="dashboard-overlay"
+          role="presentation"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       <section className="dashboard-main">
         <header className="dashboard-topbar">
+          <button
+            type="button"
+            className="sidebar-toggle"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            aria-label={`${isSidebarOpen ? "Close" : "Open"} navigation`}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
           <div className="topbar-heading">
             <h1 className="topbar-title">{activeItem?.headline}</h1>
             <p className="topbar-subtitle">{activeItem?.description}</p>
@@ -895,11 +1131,16 @@ function Dashboard({ role, name, onLogout }) {
               placeholder="Quick find (⌘K)"
               className="topbar-search"
             />
-            <ThemeToggle />
           </div>
         </header>
 
-        {renderActiveView(activeView)}
+        {renderActiveView(activeView, {
+          overview: {
+            summary: dashboardSummary,
+            loading: summaryLoading,
+            error: summaryError,
+          },
+        })}
       </section>
     </div>
   );
