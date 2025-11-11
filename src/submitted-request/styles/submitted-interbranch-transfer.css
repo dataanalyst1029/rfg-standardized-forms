@@ -53,7 +53,6 @@
   border-collapse: collapse;
   border: 1px solid #111;
   font-size: 0.9rem;
-  height: 100%;
 }
 
 .its-info-table th,
@@ -75,21 +74,7 @@
   border-collapse: collapse;
   border: 1px solid #111;
   font-size: 0.9rem;
-  height: 100%;
-}
-
-.its-transport-table th,
-.its-transport-table td {
-  border: 1px solid #111;
-  padding: 0.5rem 0.65rem;
-  text-align: left;
-  vertical-align: top;
-}
-
-.its-transport-table th {
-  font-weight: 600;
-  background: #f7f7f7;
-  width: 45%;
+  height: fit-content;
 }
 
 .its-sig-table,
@@ -119,9 +104,9 @@
 }
 
 .sig-box {
+  overflow: visible !important;  
   position: relative;
-  height: 4rem;
-  vertical-align: middle !important;
+  height: 20px !important;
 }
 
 .signature-img {
@@ -177,6 +162,20 @@
   border-top: 1px solid #ccc;
   padding-top: 0.5rem;
   color: #333;
+}
+
+.its-transport-table th,
+.its-transport-table td {
+  border: 1px solid #111;
+  text-align: left;
+  vertical-align: top;
+  padding: 0.01rem 0.01rem;
+}
+
+.its-transport-table th {
+  font-weight: 600;
+  background: #f7f7f7;
+  width: 100%;
 }
 
 /* Floating Receive Button */
@@ -326,14 +325,9 @@
     max-height: 45px;
     position: absolute;
     transform: none;
-    top: -10px;           /* <-- PULLS image up, overlapping the border */
+    top: -20px;           /* <-- PULLS image up, overlapping the border */
     left: 10px;           /* <-- Adjust horizontal position */
-  }
-
-  /* --- Bottom Table (NEW) --- */
-  .its-receiving-col {
-    width: 50% !important; /* Forces equal 50/50 split */
-    box-sizing: border-box; /* Ensures padding doesn't break layout */
+    z-index: 10px;
   }
   
   /* ==========================================================================
