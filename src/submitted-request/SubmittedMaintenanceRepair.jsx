@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api.js";
 import "./styles/submitted-request.css";
 import "./styles/submitted-payment-request.css";
-import "./styles/submitted-maintenance-repair.css";
-import rfgLogo from "../assets/rfg_logo.png";
+// This CSS file will now be a copy of the interbranch one
+import "./styles/submitted-maintenance-repair.css"; 
+import rfgLogo from "../assets/rfg_logo.png"; // <-- Added logo import
 
 const NAV_SECTIONS = [
-  { id: "submitted", label: "Submitted Requests" }, // Updated label
+  { id: "submitted", label: "Submitted Requests" },
   { id: "new-request", label: "New Maintenance/Repair Request" },
 ];
 
@@ -47,6 +48,7 @@ const formatDate = (value) => {
   });
 };
 
+// --- MODIFICATION: Reverted function to default, will add "" in calls ---
 const displayText = (value, fallback = "-") => {
   if (value === null || value === undefined) {
     return fallback;
@@ -54,6 +56,7 @@ const displayText = (value, fallback = "-") => {
   const stringValue = typeof value === "string" ? value.trim() : String(value);
   return stringValue ? stringValue : fallback;
 };
+// --- END MODIFICATION ---
 
 function SubmittedMaintenanceRepair({
   onLogout,
@@ -77,7 +80,6 @@ function SubmittedMaintenanceRepair({
     : currentUserId || storedUser.id || null;
   const effectiveRole = storedUser.role || "";
 
-  // This useEffect fetches the data
   useEffect(() => {
     const fetchRequests = async () => {
       setLoading(true);
@@ -89,7 +91,7 @@ function SubmittedMaintenanceRepair({
           params.append("role", effectiveRole);
         }
         if (effectiveUserId) {
-          params.append("userId", effectiveUserId); // This is the ID
+          params.append("userId", effectiveUserId);
         }
 
         const query = params.toString();
@@ -106,7 +108,6 @@ function SubmittedMaintenanceRepair({
         const data = await response.json();
         const list = Array.isArray(data) ? data : [];
 
-        // This filter logic is now correct, comparing employee_id
         const filtered = effectiveUserId
           ? list.filter(
               (request) =>
@@ -117,15 +118,10 @@ function SubmittedMaintenanceRepair({
 
         setRequests(filtered);
 
-        // --- MODIFICATION ---
-        // We will no longer auto-select the first item.
-        // We only persist the selection if it's still in the list,
-        // otherwise, we reset to "" to force the user to choose.
         setSelectedCode((prev) => {
           if (prev && filtered.some((request) => request.form_code === prev)) {
             return prev;
           }
-          // Default to empty string instead of the first item
           return "";
         });
       } catch (err) {
@@ -145,7 +141,7 @@ function SubmittedMaintenanceRepair({
     effectiveRole,
     effectiveUserId,
     showAll,
-    storedUser.employee_id, // Switched from storedUser.name
+    storedUser.employee_id,
   ]);
 
   const selectedRequest = requests.find(
@@ -172,187 +168,79 @@ function SubmittedMaintenanceRepair({
   };
 
   const handlePrint = () => {
-    if (!cardRef.current) {
-      return;
+    window.print();
+  };
+  
+  const handleAccomplish = async (request) => {
+    try {
+      if (!request?.id) {
+        alert("Missing request ID. Cannot update status.");
+        console.error("Missing request ID:", request);
+        return;
+      }
+
+      const confirmAccomplish = window.confirm(
+        `Mark ${request.form_code} as Accomplished?`,
+      );
+      if (!confirmAccomplish) return;
+
+      console.log("Updating maintenance request:", request.id);
+
+      const userRes = await fetch(
+        `${API_BASE_URL}/api/users/${effectiveUserId}`,
+      );
+      if (!userRes.ok) throw new Error("Failed to fetch user data");
+      const userData = await userRes.json();
+
+      const payload = {
+        status: "Accomplished",
+        accomplished_by: userData.name,
+        accomplished_signature: userData.signature,
+        date_completed: new Date().toISOString(),
+        performed_by: userData.name, 
+      };
+
+      const res = await fetch(
+        `${API_BASE_URL}/api/maintenance_requests/${request.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        console.warn("Non-JSON response from backend");
+      }
+
+      if (!res.ok) {
+        console.error("Backend response error:", data);
+        alert(`Failed to update status: ${data.error || "Unknown error"}`);
+        return;
+      }
+
+      alert(`Maintenance Request ${request.form_code} marked as Accomplished ✅`);
+
+      setRequests((prev) =>
+        prev.map((r) => (r.id === request.id ? { ...r, ...payload } : r)),
+      );
+    } catch (err) {
+      console.error("Error accomplishing maintenance request:", err);
+      alert("Error updating status. Check console for details.");
     }
-    const printContents = cardRef.current.outerHTML;
-    const printWindow = window.open("", "", "width=1000,height=800");
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print Maintenance/Repair Form - ${
-            selectedRequest?.form_code || ""
-          }</title>
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 0; 
-              padding: 0.25in; 
-              font-size: 10pt;
-            }
-            .pay-print-card { 
-              border: 1px solid #000; 
-              padding: 0.25in; 
-              margin: 0 auto; 
-              max-width: 8in; 
-              background: #fff;
-              color: #000;
-            }
-            .pay-header { 
-              display: flex; 
-              justify-content: flex-end; /* Aligns code to the right */
-              align-items: flex-start; 
-              padding-bottom: 0.5rem; 
-            }
-            .pay-form-code { 
-              font-weight: bold; 
-              font-size: 1.1rem; 
-              border: 1px solid #000;
-              padding: 5px 10px;
-            }
-            .pay-header-title { 
-              font-size: 1.5rem; 
-              font-weight: bold; 
-              text-align: center;
-              width: 100%;
-              padding-bottom: 0.25in;
-              margin-top: 0;
-            }
-            
-            /* NEW MRF STYLES */
-            .mrf-section-header {
-              background: #000;
-              color: #fff;
-              font-weight: bold;
-              padding: 6px 10px;
-              font-size: 1rem;
-              margin-top: 0.25in;
-              margin-bottom: 0.15in;
-            }
-            .mrf-grid-two {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 0.5in;
-              width: 100%;
-            }
-            .mrf-field-inline {
-              display: flex;
-              align-items: center;
-              margin-bottom: 10px;
-            }
-            .mrf-field-inline label {
-              font-weight: bold;
-              padding-right: 10px;
-              width: 150px; /* Fixed width for alignment */
-              flex-shrink: 0;
-            }
-            .mrf-value-box {
-              border: 1px solid #000;
-              width: 100%;
-              min-height: 24px;
-              padding: 5px 8px;
-              background: #fff; /* Ensure it's white for printing */
-            }
-            .mrf-field-block {
-              margin-top: 0.25in;
-            }
-            .mrf-field-block .mrf-value-box {
-              min-height: 6rem;
-            }
-            .mrf-field-block.small .mrf-value-box {
-              min-height: 2rem;
-            }
-            .mrf-field-block label {
-              font-weight: bold;
-              display: block;
-              margin-bottom: 5px;
-            }
-            
-            .mrf-completion-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 0.5in;
-              align-items: center;
-              margin-top: 0.15in;
-            }
-            
-            .mrf-sig-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 0.25in;
-              border: 1px solid #000;
-            }
-            .mrf-sig-table th, .mrf-sig-table td {
-              border: 1px solid #000;
-              padding: 6px 10px;
-              text-align: left;
-              height: 2.5rem;
-              vertical-align: top;
-            }
-            .mrf-sig-table th {
-              font-weight: bold;
-              width: 150px;
-            }
-            .mrf-sig-table td {
-              text-align: center;
-              vertical-align: middle;
-            }
-
-            .signature-img {
-              max-width: 120px;
-              height: auto;
-              margin: 0 auto;
-              display: block;
-            }
-            .mrf-sig-container {
-              display: grid;
-              grid-template-columns: 1.2fr 1fr;
-              gap: 0.5in;
-              margin-top: 0.25in;
-            }
-            .mrf-sig-box {
-              border: 1px solid #000;
-              height: 4rem;
-              text-align: center;
-              vertical-align: middle;
-            }
-            .mrf-sig-table-left th {
-              width: 120px;
-              padding: 8px;
-            }
-            .mrf-sig-table-left td {
-              padding: 8px;
-              text-align: left;
-              vertical-align: middle;
-            }
-             .mrf-sig-table-right th {
-              width: 80px;
-              padding: 8px;
-            }
-            .mrf-sig-table-right td {
-              padding: 8px;
-              height: 2.5rem;
-              text-align: center;
-              vertical-align: middle;
-            }
-          </style>
-        </head>
-        <body>
-          ${printContents}
-        </body>
-      </html>
-    `);
-
-    setTimeout(() => {
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-    }, 1000);
   };
 
   const renderBody = () => {
     if (loading) {
-      return <p>Loading submitted maintenance/repair requests...</p>;
+      return (
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <span>Loading submitted maintenance/repair requests…</span>
+        </div>
+      );
     }
 
     if (error) {
@@ -389,188 +277,210 @@ function SubmittedMaintenanceRepair({
         </div>
 
         {selectedRequest ? (
-          <div className="pay-print-card" ref={cardRef}>
-            <header className="pay-header">
-              <div className="pay-form-code">
-                {selectedRequest.form_code}
+          // --- STYLING: Using ITS classes ---
+          <div className="submitted-its-request-card" ref={cardRef}>
+            <header className="request-header">
+              <div className="header-brand">
+                <img
+                  src={rfgLogo}
+                  alt="Ribshack Food Group"
+                  className="header-logo"
+                />
+              </div>
+              <div className="header-request-code">
+                <i className="request-code">{selectedRequest.form_code}</i>
               </div>
             </header>
 
-            <h1 className="pay-header-title">MAINTENANCE/REPAIR FORM</h1>
-
-            {/* --- Requestor Details --- */}
-            <div className="mrf-section-header">Requestor Details</div>
-            <div className="mrf-grid-two">
-              <div className="mrf-col-left">
-                <div className="mrf-field-inline">
-                  <label>Name</label>
-                  <div className="mrf-value-box">
-                    {displayText(selectedRequest.requester_name)}
-                  </div>
-                </div>
-                <div className="mrf-field-inline">
-                  <label>Employee ID</label>
-                  <div className="mrf-value-box">
-                    {displayText(selectedRequest.employee_id)}
-                  </div>
-                </div>
-                <div className="mrf-field-inline">
-                  <label>Branch / Dept</label>
-                  <div className="mrf-value-box">
-                    {displayText(selectedRequest.branch)} /{" "}
-                    {displayText(selectedRequest.department)}
-                  </div>
-                </div>
+            {/* --- Requestor Details (using ITS table layout) --- */}
+            <div 
+              className="its-transport-header"
+              style={{ marginTop: "1rem" }}
+            >
+              Requestor Details
+            </div>
+            <div className="its-grid-two">
+              <div className="its-col-left">
+                <table className="its-info-table">
+                  <tbody>
+                    {/* --- MODIFICATION: Added "" fallback --- */}
+                    <tr>
+                      <th>Name</th>
+                      <td>{displayText(selectedRequest.requester_name, "")}</td>
+                    </tr>
+                    <tr>
+                      <th>Employee ID</th>
+                      <td>{displayText(selectedRequest.employee_id, "")}</td>
+                    </tr>
+                    <tr>
+                      <th>Branch / Dept</th>
+                      <td>
+                        {displayText(selectedRequest.branch, "")} /{" "}
+                        {displayText(selectedRequest.department, "")}
+                      </td>
+                    </tr>
+                    {/* --- END MODIFICATION --- */}
+                  </tbody>
+                </table>
               </div>
+              <div className="its-col-right">
+                <table className="its-info-table">
+                  <tbody>
+                    {/* --- MODIFICATION: Added "" fallback --- */}
+                    <tr>
+                      <th>Date</th>
+                      <td>{formatDate(selectedRequest.request_date)}</td>
+                    </tr>
+                    <tr>
+                      <th>Date Needed</th>
+                      <td>{formatDate(selectedRequest.date_needed)}</td>
+                    </tr>
+                    <tr>
+                      <th>Asset Tag/Code</th>
+                      <td>{displayText(selectedRequest.asset_tag, "")}</td>
+                    </tr>
+                    {/* --- END MODIFICATION --- */}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-              <div className="mrf-col-right">
-                <div className="mrf-field-inline">
-                  <label>Date</label>
-                  <div className="mrf-value-box">
-                    {formatDate(selectedRequest.request_date)}
-                  </div>
-                </div>
-                <div className="mrf-field-inline">
-                  <label>Signature</label>
-                  <div
-                    className="mrf-value-box"
-                    style={{ textAlign: "center" }}
-                  >
+            {/* --- Description of Work (using new block style) --- */}
+            <div className="its-transport-header">
+              Description of Work Required
+            </div>
+            <div className="its-field-block">
+              {/* --- MODIFICATION: Added "" fallback --- */}
+              <p>{displayText(selectedRequest.work_description, "")}</p>
+              {/* --- END MODIFICATION --- */}
+            </div>
+            
+            {/* --- Completion Info (using ITS table layout) --- */}
+            <div className="its-transport-header">Completion Information</div>
+            <div className="its-grid-two">
+              <div className="its-col-left">
+                <table className="its-info-table">
+                  <tbody>
+                    {/* --- MODIFICATION: Added "" fallback --- */}
+                    <tr>
+                      <th>Performed By</th>
+                      <td>{displayText(selectedRequest.performed_by, "")}</td>
+                    </tr>
+                    {/* --- END MODIFICATION --- */}
+                  </tbody>
+                </table>
+              </div>
+              <div className="its-col-right">
+                <table className="its-info-table">
+                  <tbody>
+                    <tr>
+                      <th>Date Completed</th>
+                      <td>{formatDate(selectedRequest.date_completed)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="its-transport-header">
+              Completion Remarks
+            </div>
+            <div className="its-field-block">
+              {/* --- MODIFICATION: Added "" fallback --- */}
+              <p>{displayText(selectedRequest.completion_remarks, "")}</p>
+              {/* --- END MODIFICATION --- */}
+            </div>
+
+
+            {/* --- Signature Table (using ITS sig table layout) --- */}
+            <table className="its-sig-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Name</th>
+                  <th>Signature</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* --- MODIFICATION: Added "" fallback --- */}
+                <tr>
+                  <th>Requested by</th>
+                  <td>{displayText(selectedRequest.requester_name, "")}</td>
+                  <td className="sig-box">
                     {selectedRequest.signature ? (
                       <img
                         src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.signature}`}
                         alt="Requester signature"
                         className="signature-img"
                       />
-                    ) : (
-                      "N/A"
-                    )}
-                  </div>
+                    ) : null}
+                  </td>
+                  <td>{formatDate(selectedRequest.request_date)}</td>
+                </tr>
+                <tr>
+                  <th>Approved by</th>
+                  <td>{displayText(selectedRequest.approved_by, "")}</td>
+                  <td className="sig-box">
+                    {selectedRequest.approved_signature ? (
+                      <img
+                        src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approved_signature}`}
+                        alt="Approved signature"
+                        className="signature-img"
+                      />
+                    ) : null}
+                  </td>
+                  <td>{formatDate(selectedRequest.approved_date)}</td>
+                </tr>
+                <tr>
+                  <th>Accomplished by</th>
+                  <td>{displayText(selectedRequest.accomplished_by, "")}</td>
+                  <td className="sig-box">
+                    {selectedRequest.accomplished_signature ? (
+                      <img
+                        src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.accomplished_signature}`}
+                        alt="Accomplished signature"
+                        className="signature-img"
+                      />
+                    ) : null}
+                  </td>
+                  <td>{formatDate(selectedRequest.date_completed)}</td>
+                </tr>
+                {/* --- END MODIFICATION --- */}
+              </tbody>
+            </table>
+            
+            {/* --- Status & Action Button Logic (from previous step) --- */}
+            {(selectedRequest.status || selectedRequest.declined_reason) && (
+              <div
+                className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}
+              >
+                <div className="floating-decline-content">
+                  {selectedRequest.status && (
+                    <p className="status-text">
+                      <strong>Status:</strong> {selectedRequest.status}
+                    </p>
+                  )}
+                  {selectedRequest.declined_reason && (
+                    <>
+                      <strong>Declined Reason:</strong>
+                      <p>{selectedRequest.declined_reason}</p>
+                    </>
+                  )}
                 </div>
-                <div className="mrf-field-inline">
-                  <label>Date Needed</label>
-                  <div className="mrf-value-box">
-                    {formatDate(selectedRequest.date_needed)}
-                  </div>
-                </div>
               </div>
-            </div>
+            )}
 
-            {/* --- Description of Work --- */}
-            <div className="mrf-field-block">
-              <label className="mrf-section-header">
-                Description of Work Required
-              </label>
-              <div className="mrf-value-box">
-                {displayText(selectedRequest.work_description, "")}
-              </div>
-            </div>
-
-            {/* --- Asset Tag --- */}
-            <div className="mrf-field-block small">
-              <label>Asset Tag/Code (if applicable)</label>
-              <div className="mrf-value-box">
-                {displayText(selectedRequest.asset_tag, "")}
-              </div>
-            </div>
-
-            {/* --- Completion Info --- */}
-            <div className="mrf-section-header">Completion Information</div>
-            <div className="mrf-completion-grid">
-              <div className="mrf-field-inline">
-                <label>Performed By</label>
-                <div className="mrf-value-box">
-                  {displayText(selectedRequest.performed_by, "")}
-                </div>
-              </div>
-              <div className="mrf-field-inline">
-                <label>Date Completed</label>
-                <div className="mrf-value-box">
-                  {formatDate(selectedRequest.date_completed)}
-                </div>
-              </div>
-            </div>
-            <div className="mrf-field-block">
-              <label>Remarks</label>
-              <div className="mrf-value-box">
-                {displayText(selectedRequest.completion_remarks, "")}
-              </div>
-            </div>
-
-            {/* --- Signature Tables --- */}
-            <div className="mrf-sig-container">
-              <table className="mrf-sig-table mrf-sig-table-left">
-                <tbody>
-                  <tr>
-                    <th>Requested by</th>
-                    <td>
-                      {displayText(selectedRequest.requester_name, "")}
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>Approved by</th>
-                    <td>{displayText(selectedRequest.approved_by, "")}</td>
-                  </tr>
-                  <tr>
-                    <th>Accomplished by</th>
-                    <td>
-                      {displayText(selectedRequest.accomplished_by, "")}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <table className="mrf-sig-table mrf-sig-table-right">
-                <tbody>
-                  <tr>
-                    <th>Signature</th>
-                    <td>
-                      {/* Requester sig already shown above, 
-                                but duplicating here to match image's table layout */
-                      selectedRequest.signature ? (
-                        <img
-                          src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.signature}`}
-                          alt="Requester signature"
-                          className="signature-img"
-                        />
-                      ) : (
-                        ""
-                      )}
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>Signature</th>
-                    <td>
-                      {/* Assuming 'approved_signature' field exists */
-                      selectedRequest.approved_signature ? (
-                        <img
-                          src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approved_signature}`}
-                          alt="Approved signature"
-                          className="signature-img"
-                        />
-                      ) : (
-                        ""
-                      )}
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>Signature</th>
-                    <td>
-                      {/* Assuming 'accomplished_signature' field exists */
-                      selectedRequest.accomplished_signature ? (
-                        <img
-                          src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.accomplished_signature}`}
-                          alt="Accomplished signature"
-                          className="signature-img"
-                        />
-                      ) : (
-                        ""
-                      )}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            {selectedRequest.status === "Approved" && (
+              <button
+                className="floating-receive-btn" 
+                onClick={() => handleAccomplish({ ...selectedRequest })}
+                disabled={selectedRequest.status === "Accomplished"}
+              >
+                {selectedRequest.status === "Accomplished"
+                  ? "✅ Accomplished"
+                  : "Mark as Accomplished"}
+              </button>
+            )}
           </div>
         ) : (
           ""
@@ -628,7 +538,6 @@ function SubmittedMaintenanceRepair({
             </p>
           </div>
 
-          {/* This logic was already correct and will work with the changes */}
           {selectedRequest && (
             <button onClick={handlePrint} className="print-btn">
               🖨️ Print

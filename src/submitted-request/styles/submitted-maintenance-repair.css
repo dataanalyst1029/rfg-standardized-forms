@@ -1,167 +1,348 @@
-/* This is the 1:1 PRINT-FOCUSED stylesheet.
-  It will make the on-screen view look identical to the printout.
-  It will NOT be responsive.
-*/
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0.25in;
-  font-size: 10pt;
+/* --- STYLES COPIED FROM submitted-interbranch-transfer.css --- */
+
+.its-items-table {
+  width: 100%;
+  border: 1px solid #111;
+  border-collapse: collapse;
+  font-size: 0.88rem;
 }
-.pay-print-card {
-  border: 1px solid #000;
-  padding: 0.25in;
-  margin: 0 auto;
-  max-width: 8in;
-  background: #fff;
-  color: #000;
-  /* Add a little margin for the on-screen view */
-  margin-bottom: 2rem;
+.its-items-table th,
+.its-items-table td {
+  border: 1px solid #111;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
 }
-.pay-header {
-  display: flex;
-  justify-content: flex-end; /* Aligns code to the right */
-  align-items: flex-start;
-  padding-bottom: 0.5rem;
+.its-items-table th {
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  background: #f1f1f1;
 }
-.pay-form-code {
-  font-weight: bold;
-  font-size: 1.1rem;
-  border: 1px solid #000;
-  padding: 5px 10px;
-}
-.pay-header-title {
-  font-size: 1.5rem;
-  font-weight: bold;
+.its-items-table .text-center {
   text-align: center;
-  width: 100%;
-  padding-bottom: 0.25in;
-  margin-top: 0;
 }
-
-/* NEW MRF STYLES */
-.mrf-section-header {
-  background: #000;
+.its-footnote {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: #444;
+}
+.submitted-its-request-card {
+  margin-bottom: 3rem;
+  color: var(--card-text, #111);
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+  position: relative;
+}
+.its-transport-header {
+  background: #111;
   color: #fff;
-  font-weight: bold;
-  padding: 6px 10px;
-  font-size: 1rem;
-  margin-top: 0.25in;
-  margin-bottom: 0.15in;
+  padding: 0.55rem 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  margin-top: 1rem;
 }
-.mrf-grid-two {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5in;
-  width: 100%;
-}
-.mrf-field-inline {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.mrf-field-inline label {
-  font-weight: bold;
-  padding-right: 10px;
-  width: 150px; /* Fixed width for alignment */
-  flex-shrink: 0;
-}
-.mrf-value-box {
-  border: 1px solid #000;
-  width: 100%;
-  min-height: 24px;
-  padding: 5px 8px;
-  background: #fff; /* Ensure it's white for printing */
-  word-break: break-word; /* Added to prevent overflow */
-  line-height: 1.4; /* Added for readability */
-}
-.mrf-field-block {
-  margin-top: 0.25in;
-}
-.mrf-field-block .mrf-value-box {
-  min-height: 6rem;
-}
-.mrf-field-block.small .mrf-value-box {
-  min-height: 2rem;
-}
-.mrf-field-block label {
-  font-weight: bold;
-  display: block;
-  margin-bottom: 5px;
-}
-
-.mrf-completion-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5in;
-  align-items: center;
-  margin-top: 0.15in;
-}
-
-.mrf-sig-table {
+.its-info-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 0.25in;
-  border: 1px solid #000;
+  border: 1px solid #111;
+  font-size: 0.9rem;
 }
-.mrf-sig-table th,
-.mrf-sig-table td {
-  border: 1px solid #000;
-  padding: 6px 10px;
+.its-info-table th,
+.its-info-table td {
+  border: 1px solid #111;
+  padding: 0.5rem 0.65rem;
   text-align: left;
-  height: 2.5rem;
+  vertical-align: top;
+  word-break: break-word;
+  line-height: 1.4;
+}
+.its-info-table th {
+  font-weight: 600;
+  background: #f7f7f7;
+  width: 40%;
+}
+.its-transport-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #111;
+  font-size: 0.9rem;
+  height: fit-content;
+}
+.its-sig-table,
+.its-received-table {
+  width: 100%;
+  border: 1px solid #111;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin-top: 1rem;
+}
+.its-sig-table th,
+.its-sig-table td,
+.its-received-table th,
+.its-received-table td {
+  border: 1px solid #111;
+  padding: 0.6rem 0.7rem;
+  text-align: left;
   vertical-align: top;
 }
-.mrf-sig-table th {
-  font-weight: bold;
-  width: 150px;
+.its-sig-table th,
+.its-received-table th {
+  font-weight: 600;
+  width: 20%;
+  background: #f7f7f7;
 }
-.mrf-sig-table td {
-  text-align: center;
-  vertical-align: middle;
+.sig-box {
+  overflow: visible !important;
+  position: relative;
+  height: 20px !important;
 }
 
+/* --- MODIFICATION: Added object-fit --- */
 .signature-img {
-  min-width: 120px;
-  min-height: 38px;
-  max-width: 240px;
-  max-height: 76px;
-  height: auto; /* This preserves aspect ratio */
-  width: auto;  /* Optional but recommended */
-  margin: 0 auto;
-  display: block;
-  object-fit: contain; /* Extra safety to prevent stretching */
+  position: absolute; 
+  top: 50%; 
+  left: 50%; 
+  transform: translate(-50%, -50%); 
+  max-height: 100px;
+  width: auto;
+  max-width: 150px;
+  object-fit: contain; /* <-- Prevents stretching */
 }
+/* --- END MODIFICATION --- */
 
-.mrf-sig-container {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 0.5in;
-  margin-top: 0.25in;
+.its-receiving-section {
+  border: 1px solid #111;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 1rem;
+  font-size: 0.9rem;
 }
-.mrf-sig-box {
-  border: 1px solid #000;
-  height: 4rem;
+.its-receiving-header {
+  background: #111;
+  color: #fff;
+  padding: 0.55rem 0.75rem;
+  font-weight: 600;
   text-align: center;
-  vertical-align: middle;
+  text-transform: uppercase;
+  font-size: 0.85rem;
 }
-.mrf-sig-table-left th {
-  width: 120px;
-  padding: 8px;
+.its-receiving-content {
+  display: flex;
+  width: 100%;
 }
-.mrf-sig-table-left td {
-  padding: 8px;
+.its-receiving-col {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  box-sizing: border-box;
+}
+.its-receiving-col:first-child {
+  border-right: 1px solid #111;
+}
+.its-receiving-col p {
+  margin: 0 0 0.5rem 0;
+}
+.reason {
+  font-size: 0.85rem;
+  min-height: 3rem;
+  border-top: 1px solid #ccc;
+  padding-top: 0.5rem;
+  color: #333;
+}
+.its-transport-table th,
+.its-transport-table td {
+  border: 1px solid #111;
   text-align: left;
-  vertical-align: middle;
-  word-break: break-word; /* Added for names */
+  vertical-align: top;
+  padding: 0.01rem 0.01rem;
 }
-.mrf-sig-table-right th {
-  width: 80px;
-  padding: 8px;
+.its-transport-table th {
+  font-weight: 600;
+  background: #f7f7f7;
+  width: 100%;
 }
-.mrf-sig-table-right td {
-  padding: 8px;
-  height: 2.5rem;
-  text-align: center;
-  vertical-align: middle;
+.its-field-block {
+  border: 1px solid #111;
+  border-top: none;
+  padding: 0.75rem 1rem;
+  min-height: 6rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  background: #fff;
+}
+.its-field-block p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.floating-receive-btn {
+  position: fixed;
+  top: 8rem;
+  right: 30px;
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  padding: 0.9rem 1.6rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s ease;
+}
+.floating-receive-btn:hover {
+  background-color: #218838;
+  transform: scale(1.05);
+}
+.status-text {
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .pr-layout,
+  .pr-main,
+  .submitted-requests-container,
+  .submitted-its-request-card,
+  .submitted-its-request-card * {
+    visibility: visible;
+  }
+  .pr-layout,
+  .pr-main,
+  .submitted-requests-container {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  .pr-main {
+    height: auto;
+    background-color: #ffffff !important;
+    padding: 0;
+  }
+  .pr-sidebar,
+  .pr-topbar,
+  .dropdown-section,
+  .print-btn,
+  .floating-receive-btn,
+  .floating-decline-reason,
+  .request-header {
+    display: none !important;
+  }
+  .submitted-its-request-card {
+    max-width: 700px;
+    border: none;
+    box-shadow: none;
+    background: #fff !important;
+    color: #000 !important;
+    page-break-inside: avoid;
+    margin: 0;
+    padding: 0;
+  }
+  .its-grid-two {
+    page-break-inside: avoid;
+  }
+  @page {
+    margin: 0.5in;
+  }
+  .submitted-its-request-card::before {
+    content: "MAINTENANCE/REPAIR FORM";
+    display: block;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  .submitted-its-request-card {
+    font-size: 10pt;
+  }
+  .submitted-its-request-card p,
+  .submitted-its-request-card td,
+  .submitted-its-request-card th {
+    font-size: 9pt;
+  }
+  .its-items-table th,
+  .its-items-table td,
+  .its-info-table th,
+  .its-info-table td,
+  .its-transport-table th,
+  .its-transport-table td,
+  .its-sig-table th,
+  .its-sig-table td,
+  .its-received-table th,
+  .its-received-table td {
+    padding: 0.25rem 0.25rem !important;
+  }
+  .its-info-table,
+  .its-sig-table,
+  .its-received-table {
+    table-layout: fixed;
+    height: auto !important;
+  }
+  .its-info-table th,
+  .its-sig-table th,
+  .its-received-table th {
+    width: 80px !important;
+  }
+  
+  /* --- MODIFICATION: Added width/max-width/object-fit for print --- */
+  .signature-img {
+    max-height: 100px; 
+    position: absolute; 
+    transform: none; 
+    top: -30px; 
+    left: 10px; 
+    z-index: 10px; 
+    width: auto; /* <-- Prevents stretching */
+    max-width: 150px; /* <-- Prevents stretching */
+    object-fit: contain; /* <-- Prevents stretching */
+  }
+  /* --- END MODIFICATION --- */
+  
+  .its-items-table,
+  .its-info-table,
+  .its-transport-table,
+  .its-sig-table,
+  .its-received-table,
+  .its-receiving-section,
+  .its-field-block {
+    border: 1px solid #55555535 !important;
+    page-break-inside: avoid;
+  }
+  .its-items-table th,
+  .its-items-table td,
+  .its-info-table th,
+  .its-info-table td,
+  .its-transport-table th,
+  .its-transport-table td,
+  .its-sig-table th,
+  .its-sig-table td,
+  .its-received-table th,
+  .its-received-table td {
+    border: 1px solid #55555535 !important;
+  }
+  .its-items-table th,
+  .its-info-table th,
+  .its-transport-table th,
+  .its-sig-table th,
+  .its-received-table th {
+    background: #fff !important;
+    color: #000 !important;
+    font-weight: bold;
+  }
+  .its-transport-header,
+  .its-receiving-header {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #55555535 !important;
+    font-weight: bold;
+    page-break-after: avoid;
+  }
+  .its-field-block {
+    border-top: 1px solid #55555535 !important;
+  }
+  .its-receiving-col:first-child {
+    border-right: 1px solid #55555535 !important;
+  }
 }

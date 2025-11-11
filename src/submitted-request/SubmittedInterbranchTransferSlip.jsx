@@ -294,8 +294,7 @@ function SubmittedInterbranchTransferSlip({
   };
   // --- END FEATURE ---
 
-  const renderBody = () => {
-    // --- FEATURE: Added loading spinner (matches Payment Request) ---
+  // --- FEATURE: Added loading spinner (matches Payment Request) ---
     if (loading) {
       // Assumes .loading-container and .spinner styles are available globally
       // (from submitted-request.css or similar)
@@ -308,6 +307,7 @@ function SubmittedInterbranchTransferSlip({
     }
     // --- END FEATURE ---
 
+  const renderBody = () => {
     if (error) {
       return <p className="pr-error-message">{error}</p>;
     }
