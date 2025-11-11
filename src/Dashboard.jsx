@@ -104,32 +104,32 @@ const NAVIGATION = [
   },
 ];
 
-const RECENT_ACTIVITY = [
-  {
-    id: 1,
-    icon: "🛠️",
-    message: "Angeline Arangco updated the Purchase Request form template.",
-    meta: "1 hour ago",
-  },
-  {
-    id: 2,
-    icon: "✅",
-    message: "Request PR-00124 approved by Kerwin Gelasing.",
-    meta: "2 hours ago",
-  },
-  {
-    id: 3,
-    icon: "➕",
-    message: "Jo Angel Bayona joined the organization as Staff.",
-    meta: "Yesterday",
-  },
-  {
-    id: 4,
-    icon: "⚙️",
-    message: "System configuration updated by System Admin.",
-    meta: "2 days ago",
-  },
-];
+// const RECENT_ACTIVITY = [
+//   {
+//     id: 1,
+//     icon: "🛠️",
+//     message: "Angeline Arangco updated the Purchase Request form template.",
+//     meta: "1 hour ago",
+//   },
+//   {
+//     id: 2,
+//     icon: "✅",
+//     message: "Request PR-00124 approved by Kerwin Gelasing.",
+//     meta: "2 hours ago",
+//   },
+//   {
+//     id: 3,
+//     icon: "➕",
+//     message: "Jo Angel Bayona joined the organization as Staff.",
+//     meta: "Yesterday",
+//   },
+//   {
+//     id: 4,
+//     icon: "⚙️",
+//     message: "System configuration updated by System Admin.",
+//     meta: "2 days ago",
+//   },
+// ];
 
 const METRICS = [
   { id: "users", label: "Total users" },
@@ -203,7 +203,8 @@ function OverviewPanel({ summary, loading, error } = {}) {
 
   const statusTone = (status = "") => {
     const normalized = status.toLowerCase();
-    if (normalized.includes("declin") || normalized.includes("reject")) return "danger";
+    // if (normalized.includes("declin") || normalized.includes("reject")) return "danger";
+    if (normalized.includes("decline") || normalized.includes("reject")) return "danger";
     if (normalized.includes("approve")) return "success";
     return "pending";
   };
@@ -335,23 +336,6 @@ function OverviewPanel({ summary, loading, error } = {}) {
           )}
         </section>
       </div>
-
-      <section className="recent-activity">
-        <h2>Recent activity</h2>
-        <div className="recent-activity-list">
-          {RECENT_ACTIVITY.map((item) => (
-            <div key={item.id} className="recent-activity-entry">
-              <span className="recent-activity-icon">{item.icon}</span>
-              <div>
-                <div>{item.message}</div>
-                <div className="text-muted" style={{ fontSize: "0.85rem" }}>
-                  {item.meta}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }
