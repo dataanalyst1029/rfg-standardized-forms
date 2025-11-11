@@ -635,7 +635,11 @@
   }
 
   .pr-items-table td input {
-      width: 100%;
+      /* width: 100%; */
       box-sizing: border-box;
+  }
+
+  .requests-signature{
+    padding: .3rem;
   }
 }

@@ -7,8 +7,8 @@ import "./styles/submitted-payment-request.css";
 import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
-  { id: "submitted", label: "Submitted payment requests" },
-  { id: "new-request", label: "New payment request" },
+  { id: "new-request", label: "New Payment Request" },
+  { id: "submitted", label: "Payment Request Reports" },
 ];
 
 function SubmittedPaymentRequests({ onLogout, currentUserId, showAll = false }) {
@@ -19,6 +19,19 @@ function SubmittedPaymentRequests({ onLogout, currentUserId, showAll = false }) 
   const [loadingItems, setLoadingItems] = useState(false);
   const cardRef = useRef(null);
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const formatDate = (dateValue) => {
     if (!dateValue) return "—";
@@ -151,10 +164,8 @@ function SubmittedPaymentRequests({ onLogout, currentUserId, showAll = false }) 
       );
       if (!confirmReceive) return;
 
-      // ✅ Log what we're about to send
       console.log("Updating payment request:", request.id);
 
-      // ✅ Get current user details (with fallback)
       const userRes = await fetch(`${API_BASE_URL}/api/users/${currentUserId}`);
       if (!userRes.ok) throw new Error("Failed to fetch user data");
       const userData = await userRes.json();
@@ -165,14 +176,12 @@ function SubmittedPaymentRequests({ onLogout, currentUserId, showAll = false }) 
         received_signature: userData.signature || receiveInputs.received_signature,
       };
 
-      // ✅ Update request on backend
       const res = await fetch(`${API_BASE_URL}/api/payment_request/${request.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      // ✅ Safely handle non-JSON responses
       let data = {};
       try {
         data = await res.json();
@@ -188,7 +197,6 @@ function SubmittedPaymentRequests({ onLogout, currentUserId, showAll = false }) 
 
       alert(`Payment Request ${request.prf_request_code} marked as Received ✅`);
 
-      // ✅ Update UI instantly
       setRequests((prev) =>
         prev.map((r) =>
           r.id === request.id ? { ...r, ...payload } : r
@@ -205,7 +213,15 @@ function SubmittedPaymentRequests({ onLogout, currentUserId, showAll = false }) 
 
   return (
     <div className="pr-layout">
-      <aside className="pr-sidebar">
+      {isMobileView && (
+        <button
+          className="burger-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          ☰
+        </button>
+      )}
+      <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
           <h2
             onClick={() => navigate("/forms-list")}
@@ -335,7 +351,7 @@ function SubmittedPaymentRequests({ onLogout, currentUserId, showAll = false }) 
                         </tr>
                       </table>
                     </div>
-                    <div>
+                    <div className="pr-items-table-wrapper">
                       {loadingItems ? (
                         <p>Loading items…</p>
                       ) : items.length === 0 ? (
@@ -380,7 +396,7 @@ function SubmittedPaymentRequests({ onLogout, currentUserId, showAll = false }) 
                       )}
                     </div>
 
-                    <div className="table">
+                    <div className="table pr-items-table-wrapper">
                       <p hidden>ID: {selectedRequest.id}</p>
                       <table>
                         <tr>

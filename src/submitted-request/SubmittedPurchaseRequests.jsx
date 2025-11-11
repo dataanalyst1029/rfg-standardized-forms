@@ -5,8 +5,8 @@ import "./styles/submitted-request.css";
 import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
-  { id: "new-request", label: "New purchase request" },
-  { id: "submitted", label: "Submitted purchase requests" },
+  { id: "new-request", label: "New Purchase Request" },
+  { id: "submitted", label: "Purchase Request Reports" },
 ];
 
 function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false }) {
@@ -215,7 +215,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
         </button>
       )}
 
-       <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
+      <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
           <h2
             onClick={() => navigate("/forms-list")}
@@ -294,7 +294,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
               {selectedRequest && (
                 <div
-                  className="submitted-prf-request-card"
+                  className="submitted-pr-request-card"
                   ref={cardRef}
                   style={{ marginTop: "1rem" }} >
 
@@ -344,22 +344,22 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                           <table className="p-items-table">
                           <thead>
                             <tr>
-                              <th className="text-center">Quantity</th>
-                              <th className="text-left">Item Name</th>
+                              <th className="text-center"><small>Quantity</small></th>
+                              <th className="text-left"><small>Item Name</small></th>
                             </tr>
                           </thead>
                           <tbody>
                             {items.map((item) => (
                               <tr key={item.id}>
-                                <td className="text-center">{item.quantity}</td>
-                                <td>{item.purchase_item}</td>
+                                <td className="text-center"><small>{item.quantity}</small></td>
+                                <td><small>{item.purchase_item}</small></td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       )}
                     </div>
-                    <div className="table">
+                    <div className="table pr-items-table-wrapper">
                       <table>
                         <tr>
                           <th><small>Approved by</small></th>

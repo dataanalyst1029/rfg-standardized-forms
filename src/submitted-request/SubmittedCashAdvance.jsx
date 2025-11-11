@@ -6,8 +6,8 @@ import "./styles/submitted-cash-advance.css";
 import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
-  { id: "submitted", label: "Submitted cash advance requests" },
-  { id: "new-request", label: "New cash advance request" },
+  { id: "new-request", label: "New Cash Advance Budget Request" },
+  { id: "submitted", label: "Cash Advance Budget Request Reports" },
 ];
 
 function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false }) {
@@ -18,6 +18,19 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
   const [loadingItems, setLoadingItems] = useState(false);
   const cardRef = useRef(null);
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const formatDate = (dateValue) => {
     if (!dateValue) return "—";
@@ -184,7 +197,15 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
   return (
     <div className="pr-layout">
-      <aside className="pr-sidebar">
+      {isMobileView && (
+        <button
+          className="burger-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          ☰
+        </button>
+      )}
+      <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
           <h2
             onClick={() => navigate("/forms-list")}
@@ -313,7 +334,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                         </tr>
                       </table>
                     </div>
-                    <div>
+                    <div className="table pr-items-table-wrapper">
                       {loadingItems ? (
                         <p>Loading items…</p>
                       ) : items.length === 0 ? (
@@ -356,12 +377,9 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                       )}
                     </div>
 
-                    <div className="table">
+                    <div className="table pr-items-table-wrapper">
                       <p hidden>ID: {selectedRequest.id}</p>
                       <table>
-                        <tr>
-                          
-                        </tr>
                         <tr>
                           <th><small>Requested by</small></th>
                           <td><small><input className="prf-input" value={selectedRequest.requested_by}/></small></td>
@@ -448,14 +466,15 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                         </tr>
                         <tr>
                           <td><small>Check**</small></td>
-                          <td><small><input type="text" className="prf-input" value={selectedRequest.check} readOnly/></small></td>
+                          <td><small><input type="checkbox" className="prf-input" checked = {!!selectedRequest.check} onChange={(e) => setSelectedRequest({...selectedRequest,check: e.target.checked,})}/></small></td>
+
                           <td><small>Check No.</small></td>
                           <td><small><input type="text" className="prf-input" value={selectedRequest.check_no} readOnly/></small></td>
                         </tr>
 
                         <tr>
                           <td><small>Petty Cash Voucher</small></td>
-                          <td><small><input type="text" className="prf-input" value={selectedRequest.voucher_petty_cash} readOnly/></small></td>
+                          <td><small><input type="checkbox" className="prf-input" checked = {!!selectedRequest.voucher_petty_cash} onChange={(e) => setSelectedRequest({...selectedRequest,voucher_petty_cash: e.target.checked,})}/></small></td>
                           <td><small>Bank G/L Code</small></td>
                           <td><small><input type="text" className="prf-input" value={selectedRequest.bank_gl_code} readOnly/></small></td>
                         </tr>

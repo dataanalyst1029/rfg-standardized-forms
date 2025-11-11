@@ -42,12 +42,8 @@ const emptyItem = {
 };
 
 const NAV_SECTIONS = [
-    { id: "details", label: "Request details" },
-    { id: "activity", label: "Nature Activity" },
-    { id: "items", label: "CABR Details" },
-    { id: "purpose", label: "Purpose" },
-    { id: "signature", label: "Signature" },
-    { id: "submitted", label: "View submitted requests" },
+    { id: "ca-liquidation-main", label: "New Cash Advance Liquidation" },
+    { id: "submitted", label: "Cash Advance Liquidation Reports" },
 ];
 
 function PurchaseRequest({ onLogout }) {
@@ -61,6 +57,19 @@ function PurchaseRequest({ onLogout }) {
     const [userData, setUserData] = useState({ name: "", contact_no: "" });
     const navigate = useNavigate();
     const [message, setMessage] = useState(null);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isMobileView, setIsMobileView] = useState(false);
+
+    useEffect(() => {
+      const handleResize = () => {
+        setIsMobileView(window.innerWidth <= 768);
+      };
+
+      handleResize();
+      window.addEventListener("resize", handleResize);
+
+      return () => window.removeEventListener("resize", handleResize);
+    }, []);
     const difference =
         Number(formData.total_amount || 0) -
         items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
@@ -387,7 +396,16 @@ const handleNavigate = (sectionId) => {
         </div>
       )}
 
-      <aside className="pr-sidebar">
+      {isMobileView && (
+        <button
+          className="burger-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          ☰
+        </button>
+      )}
+
+      <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
           <h2 
             onClick={() => navigate("/forms-list")} 
@@ -404,7 +422,7 @@ const handleNavigate = (sectionId) => {
             <button
               key={section.id}
               type="button"
-              className={section.id === activeSection ? "is-active" : ""}
+              className={section.id === "ca-liquidation-main" ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}

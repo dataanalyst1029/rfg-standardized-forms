@@ -290,126 +290,196 @@ function RevolvingFundRequest() {
                             </button>
 
                             <h2>{modalRequest.revolving_request_code}</h2>
-                            <p>
-                                <strong>Date:</strong>{" "}
-                                <em>{new Date(modalRequest.date_request).toLocaleDateString()}</em>
-                            </p>
-                            <div className="employee-info">
-                              <p>
-                                <strong>Employee ID:</strong>{" "}
-                                <em>{modalRequest.employee_id}</em>
-                              </p>
-                              <p>
-                                <strong>Custodian:</strong>{" "}
-                                <em>{modalRequest.custodian}</em>
-                              </p>
-                              <p>
-                                <strong>Branch:</strong>{" "}
-                                <em>{modalRequest.branch}</em>
-                              </p>
-                              <p>
-                                <strong>Department:</strong>{" "}
-                                <em>{modalRequest.department}</em>
-                              </p>
-                            </div>
 
-                            <div class="replenish-amount">
-                              <span><b>Amount for Replenishment: </b> 
-                                <i>
-                                  {modalRequest.replenish_amount
-                                    ? Number(modalRequest.replenish_amount).toLocaleString("en-PH", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })
-                                : "0.00"}
-                                </i>
-                              </span>
-                            </div>
+                            <section className="pr-form-section" id="details">
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Date
+                                        </label>
+                                        <input
+                                        value={new Date(modalRequest.date_request).toLocaleDateString()}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                    <div className="pr-field">
+                                    
+                                    </div>
+                                </div>
 
-                            {modalRequest.items && modalRequest.items.length > 0 ? (
-                            <table className="request-items-table">
-                                <thead>
-                                <tr>
-                                    <th className="text-center">DATE</th>
-                                    <th className="text-center">VOUCHER NO.</th>
-                                    <th className="text-center">OR REF. NO.</th>
-                                    <th className="text-center">AMOUNT</th>
-                                    <th>EXP. CATEGORY</th>
-                                    <th>GL ACCOUNT</th>
-                                    <th>REMARKS</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {modalRequest.items.map((item) => (
-                                    <tr key={item.id}>
-                                        <td className="text-center">{new Date(modalRequest.date_request).toLocaleDateString()}</td>
-                                        <td className="text-center">{item.voucher_no}</td>
-                                        <td className="text-center">{item.or_ref_no}</td>
-                                        <td className="text-center">
-                                            {item.amount
-                                                ? Number(item.amount).toLocaleString("en-PH", {
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Employee ID
+                                        </label>
+                                        <input
+                                        value={modalRequest.employee_id}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Custodian
+                                        </label>
+                                        <input
+                                        value={modalRequest.custodian}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Branch
+                                        </label>
+                                        <input
+                                        value={modalRequest.branch}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Department
+                                        </label>
+                                        <input
+                                        value={modalRequest.department}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section className="pr-form-section" id="details">
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label" htmlFor="employeeID">
+                                            Amount for Replenishment
+                                        </label>
+                                        <input
+                                            value={modalRequest.replenish_amount
+                                            ? Number(modalRequest.replenish_amount).toLocaleString("en-PH", {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })
+                                        : "0.00"}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+                                    <div className="pr-field">
+                                       
+                                    </div>
+                                </div>
+
+                                {/* <div class="replenish-amount">
+                                    
+                                <span><b>Amount for Replenishment: </b> 
+                                    <i>
+                                    {modalRequest.replenish_amount
+                                        ? Number(modalRequest.replenish_amount).toLocaleString("en-PH", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })
+                                    : "0.00"}
+                                    </i>
+                                </span>
+                                </div> */}
+                            </section>
+
+                            <section className="pr-form-section" id="details">
+                                {modalRequest.items && modalRequest.items.length > 0 ? (
+                                <table className="request-items-table">
+                                    <thead>
+                                    <tr>
+                                        <th className="text-center">DATE</th>
+                                        <th className="text-center">VOUCHER NO.</th>
+                                        <th className="text-center">OR REF. NO.</th>
+                                        <th className="text-center">AMOUNT</th>
+                                        <th>EXP. CATEGORY</th>
+                                        <th>GL ACCOUNT</th>
+                                        <th>REMARKS</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {modalRequest.items.map((item) => (
+                                        <tr key={item.id}>
+                                            <td className="text-center">{new Date(modalRequest.date_request).toLocaleDateString()}</td>
+                                            <td className="text-center">{item.voucher_no}</td>
+                                            <td className="text-center">{item.or_ref_no}</td>
+                                            <td className="text-center">
+                                                {item.amount
+                                                    ? Number(item.amount).toLocaleString("en-PH", {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                })
+                                                : "0.00"}</td>
+                                            <td>{item.exp_cat}</td>
+                                            <td>{item.gl_account}</td>
+                                            <td>{item.remarks}</td>
+                                        </tr>
+        
+                                    ))}
+                                    <tr>
+                                        <td className="text-center" colSpan={3}>Total</td>
+                                        <td className="text-center">{modalRequest.total
+                                                ? Number(modalRequest.total).toLocaleString("en-PH", {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 2,
                                             })
-                                            : "0.00"}</td>
-                                        <td>{item.exp_cat}</td>
-                                        <td>{item.gl_account}</td>
-                                        <td>{item.remarks}</td>
+                                            : "0.00"}
+                                        </td>
+                                        <td colSpan={3}></td>
                                     </tr>
-    
-                                ))}
-                                <tr>
-                                    <td className="text-center" colSpan={3}>Total</td>
-                                    <td className="text-center">{modalRequest.total
-                                            ? Number(modalRequest.total).toLocaleString("en-PH", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })
-                                        : "0.00"}
-                                    </td>
-                                    <td colSpan={3}></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                            ) : (
-                            <p>—</p>
-                            )}
+                                    </tbody>
+                                </table>
+                                ) : (
+                                <p>—</p>
+                                )}
+                            </section>
 
-                            <div className="replenishment-cash">
-                                <label htmlFor="revolving-fund-amount">
-                                    <p>Petty Cash/Revolving Fund Amount:</p>
-                                    <em>{modalRequest.revolving_amount
-                                            ? Number(modalRequest.revolving_amount).toLocaleString("en-PH", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })
-                                        : "0.00"}
-                                    </em>
-                                </label>
-                                <label htmlFor="total-expense">
-                                    <p>Less: Total Expenses per vouchers:</p>
-                                    <em>{modalRequest.total_exp
-                                            ? Number(modalRequest.total_exp).toLocaleString("en-PH", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })
-                                        : "0.00"}
-                                    </em>
-                                    
-                                </label>
-                                <label htmlFor="cash-onhand">
-                                    <p>Cash on Hand:</p>
-                                    <em>{modalRequest.cash_onhand
-                                            ? Number(modalRequest.cash_onhand).toLocaleString("en-PH", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })
-                                        : "0.00"}
-                                    </em>
-                                </label>
-                            </div>
+                            <section className="pr-form-section" id="details">
+                                <div className="replenishment-cash">
+                                    <label htmlFor="revolving-fund-amount">
+                                        <p>Petty Cash/Revolving Fund Amount:</p>
+                                        <em>{modalRequest.revolving_amount
+                                                ? Number(modalRequest.revolving_amount).toLocaleString("en-PH", {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })
+                                            : "0.00"}
+                                        </em>
+                                    </label>
+                                    <label htmlFor="total-expense">
+                                        <p>Less: Total Expenses per vouchers:</p>
+                                        <em>{modalRequest.total_exp
+                                                ? Number(modalRequest.total_exp).toLocaleString("en-PH", {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })
+                                            : "0.00"}
+                                        </em>
+                                        
+                                    </label>
+                                    <label htmlFor="cash-onhand">
+                                        <p>Cash on Hand:</p>
+                                        <em>{modalRequest.cash_onhand
+                                                ? Number(modalRequest.cash_onhand).toLocaleString("en-PH", {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })
+                                            : "0.00"}
+                                        </em>
+                                    </label>
+                                </div>
+                            </section>
 
-                            <div className="submit-content">
+                            {/* <div className="submit-content">
                               <div className="submit-by-content">
                                 <div>
                                   <span>{modalRequest.submitted_by}</span>
@@ -432,49 +502,115 @@ function RevolvingFundRequest() {
                                   <p>Signature</p>
                                 </div>
                               </div>
-                            </div>
+                            </div> */}
 
                             <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                              <div className="submit-content">
-                                <div className="submit-by-content">
-                                    <div>
-                                        <label>
-                                            <span>
-                                              <input
+                                <section className="pr-form-section" id="details">
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label className="pr-label">Submitted by</label>
+                                            <input
+                                                type="text"
+                                                name="submitted_by"
+                                                value={modalRequest.submitted_by || ""}
+                                                className="car-input"
+                                                readOnly
+                                                />
+                                        </div>
+
+                                        <div className="pr-field receive-signature">
+                                            <label className="pr-label">Signature</label>
+                                            <input
+                                                type="text"
+                                                name="approved_signature"
+                                                value={modalRequest.submitter_signature || ""}
+                                                className="car-input received-signature"
+                                                required
+                                                readOnly
+                                            />
+                                                {modalRequest.submitter_signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${modalRequest.submitter_signature}`}
+                                                alt="Signature"
+                                                className="img-sign"/>
+                                                ) : (
+                                                <p>No signature available</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label className="pr-label">Approve by</label>
+                                            <input
                                                 type="text"
                                                 name="approved_by"
                                                 value={userData.name || ""}
+                                                className="car-input"
                                                 readOnly
-                                              />
-                                            </span>
-                                            <p>Approved by</p>
-                                        </label>
-                                    </div>
+                                            />
+                                        </div>
 
-                                    <div className="approver-signature">
-                                        <label>
-                                          <input
-                                            type="text"
-                                            name="approver_signature"
-                                            value={userData.signature || ""}
-                                            className="submit-sign"
-                                            required
-                                            readOnly
-                                          />
-                                          {userData.signature ? (
-                                          <img
-                                          src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                                          alt="Signature"
-                                          className="signature-img"/>
-                                          ) : (
-                                              <p>No signature available</p>
-                                          )}
-                                          <p>Signature</p>
-                                        </label>
+                                        <div className="pr-field receive-signature">
+                                            <label className="pr-label">Signature</label>
+                                            <input
+                                                type="text"
+                                                name="approver_signature"
+                                                value={userData.signature || ""}
+                                                className="car-input received-signature"
+                                                required
+                                                readOnly
+                                            />
+                                                {userData.signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                                                alt="Signature"
+                                                className="img-sign"/>
+                                                ) : (
+                                                <p>No signature available</p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                              </div>
-                              <div className="footer-modal">
+                                    {/* <div className="submit-content">
+                                        <div className="submit-by-content">
+                                            <div>
+                                                <label>
+                                                    <span>
+                                                    <input
+                                                        type="text"
+                                                        name="approved_by"
+                                                        value={userData.name || ""}
+                                                        readOnly
+                                                    />
+                                                    </span>
+                                                    <p>Approved by</p>
+                                                </label>
+                                            </div>
+
+                                            <div className="approver-signature">
+                                                <label>
+                                                <input
+                                                    type="text"
+                                                    name="approver_signature"
+                                                    value={userData.signature || ""}
+                                                    className="submit-sign"
+                                                    required
+                                                    readOnly
+                                                />
+                                                {userData.signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                                                alt="Signature"
+                                                className="signature-img"/>
+                                                ) : (
+                                                    <p>No signature available</p>
+                                                )}
+                                                <p>Signature</p>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div> */}
+                                </section>
+                                <div className="footer-modal">
                                   <button
                                       type="button"
                                       className="admin-success-btn"
@@ -522,9 +658,9 @@ function RevolvingFundRequest() {
                                   >
                                       ❌ Decline
                                   </button>
-                              </div>
+                                </div>
 
-                              {showConfirmDecline && (
+                                {showConfirmDecline && (
                                   <div className={`confirm-modal-overlay ${isClosing ? "fade-out" : ""}`}>
                                       <div className="admin-modal-backdrop">
                                           <div

@@ -33,27 +33,36 @@ const emptyItem = {
 };
 
 const NAV_SECTIONS = [
-  { id: "details", label: "Request details" },
-  { id: "activity", label: "Nature Activity" },
-  { id: "items", label: "CABR Details" },
-  { id: "purpose", label: "Purpose" },
-  { id: "signature", label: "Signature" },
-  { id: "submitted", label: "View submitted requests" },
+  { id: "cash-advance-main", label: "New Cash Advance Budget Request" },
+  { id: "submitted", label: "Cash Advance Budget Request Reports" },
 ];
 
 function PurchaseRequest({ onLogout }) {
   const [formData, setFormData] = useState(initialFormData);
   const [items, setItems] = useState([emptyItem]);
   const [loading, setLoading] = useState(true);
-  const [branches, setBranches] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [filteredDepartments, setFilteredDepartments] = useState([]);
-  const [activeSection, setActiveSection] = useState("details");
+  // const [branches, setBranches] = useState([]);
+  // const [departments, setDepartments] = useState([]);
+  // const [filteredDepartments, setFilteredDepartments] = useState([]);
+  // const [activeSection, setActiveSection] = useState("details");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
   const [userData, setUserData] = useState({ name: "", contact_no: "" });
   const navigate = useNavigate();
   const [message, setMessage] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const storedId = sessionStorage.getItem("id");
@@ -75,6 +84,8 @@ function PurchaseRequest({ onLogout }) {
             employee_id: data.employee_id || "",
             requested_by: data.name || "",
             request_signature: data.signature || "",
+            branch: data.branch || "",
+            department: data.department || "",
 
           }));
         })
@@ -113,41 +124,41 @@ function PurchaseRequest({ onLogout }) {
     fetchNextCode();
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [branchRes, deptRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/branches`),
-          fetch(`${API_BASE_URL}/api/departments`),
-        ]);
-        if (!branchRes.ok || !deptRes.ok) throw new Error("Failed to fetch data");
-        const branchData = await branchRes.json();
-        const deptData = await deptRes.json();
-        setBranches(branchData);
-        setDepartments(deptData);
-      } catch (error) {
-        console.error("Error loading branch/department data:", error);
-        setModal({
-          isOpen: true,
-          type: "error",
-          message: "Unable to load branches and departments.",
-        });
-      }
-    };
-    fetchData();
-  }, []);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       const [branchRes, deptRes] = await Promise.all([
+  //         fetch(`${API_BASE_URL}/api/branches`),
+  //         fetch(`${API_BASE_URL}/api/departments`),
+  //       ]);
+  //       if (!branchRes.ok || !deptRes.ok) throw new Error("Failed to fetch data");
+  //       const branchData = await branchRes.json();
+  //       const deptData = await deptRes.json();
+  //       setBranches(branchData);
+  //       setDepartments(deptData);
+  //     } catch (error) {
+  //       console.error("Error loading branch/department data:", error);
+  //       setModal({
+  //         isOpen: true,
+  //         type: "error",
+  //         message: "Unable to load branches and departments.",
+  //       });
+  //     }
+  //   };
+  //   fetchData();
+  // }, []);
 
-  useEffect(() => {
-    if (formData.branch) {
-      const filtered = departments.filter(
-        (dept) => dept.branch_name === formData.branch
-      );
-      setFilteredDepartments(filtered);
-      setFormData((prev) => ({ ...prev, department: "" }));
-    } else {
-      setFilteredDepartments([]);
-    }
-  }, [formData.branch, departments]);
+  // useEffect(() => {
+  //   if (formData.branch) {
+  //     const filtered = departments.filter(
+  //       (dept) => dept.branch_name === formData.branch
+  //     );
+  //     setFilteredDepartments(filtered);
+  //     setFormData((prev) => ({ ...prev, department: "" }));
+  //   } else {
+  //     setFilteredDepartments([]);
+  //   }
+  // }, [formData.branch, departments]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -334,7 +345,16 @@ function PurchaseRequest({ onLogout }) {
         </div>
       )}
 
-      <aside className="pr-sidebar">
+      {isMobileView && (
+        <button
+          className="burger-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          ☰
+        </button>
+      )}
+
+      <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
           <h2 
             onClick={() => navigate("/forms-list")} 
@@ -351,7 +371,7 @@ function PurchaseRequest({ onLogout }) {
             <button
               key={section.id}
               type="button"
-              className={section.id === activeSection ? "is-active" : ""}
+              className={section.id === "cash-advance-main" ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}
@@ -445,43 +465,32 @@ function PurchaseRequest({ onLogout }) {
             <div className="pr-grid-two">
               <div className="pr-field">
                 <label className="pr-label" htmlFor="branch">Branch</label>
-                <select
+                <input
                   id="branch"
                   name="branch"
-                  value={formData.branch}
+                  value={userData.branch}
                   onChange={handleChange}
                   className="pr-input"
+                  placeholder="Branch"
+                  readOnly
                   required
-                >
-                  <option value="" disabled>Select branch</option>
-                  {branches.map((b) => (
-                    <option key={b.branch_name} value={b.branch_name}>
-                      {b.branch_name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
 
               <div className="pr-field">
                 <label className="pr-label" htmlFor="department">Department</label>
-                <select
+                <input
                   id="department"
                   name="department"
-                  value={formData.department}
+                  value={userData.department}
                   onChange={handleChange}
                   className="pr-input"
+                  placeholder="Department"
+                  readOnly
                   required
-                >
-                  <option value="" disabled>Select department</option>
-                  {filteredDepartments.map((d) => (
-                    <option key={d.department_name} value={d.department_name}>
-                      {d.department_name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
-
             </div>
           </section>
 
@@ -501,7 +510,7 @@ function PurchaseRequest({ onLogout }) {
                 />
               </div>
 
-              <div className="pr-field">
+              <div className="pr-field" style={{marginTop: '1rem'}}>
                 <label className="pr-label" htmlFor="nature-activity">Nature of Activity</label>
                 <input
                   type="text"
@@ -673,7 +682,40 @@ function PurchaseRequest({ onLogout }) {
           <section className="rfr-form-section" id="signature">
               <h2 className="rfr-section-title">Signature Details</h2>
 
-              <div className="signature-details">
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                  <label className="car-reference-value">Requested by</label>
+                  <input type="text"
+                    name="requested_by" 
+                    className="car-input" 
+                    value={userData.name || ""} 
+                    onChange={handleChange}
+                    required 
+                    readOnly
+                  />
+                </div>
+
+                <div className="pr-field receive-signature">
+                  <label className="car-reference-value">Signature</label>
+                  <input type="text" 
+                  name="request_signature" 
+                  className="car-input received-signature" 
+                  value={userData.signature || ""} 
+                  onChange={handleChange}
+                  required
+                  readOnly />
+                  {userData.signature ? (
+                    <img
+                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                          <p>No signature available</p>
+                    )}
+                </div>
+              </div>
+
+              {/* <div className="signature-details">
                 <label htmlFor="requested_by">
                   <input
                     type="text"
@@ -703,7 +745,7 @@ function PurchaseRequest({ onLogout }) {
                   <p>Signature:</p>
 
                 </label>
-              </div>
+              </div> */}
           </section>
 
           <div className="pr-form-actions">

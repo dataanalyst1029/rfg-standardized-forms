@@ -5,8 +5,8 @@ import "./styles/submitted-revolving-fund.css";
 import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
-  { id: "submitted", label: "Submitted Revolving Fund Requests" },
-  { id: "new-request", label: "New Revolving Fund Request" },
+  { id: "new-request", label: "New Revolving Fund" },
+  { id: "submitted", label: "Revolving Fund Reports" },
 ];
 
 function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false }) {
@@ -17,6 +17,19 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
   const [loadingItems, setLoadingItems] = useState(false);
   const cardRef = useRef(null);
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const formatDate = (dateValue) => {
     if (!dateValue) return "—";
@@ -99,326 +112,6 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
     setSelectedRequestCode(e.target.value);
   };
 
-  const handlePrint = () => {
-    if (!cardRef.current) return;
-
-    const printContents = cardRef.current.outerHTML;
-    const printWindow = window.open("", "", "width=900,height=650");
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print Revolving Fund Request</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
-              background: #fff;
-              position: relative;
-            }
-
-            h2, h3, h4 {
-              margin-bottom: 8px;
-            }
-
-            .submitted-revolving-request-card {
-              margin-bottom: 2rem;
-              padding: 1rem;
-              background-color: var(--card-bg, #ffffff);
-              color: var(--card-text, #111);
-              transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-            }
-
-            .record-request{
-              background: #ffffff;
-              padding: 1.15rem 1.4rem;
-              margin: 0 auto;
-              box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
-              color: var(--card-text, #222);
-              display: flex;
-              flex-direction: column;
-              gap: 1.05rem;
-            }
-
-            .request-header {
-              display: flex;
-              align-items: flex-start;
-              justify-content: space-between;
-              gap: 1.5rem;
-              border-bottom: 2px solid #ddd;
-              padding-bottom: 0.6rem;
-            }
-
-            .header-brand {
-              display: flex;
-              align-items: center;
-              gap: 0.65rem;
-            }
-
-            .header-logo {
-              width: 150px; 
-            }
-            
-            .header-request-code {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-end;
-            }
-
-            .table table {
-              width: 100%;
-              border-collapse: collapse;
-              border: 1px solid #ddd;  
-            } 
-
-            .table table th,
-            .table table td {
-              border: 1px solid #ddd;
-              padding: .5rem;
-              text-align: left;
-            }
-
-            .rf-signature-row {
-              margin-top: 1.5rem;
-              display: flex;
-              justify-content: center;
-              align-items: flex-end;
-              gap: 4rem;
-              flex-wrap: wrap;
-            }
-
-            .rf-signature-block {
-              min-width: 220px;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              gap: 0.3rem;
-            }
-
-            .rf-signature-line {
-              display: inline-block;
-              min-width: 220px;
-              text-align: center;
-              padding-bottom: 0.2rem;
-              border-bottom: 1px solid currentColor;
-              font-weight: 600;
-            }
-
-            .rf-signature-line.muted {
-              font-style: italic;
-              color: var(--card-meta, #555);
-            }
-
-            .rf-signature-image {
-              max-width: 160px;
-              height: auto;
-              object-fit: contain;
-            }
-
-            .rf-no-border {
-              border: none !important;
-              background: transparent !important;
-              box-shadow: none !important;
-              padding: 0 !important;
-            }
-
-            .rf-status-row {
-              margin-top: 1rem;
-            }
-
-            .rfrf-items-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 0.75rem;
-              font-size: 0.95rem;
-              border: 1px solid var(--table-border, #aaaaaa);
-              background-color: var(--table-bg, #fff);
-              color: var(--table-text, #333);
-            }
-
-            .rfrf-items-table thead tr th {
-              background: var(--color-table-header);
-              text-transform: uppercase;
-              padding: 0.3rem 0.8rem;
-              font-size: 0.72rem;
-              letter-spacing: 0.08em;
-              color: var(--color-text-muted);
-            }
-
-            .rfrf-items-table td {
-              border: 1px solid var(--table-border, #dcdcdc);
-              padding: 0.5rem 0.75rem;
-              text-align: left;
-            }
-
-            .rfrf-items-table tbody tr:hover {
-              background-color: var(--table-hover, #ececec);
-            }
-
-            .rfrf-items-table td.text-center {
-              text-align: center !important;
-              vertical-align: middle;
-            }
-
-            .signature-section{
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-            }
-
-            .signature-section > div > div {
-              width: 100%;
-            }
-
-            .signature-format .s-by {
-              font-weight: bold;
-            }
-
-            .signature-format .s-name {
-              border-bottom: 1px solid #555;
-              font-size: 1rem;
-              padding: 0 1rem;
-            }
-
-            .signature-format {
-              display: flex;
-              flex-direction: row;
-              text-align: center;
-              justify-content: space-evenly;
-              padding: 16px;
-              width: 100%;
-              margin-top: 2rem;
-            }
-
-            .signature-format label {
-              display: flex;
-              flex-direction: column;
-              font-size: 0.9rem;
-            }
-
-            .submitter-signature {
-              position: relative;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-            }
-
-            .submitter-signature .sub-sign {
-              color: transparent;
-              border-bottom: 1px solid #555;
-              font-size: 1rem;
-              padding: 0 1rem;
-            }
-
-            .submitter-signature .img-sign {
-              position: absolute;
-              top: 0;
-              left: 50%;
-              width: 120px;
-              height: auto;
-              object-fit: contain;
-              transform: translate(-53%, -50%);
-              z-index: 0;
-              max-width: 25vw;
-              margin-top: 8px;
-            }
-
-
-            .floating-buttons {
-              position: fixed;
-              bottom: 20px;
-              right: 20px;
-              display: flex;
-              gap: 10px;
-              z-index: 9999;
-            }
-
-            .action-btn {
-              width: 44px;
-              height: 44px;
-              border-radius: 50%;
-              border: none;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-              color: white;
-              font-size: 20px;
-              transition: transform 0.2s ease;
-            }
-
-            .action-btn:hover {
-              transform: scale(1.1);
-            }
-
-            .print-btn {
-              background-color: #007bff;
-            }
-
-            .pdf-btn {
-              background-color: #28a745;
-            }
-
-            @media print {
-              .floating-buttons {
-                display: none !important;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="floating-buttons">
-            <button class="action-btn print-btn" onclick="window.print()" title="Print">🖨️</button>
-            <button class="action-btn pdf-btn" id="downloadPDF" title="Download PDF">📥</button>
-          </div>
-
-          ${printContents}
-
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-          <script>
-            async function toBase64Image(img) {
-              const response = await fetch(img.src, {mode: 'cors'});
-              const blob = await response.blob();
-              return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(blob);
-              });
-            }
-
-            document.getElementById("downloadPDF").addEventListener("click", async function() {
-              const element = document.body.cloneNode(true);
-              const buttons = element.querySelector('.floating-buttons');
-              if (buttons) buttons.remove();
-
-              const imgs = element.querySelectorAll('img');
-              for (let img of imgs) {
-                try {
-                  const base64 = await toBase64Image(img);
-                  img.src = base64;
-                } catch (err) {
-                  console.warn('Could not convert image:', img.src);
-                }
-              }
-
-              const opt = {
-                margin: 0.5,
-                filename: 'Revolving Request.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-              };
-
-              html2pdf().from(element).set(opt).save();
-            });
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
-
   const selectedRequest = requests.find(
     (req) => req.revolving_request_code === selectedRequestCode
   );
@@ -433,7 +126,15 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
   return (
     <div className="pr-layout">
-      <aside className="pr-sidebar">
+      {isMobileView && (
+        <button
+          className="burger-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          ☰
+        </button>
+      )}
+      <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
           <h2
             onClick={() => navigate("/forms-list")}
@@ -470,26 +171,20 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
       <main className="pr-main">
         <header className="pr-topbar">
           <div>
-            <h1>Submitted Revolving Fund Requests</h1>
+            <h1>Revolving Fund Reports</h1>
             <p className="pr-topbar-meta">
               Select a reference number to view details.
             </p>
           </div>
-
-          {selectedRequest && (
-            <button
-              onClick={handlePrint}
-              className="print-btn"
-              style={{
-                
-              }}
-            >
-              🖨️ Print
-            </button>
-          )}
         </header>
 
-        <div className="submitted-requests-container">
+        {selectedRequest && (
+          <button className="print-btn" onClick={() => window.print()}>
+            🖨️ Print
+          </button>
+        )}
+
+        <div className="submitted-ca-requests-container">
           {requests.length === 0 ? (
             <p>No submitted requests found.</p>
             ) : (
@@ -516,7 +211,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
               {selectedRequest && (
                 <div
-                  className="submitted-revolving-request-card"
+                  className="submitted-rf-request-card"
                   ref={cardRef}
                   style={{ marginTop: "1rem" }} >
 
@@ -564,7 +259,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                         </i>
                       </p>
                     </div>
-                    <div>
+                    <div className="table pr-items-table-wrapper">
                       {/* <h3>Requested Items</h3> */}
                       {loadingItems ? (
                         <p>Loading items…</p>
@@ -587,41 +282,133 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                             {items.map((item) => (
                               <tr key={item.id}>
                                 <td className="text-left">
-                                  {new Date(item.replenish_date).toLocaleDateString()}
+                                  <small>{new Date(item.replenish_date).toLocaleDateString()}</small>
                                 </td>
-                                <td>{item.voucher_no}</td>
-                                <td>{item.or_ref_no}</td>
-                                <td>
+                                <td><small>{item.voucher_no}</small></td>
+                                <td><small>{item.or_ref_no}</small></td>
+                                <td><small>
                                   {item.amount
                                     ? Number(item.amount).toLocaleString("en-PH", {
                                         minimumFractionDigits: 2,
                                         maximumFractionDigits: 2,
                                       })
                                     : ""}
+                                    </small>
                                 </td>
-                                <td className="text-left">{item.exp_cat}</td>
-                                <td>{item.gl_account}</td>
-                                <td className="text-left">{item.remarks}</td>
+                                <td className="text-left"><small>{item.exp_cat}</small></td>
+                                <td><small>{item.gl_account}</small></td>
+                                <td className="text-left"><small>{item.remarks}</small></td>
                               </tr>
                             ))}
                             <tr>
-                              <td colSpan={3} className="text-center">Total</td>
+                              <td colSpan={3} className="text-center"><small>Total</small></td>
                               <td>
-                                {selectedRequest.total
-                                  ? Number(selectedRequest.total).toLocaleString("en-PH", {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                    })
-                                  : "0.00"}
+                                <small>
+                                  {selectedRequest.total
+                                    ? Number(selectedRequest.total).toLocaleString("en-PH", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      })
+                                    : "0.00"}
+                                  </small>
                               </td>
                               <td colSpan={3}></td>
                             </tr>
                           </tbody>
-
                         </table>
                       )}
                     </div>
-                    <div className="signature-section">
+
+                    <div style={{marginTop: '0%', marginBottom: '0%'}} className="replenishment-cash-onhand">
+                      <label htmlFor="revolving-fund-amount">
+                        <p>Petty Cash/Revolving Fund Amount</p>
+                        <input
+                          id="revolving-fund-amount"
+                          type="text"
+                          value={selectedRequest.revolving_amount
+                            ? Number(selectedRequest.revolving_amount).toLocaleString("en-PH", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : "0.00"}
+                          className="replenish-input"
+                          placeholder="Enter revolving fund amount"
+                          required
+                        />
+                      </label>
+
+
+                      <label htmlFor="total-expense">
+                        <p>Less: Total Expenses per vouchers</p>
+                        <input
+                          id="total-expense"
+                          type="text"
+                          value={selectedRequest.total_exp
+                            ? Number(selectedRequest.total_exp).toLocaleString("en-PH", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : "0.00"}
+                          readOnly
+                          className="replenish-input"
+                        />
+                      </label>
+
+                      <label htmlFor="cash-onhand">
+                        <p>Cash on Hand</p>
+                        <input
+                          id="cash-onhand"
+                          type="text"
+                          value={selectedRequest.cash_onhand
+                            ? Number(selectedRequest.cash_onhand).toLocaleString("en-PH", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : "0.00"}
+                          readOnly
+                          className="replenish-input"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="table">
+                      <p hidden>ID: {selectedRequest.id}</p>
+                      <table>
+                        <tr>
+                          <th><small>Submitted by</small></th>
+                          <td><small>{selectedRequest.submitted_by}</small></td>
+                          <th><small>Signature</small></th>
+                          <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.submitter_signature} readOnly required/></small>
+                            {selectedRequest.submitter_signature ? (
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.submitter_signature}`}
+                                alt="Signature"
+                                className="img-sign-prf"
+                            />
+                            ) : (
+                            <div className="img-sign-prf empty-sign"></div>
+                            )}
+                          </td>
+                        </tr>
+                        <tr>
+                          <th><small>Approved by</small></th>
+                          <td><small>{selectedRequest.approved_by}</small></td>
+                          <th><small>Signature</small></th>
+                          <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.approver_signature} readOnly required/></small>
+                            {selectedRequest.approver_signature ? (
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approver_signature}`}
+                                alt="Signature"
+                                className="img-sign-prf"
+                            />
+                            ) : (
+                            <div className="img-sign-prf empty-sign"></div>
+                            )}
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                    {/* <div className="signature-section">
                       <div className="signature-format">
                         <div className="submitter-signature">
                           <label htmlFor="submitted-by">
@@ -666,13 +453,22 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                           </label>
                         </div>
                       </div>
-                    </div>
-                    {selectedRequest.declined_reason && (
-                      <div>
-                        <label htmlFor="declined-reason">
-                          <strong>Declined Reason: </strong>
-                          <em>{selectedRequest.declined_reason}</em>
-                        </label>
+                    </div> */}
+                    {(selectedRequest.status || selectedRequest.declined_reason) && (
+                      <div className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}>
+                        <div className="floating-decline-content">
+                          {selectedRequest.status && (
+                            <p className="status-text">
+                              <strong>Status:</strong> {selectedRequest.status}
+                            </p>
+                          )}
+                          {selectedRequest.declined_reason && (
+                            <>
+                              <strong>Declined Reason:</strong>
+                              <p>{selectedRequest.declined_reason}</p>
+                            </>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>                

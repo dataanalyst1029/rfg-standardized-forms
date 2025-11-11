@@ -207,8 +207,30 @@
 }
 
 
+.submitted-rf-request-card {
+  margin-bottom: 2rem;
+  color: var(--card-text, #111);
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
 @media (max-width: 700px) {
   .submitted-revolving-request-card {
     grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .submitted-rf-request-card,
+  .submitted-rf-request-card * {
+        visibility: visible;
+  }
+
+  .submitted-rf-request-card::before {
+      content: "RFG Revolving Fund";
+      display: block;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 10px;
   }
 }

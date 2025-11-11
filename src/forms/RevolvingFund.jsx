@@ -32,50 +32,60 @@ const emptyItem = {
 };
 
 const NAV_SECTIONS = [
-  { id: "details", label: "Custodian Details" },
-  { id: "replenishment", label: "Replenishment Details" },
-  { id: "signature", label: "Signature Details" },
-  { id: "submitted", label: "View submitted requests" },
+  { id: "revolving-main", label: "New Revolving Fund" },
+  { id: "submitted", label: "Revolving Fund Reports" },
 ];
 
 function RevolvingFundRequest({ onLogout }) {
   const [formData, setFormData] = useState(initialFormData);
   const [items, setItems] = useState([emptyItem]);
   const [loading, setLoading] = useState(true);
-  const [branches, setBranches] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [filteredDepartments, setFilteredDepartments] = useState([]);
-  const [activeSection, setActiveSection] = useState("details");
+  // const [branches, setBranches] = useState([]);
+  // const [departments, setDepartments] = useState([]);
+  // const [filteredDepartments, setFilteredDepartments] = useState([]);
+  // const [activeSection, setActiveSection] = useState("details");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
   const [message, setMessage] = useState(null);
-  const [replenishAmount, setReplenishAmount] = useState("");
+  // const [replenishAmount, setReplenishAmount] = useState("");
   const [userData, setUserData] = useState({});
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
 
-  const handleReplenishAmountChange = (e) => {
-    let value = e.target.value;
+    handleResize();
+    window.addEventListener("resize", handleResize);
 
-    value = value.replace(/[^0-9.]/g, "");
-    const parts = value.split(".");
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // const handleReplenishAmountChange = (e) => {
+  //   let value = e.target.value;
+
+  //   value = value.replace(/[^0-9.]/g, "");
+  //   const parts = value.split(".");
     
-    if (parts.length > 2) {
-      value = parts[0] + "." + parts[1];
-    } else if (parts[1]?.length > 2) {
-      value = parts[0] + "." + parts[1].slice(0, 2);
-    }
+  //   if (parts.length > 2) {
+  //     value = parts[0] + "." + parts[1];
+  //   } else if (parts[1]?.length > 2) {
+  //     value = parts[0] + "." + parts[1].slice(0, 2);
+  //   }
 
-    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    const formattedValue = parts[1] !== undefined ? `${integerPart}.${parts[1]}` : integerPart;
+  //   const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  //   const formattedValue = parts[1] !== undefined ? `${integerPart}.${parts[1]}` : integerPart;
 
-    setReplenishAmount(formattedValue);
+  //   setReplenishAmount(formattedValue);
 
-    setFormData((prev) => ({
-      ...prev,
-      replenish_amount: parseFloat(value) || 0,
-    }));
-  };
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     replenish_amount: parseFloat(value) || 0,
+  //   }));
+  // };
 
   function formatWithCommas(value) {
     if (!value) return "";
@@ -106,6 +116,8 @@ function RevolvingFundRequest({ onLogout }) {
             custodian: data.name || storedName || "",
             user_id: storedId,
             employee_id: data.employee_id || "",
+            branch: data.branch || "",
+            department: data.department || "",
           }));
         })
         .catch((err) => {
@@ -143,41 +155,41 @@ function RevolvingFundRequest({ onLogout }) {
     fetchNextCode();
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [branchRes, deptRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/branches`),
-          fetch(`${API_BASE_URL}/api/departments`),
-        ]);
-        if (!branchRes.ok || !deptRes.ok) throw new Error("Failed to fetch data");
-        const branchData = await branchRes.json();
-        const deptData = await deptRes.json();
-        setBranches(branchData);
-        setDepartments(deptData);
-      } catch (error) {
-        console.error("Error loading branch/department data:", error);
-        setModal({
-          isOpen: true,
-          type: "error",
-          message: "Unable to load branches and departments.",
-        });
-      }
-    };
-    fetchData();
-  }, []);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       const [branchRes, deptRes] = await Promise.all([
+  //         fetch(`${API_BASE_URL}/api/branches`),
+  //         fetch(`${API_BASE_URL}/api/departments`),
+  //       ]);
+  //       if (!branchRes.ok || !deptRes.ok) throw new Error("Failed to fetch data");
+  //       const branchData = await branchRes.json();
+  //       const deptData = await deptRes.json();
+  //       setBranches(branchData);
+  //       setDepartments(deptData);
+  //     } catch (error) {
+  //       console.error("Error loading branch/department data:", error);
+  //       setModal({
+  //         isOpen: true,
+  //         type: "error",
+  //         message: "Unable to load branches and departments.",
+  //       });
+  //     }
+  //   };
+  //   fetchData();
+  // }, []);
 
-  useEffect(() => {
-    if (formData.branch) {
-      const filtered = departments.filter(
-        (dept) => dept.branch_name === formData.branch
-      );
-      setFilteredDepartments(filtered);
-      setFormData((prev) => ({ ...prev, department: "" }));
-    } else {
-      setFilteredDepartments([]);
-    }
-  }, [formData.branch, departments]);
+  // useEffect(() => {
+  //   if (formData.branch) {
+  //     const filtered = departments.filter(
+  //       (dept) => dept.branch_name === formData.branch
+  //     );
+  //     setFilteredDepartments(filtered);
+  //     setFormData((prev) => ({ ...prev, department: "" }));
+  //   } else {
+  //     setFilteredDepartments([]);
+  //   }
+  // }, [formData.branch, departments]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -365,7 +377,16 @@ function RevolvingFundRequest({ onLogout }) {
         </div>
       )}
 
-      <aside className="pr-sidebar">
+      {isMobileView && (
+        <button
+          className="burger-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          ☰
+        </button>
+      )}
+
+      <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
           <h2 
             onClick={() => navigate("/forms-list")} 
@@ -382,7 +403,7 @@ function RevolvingFundRequest({ onLogout }) {
             <button
               key={section.id}
               type="button"
-              className={section.id === activeSection ? "is-active" : ""}
+              className={section.id === "revolving-main" ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}
@@ -475,41 +496,29 @@ function RevolvingFundRequest({ onLogout }) {
             <div className="pr-grid-two">
               <div className="pr-field">
                 <label className="pr-label" htmlFor="branch">Branch</label>
-                <select
+                <input
                   id="branch"
                   name="branch"
                   value={formData.branch}
-                  onChange={handleChange}
                   className="rfr-input"
+                  placeholder="Branch"
                   required
-                >
-                  <option value="" disabled>Select branch</option>
-                  {branches.map((b) => (
-                    <option key={b.branch_name} value={b.branch_name}>
-                      {b.branch_name}
-                    </option>
-                  ))}
-                </select>
+                  readOnly
+                />
               </div>
 
 
               <div className="pr-field">
                 <label className="pr-label" htmlFor="department">Department</label>
-                <select
+                <input
                   id="department"
                   name="department"
                   value={formData.department}
-                  onChange={handleChange}
                   className="rfr-input"
+                  placeholder="Department"
                   required
-                >
-                  <option value="" disabled>Select department</option>
-                  {filteredDepartments.map((d) => (
-                    <option key={d.department_name} value={d.department_name}>
-                      {d.department_name}
-                    </option>
-                  ))}
-                </select>
+                  readOnly
+                />
               </div>
             </div>
           </section>
@@ -524,7 +533,7 @@ function RevolvingFundRequest({ onLogout }) {
                   <input
                     id="replenishment-amount"
                     className="rfr-input"
-                    type="number"
+                    type="text"
                     name="replenish_amount"
                     value={
                       items.length > 0
@@ -759,7 +768,30 @@ function RevolvingFundRequest({ onLogout }) {
               </div>
             </div>
           </section>
-          <section className="rfr-form-section" id="signature">
+          <section className="car-form-section" id="signature">
+              <h2 className="prf-section-title">Signature Details</h2>
+
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                  <label className="car-reference-value">Submitted by</label>
+                  <input type="text" name="submitted_by" className="car-input" value={userData.name || ""} required readOnly/>
+                </div>
+
+                <div className="pr-field receive-signature">
+                  <label className="car-reference-value">Signature</label>
+                  <input type="text" name="submitter_signature" className="car-input received-signature" value={userData.signature || ""} readOnly />
+                  {userData.signature ? (
+                    <img
+                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                          <p>No signature available</p>
+                    )}
+                </div>
+              </div>
+          </section>
+          {/* <section className="rfr-form-section" id="signature">
               <h2 className="rfr-section-title">Signature Details</h2>
 
               <div className="signature-details">
@@ -781,7 +813,7 @@ function RevolvingFundRequest({ onLogout }) {
 
                 </label>
               </div>
-          </section>
+          </section> */}
           <div className="pr-form-actions">
             <button type="submit" className="pr-submit" disabled={isSubmitting}>
               {isSubmitting ? "Submitting..." : "Submit revolving fund request"}

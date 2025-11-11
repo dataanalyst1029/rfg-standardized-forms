@@ -1000,7 +1000,7 @@ function CashAdvanceRequest() {
                                             <img
                                             src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
                                             alt="Signature"
-                                            className="img-sign-prf"/>
+                                            className="img-sign"/>
                                             ) : (
                                             <p>No signature available</p>
                                         )}
@@ -1020,7 +1020,7 @@ function CashAdvanceRequest() {
                                             <img
                                             src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approve_signature}`}
                                             alt="Signature"
-                                            className="img-sign-prf"/>
+                                            className="img-sign"/>
                                             ) : (
                                             <p>No signature available</p>
                                         )}
@@ -1040,7 +1040,7 @@ function CashAdvanceRequest() {
                                             <img
                                             src={`${API_BASE_URL}/uploads/signatures/${modalRequest.received_signature}`}
                                             alt="Signature"
-                                            className="img-sign-prf"/>
+                                            className="img-sign"/>
                                             ) : (
                                             <p>No signature available</p>
                                         )}

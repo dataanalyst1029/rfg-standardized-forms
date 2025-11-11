@@ -34,22 +34,35 @@ const emptyItem = {
 
 const NAV_SECTIONS = [
   { id: "pr-main", label: "New Payment Request" },
-  { id: "submitted", label: "View Submitted Requests" },
+  { id: "submitted", label: "Payment Request Reports" },
 ];
 
 function PurchaseRequest({ onLogout }) {
   const [formData, setFormData] = useState(initialFormData);
   const [items, setItems] = useState([emptyItem]);
   const [loading, setLoading] = useState(true);
-  const [branches, setBranches] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [filteredDepartments, setFilteredDepartments] = useState([]);
-  const [activeSection, setActiveSection] = useState("details");
+  // const [branches, setBranches] = useState([]);
+  // const [departments, setDepartments] = useState([]);
+  // const [filteredDepartments, setFilteredDepartments] = useState([]);
+  // const [activeSection, setActiveSection] = useState("details");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modal, setModal] = useState({ isOpen: false, type: "", message: "" });
   const [userData, setUserData] = useState({ name: "", contact_no: "" });
   const navigate = useNavigate();
   const [message, setMessage] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const storedId = sessionStorage.getItem("id");
@@ -71,6 +84,8 @@ function PurchaseRequest({ onLogout }) {
             employee_id: data.employee_id || "",
             requested_by: data.name || "",
             requested_signature: data.signature || "",
+            branch: data.branch || "",
+            department: data.department || "",
 
           }));
         })
@@ -109,41 +124,41 @@ function PurchaseRequest({ onLogout }) {
     fetchNextCode();
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [branchRes, deptRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/branches`),
-          fetch(`${API_BASE_URL}/api/departments`),
-        ]);
-        if (!branchRes.ok || !deptRes.ok) throw new Error("Failed to fetch data");
-        const branchData = await branchRes.json();
-        const deptData = await deptRes.json();
-        setBranches(branchData);
-        setDepartments(deptData);
-      } catch (error) {
-        console.error("Error loading branch/department data:", error);
-        setModal({
-          isOpen: true,
-          type: "error",
-          message: "Unable to load branches and departments.",
-        });
-      }
-    };
-    fetchData();
-  }, []);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       const [branchRes, deptRes] = await Promise.all([
+  //         fetch(`${API_BASE_URL}/api/branches`),
+  //         fetch(`${API_BASE_URL}/api/departments`),
+  //       ]);
+  //       if (!branchRes.ok || !deptRes.ok) throw new Error("Failed to fetch data");
+  //       const branchData = await branchRes.json();
+  //       const deptData = await deptRes.json();
+  //       setBranches(branchData);
+  //       setDepartments(deptData);
+  //     } catch (error) {
+  //       console.error("Error loading branch/department data:", error);
+  //       setModal({
+  //         isOpen: true,
+  //         type: "error",
+  //         message: "Unable to load branches and departments.",
+  //       });
+  //     }
+  //   };
+  //   fetchData();
+  // }, []);
 
-  useEffect(() => {
-    if (formData.branch) {
-      const filtered = departments.filter(
-        (dept) => dept.branch_name === formData.branch
-      );
-      setFilteredDepartments(filtered);
-      setFormData((prev) => ({ ...prev, department: "" }));
-    } else {
-      setFilteredDepartments([]);
-    }
-  }, [formData.branch, departments]);
+  // useEffect(() => {
+  //   if (formData.branch) {
+  //     const filtered = departments.filter(
+  //       (dept) => dept.branch_name === formData.branch
+  //     );
+  //     setFilteredDepartments(filtered);
+  //     setFormData((prev) => ({ ...prev, department: "" }));
+  //   } else {
+  //     setFilteredDepartments([]);
+  //   }
+  // }, [formData.branch, departments]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -325,7 +340,16 @@ function PurchaseRequest({ onLogout }) {
         </div>
       )}
 
-      <aside className="pr-sidebar">
+      {isMobileView && (
+        <button
+          className="burger-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          ☰
+        </button>
+      )}
+
+      <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
           <h2 
             onClick={() => navigate("/forms-list")} 
@@ -429,41 +453,31 @@ function PurchaseRequest({ onLogout }) {
             <div className="pr-grid-two">
               <div className="pr-field">
                 <label className="car-reference-label" htmlFor="branch">Branch</label>
-                <select
+                <input
                   id="branch"
                   name="branch"
-                  value={formData.branch}
+                  value={userData.branch}
                   onChange={handleChange}
                   className="car-input"
+                  placeholder="Branch"
+                  readOnly
                   required
-                >
-                  <option value="" disabled>Select branch</option>
-                  {branches.map((b) => (
-                    <option key={b.branch_name} value={b.branch_name}>
-                      {b.branch_name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
 
               <div className="pr-field">
                 <label className="car-reference-label" htmlFor="department">Department</label>
-                <select
+                <input
                   id="department"
                   name="department"
-                  value={formData.department}
+                  value={userData.department}
                   onChange={handleChange}
                   className="car-input"
+                  placeholder="Department"
+                  readOnly
                   required
-                >
-                  <option value="" disabled>Select department</option>
-                  {filteredDepartments.map((d) => (
-                    <option key={d.department_name} value={d.department_name}>
-                      {d.department_name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
             </div>

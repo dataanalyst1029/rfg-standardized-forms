@@ -10,6 +10,9 @@ import {
   X,
   KeyRound,
   Image,
+  IdCard,
+  Building,
+  LayoutGrid,
 } from "lucide-react";
 import { API_BASE_URL } from "./config/api.js";
 
@@ -19,6 +22,9 @@ function FormsList({ onLogout }) {
   const [isClosing, setIsClosing] = useState(false);
   const [message, setMessage] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [branches, setBranches] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [filteredDepartments, setFilteredDepartments] = useState([]);
   const navigate = useNavigate();
   const storedId = sessionStorage.getItem("id");
 
@@ -29,6 +35,8 @@ function FormsList({ onLogout }) {
     email: "",
     contact_no: "",
     role: "",
+    branch: "",
+    department: "",
     signature: "",
     signature_preview: "",
     profile_img: "",
@@ -61,8 +69,8 @@ function FormsList({ onLogout }) {
   }, [storedId]);
 
   const isUserInfoIncomplete = () => {
-    const { name, email, contact_no, signature, profile_img } = formData;
-    return !name || !email || !contact_no || !signature || !profile_img;
+    const { name, email, contact_no, signature, branch, department, profile_img } = formData;
+    return !name || !email || !contact_no || !signature || !branch || !department || !profile_img;
   };
 
   const handleSettings = () => setShowSettingsModal(true);
@@ -93,6 +101,49 @@ function FormsList({ onLogout }) {
     }
   };
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [branchRes, deptRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/branches`),
+          fetch(`${API_BASE_URL}/api/departments`),
+        ]);
+        if (!branchRes.ok || !deptRes.ok) throw new Error("Failed to fetch data");
+        const branchData = await branchRes.json();
+        const deptData = await deptRes.json();
+        setBranches(branchData);
+        setDepartments(deptData);
+      } catch (error) {
+        console.error("Error loading branch/department data:", error);
+        setModal({
+          isOpen: true,
+          type: "error",
+          message: "Unable to load branches and departments.",
+        });
+      }
+    };
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (formData.branch) {
+      const filtered = departments.filter(
+        (dept) => dept.branch_name === formData.branch
+      );
+      setFilteredDepartments(filtered);
+
+      const departmentExists = filtered.some(
+        (dept) => dept.department_name === formData.department
+      );
+      if (!departmentExists) {
+        setFormData((prev) => ({ ...prev, department: "" }));
+      }
+    } else {
+      setFilteredDepartments([]);
+    }
+  }, [formData.branch, departments]);
+
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -102,6 +153,8 @@ function FormsList({ onLogout }) {
       formDataToSend.append("email", formData.email || "");
       formDataToSend.append("contact_no", formData.contact_no || "");
       formDataToSend.append("role", formData.role || "");
+      formDataToSend.append("branch", formData.branch || "");
+      formDataToSend.append("department", formData.department || "");
 
       if (password.trim() !== "") {
         formDataToSend.append("password", password);
@@ -304,7 +357,104 @@ function FormsList({ onLogout }) {
             </div>
 
             <div className="user-modal-body">
-              <div className="form-grid">
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                        <IdCard  size={16} /> Employee ID
+                    </label>
+                    <input
+                      type="text"
+                      name="employee_id"
+                      value={formData.employee_id}
+                      className="pr-input"
+                      readOnly
+                    />
+                </div>
+                <div className="pr-field">
+                    <label className="pr-label" htmlFor="name">
+                        <User  size={16} /> Name
+                    </label>
+                    <input
+                    type="text"
+                    name="name"
+                    value={formData.name || ""}
+                    onChange={handleChange}
+                    className="pr-input"
+                    required
+                    />
+                </div>
+              </div>
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                    <label className="pr-label" htmlFor="email">
+                        <Mail  size={16} /> Email
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email || ""}
+                      onChange={handleChange}
+                      className="pr-input"
+                      required
+                    />
+                </div>
+                <div className="pr-field">
+                    <label className="pr-label" htmlFor="contactNo">
+                        <Phone  size={16} /> Contact No.
+                    </label>
+                    <input
+                      type="text"
+                      name="contact_no"
+                      value={formData.contact_no || ""}
+                      onChange={handleChange}
+                      className="pr-input"
+                      required
+                    />
+                </div>
+              </div>
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                    <label className="pr-label" htmlFor="email">
+                        <Building  size={16} /> Branch
+                    </label>
+                    <select
+                      id="branch"
+                      name="branch"
+                      value={formData.branch}
+                      onChange={handleChange}
+                      className="pr-input"
+                      required
+                    >
+                      <option value="" disabled>Select branch</option>
+                      {branches.map((b) => (
+                        <option key={b.branch_name} value={b.branch_name}>
+                          {b.branch_name}
+                        </option>
+                      ))}
+                    </select>
+                </div>
+                <div className="pr-field">
+                    <label className="pr-label" htmlFor="department">
+                        <LayoutGrid  size={16} /> Department
+                    </label>
+                    <select
+                      id="department"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      className="pr-input"
+                      required
+                    >
+                      <option value="" disabled>Select department</option>
+                      {filteredDepartments.map((d) => (
+                        <option key={d.department_name} value={d.department_name}>
+                          {d.department_name}
+                        </option>
+                      ))}
+                    </select>
+                </div>
+              </div>
+              {/* <div className="form-grid">
                 <div className="form-group">
                   <label>
                     <User size={16} /> Full Name
@@ -348,7 +498,53 @@ function FormsList({ onLogout }) {
                     readOnly
                   />
                 </div>
-              </div>
+                
+                <div className="form-group">
+                  <label>
+                    🗺️ Branch
+                  </label>
+                  <input
+                    type="text"
+                    name="branch"
+                    value={formData.branch || ""}
+                    onChange={handleChange}
+                    required
+                  />
+                  <select
+                    id="branch"
+                    name="branch"
+                    value={formData.branch}
+                    onChange={handleChange}
+                    className="pr-input"
+                    required
+                  >
+                    <option value="" disabled>Select branch</option>
+                    {branches.map((b) => (
+                      <option key={b.branch_name} value={b.branch_name}>
+                        {b.branch_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                 <div className="form-group">
+                    <label className="pr-label" htmlFor="department">Department</label>
+                    <select
+                      id="department"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      className="pr-input"
+                      required
+                    >
+                      <option value="" disabled>Select department</option>
+                      {filteredDepartments.map((d) => (
+                        <option key={d.department_name} value={d.department_name}>
+                          {d.department_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+              </div> */}
 
               <div className="form-group">
                 <label>

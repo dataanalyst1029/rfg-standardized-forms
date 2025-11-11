@@ -363,7 +363,7 @@ app.delete("/api/users/:id", async (req, res) => {
 
 app.put("/users/update/:id", uploadFiles, async (req, res) => {
   const { id } = req.params;
-  const { employee_id, name, email, contact_no, role, password } = req.body;
+  const { employee_id, name, email, contact_no, role, password, branch, department } = req.body;
 
   const signature = req.files?.signature ? req.files.signature[0] : null;
   const profileImg = req.files?.profile_img ? req.files.profile_img[0] : null;
@@ -400,6 +400,14 @@ app.put("/users/update/:id", uploadFiles, async (req, res) => {
       fields.push(`password = $${index++}`);
       values.push(hashedPassword);
     }
+    if (branch && branch.trim() !== "") {
+      fields.push(`branch = $${index++}`);
+      values.push(branch);
+    }
+    if (department && department.trim() !== "") {
+      fields.push(`department = $${index++}`);
+      values.push(department);
+    }
     if (signature) {
       fields.push(`signature = $${index++}`);
       values.push(signature.filename);
@@ -417,7 +425,7 @@ app.put("/users/update/:id", uploadFiles, async (req, res) => {
       UPDATE users
       SET ${fields.join(", ")}
       WHERE id = $${index}
-      RETURNING id, employee_id, name, email, contact_no, role, signature, profile_img, created_at, updated_at;
+      RETURNING id, employee_id, name, email, contact_no, role, branch, department, signature, profile_img, created_at, updated_at;
     `;
     values.push(id);
 

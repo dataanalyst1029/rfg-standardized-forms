@@ -18,6 +18,19 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
   const [loadingItems, setLoadingItems] = useState(false);
   const cardRef = useRef(null);
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const formatDate = (dateValue) => {
     if (!dateValue) return "—";
@@ -434,7 +447,15 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
   return (
     <div className="pr-layout">
-      <aside className="pr-sidebar">
+      {isMobileView && (
+        <button
+          className="burger-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          ☰
+        </button>
+      )}
+      <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
           <h2
             onClick={() => navigate("/forms-list")}
