@@ -179,7 +179,7 @@
 }
 
 /* Floating Receive Button */
-.floating-receive-btn {
+/* .floating-receive-btn {
   position: fixed;
   top: 8rem;
   right: 30px;
@@ -203,7 +203,7 @@
   .floating-receive-btn {
     display: none !important;
   }
-}
+} */
 
 .status-text {
   margin: 0 0 0.5rem 0;
@@ -239,14 +239,14 @@
     background-color: #ffffff !important;
     padding: 0;
   }
-  .pr-sidebar,
+  /* .pr-sidebar,
   .pr-topbar,
   .dropdown-section,
   .print-btn,
   .floating-receive-btn,
   .floating-decline-reason {
     display: none !important;
-  }
+  } */
   .submitted-its-request-card {
     max-width: 700px; 
     border: none;

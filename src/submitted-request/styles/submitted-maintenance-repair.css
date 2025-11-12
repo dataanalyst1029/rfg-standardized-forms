@@ -176,7 +176,7 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
-.floating-receive-btn {
+/* .floating-receive-btn {
   position: fixed;
   top: 8rem;
   right: 30px;
@@ -193,7 +193,7 @@
 .floating-receive-btn:hover {
   background-color: #218838;
   transform: scale(1.05);
-}
+} */
 .status-text {
   margin: 0 0 0.5rem 0;
   font-weight: 600;
