@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api.js";
-import "./styles/submitted-interbranch-transfer.css";
 // import "./styles/submitted-request.css";
 // import "./styles/submitted-cash-advance.css";
+import "./styles/submitted-interbranch-transfer.css";
 import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
@@ -355,7 +355,7 @@ function SubmittedInterbranchTransferSlip({
             </header>
 
             <div className="its-grid-two" style={{ marginTop: "1rem" }}>
-              <div className="its-col-left">
+              <div>
                 <table className="its-info-table">
                   <tbody>
                     <tr>
@@ -381,7 +381,7 @@ function SubmittedInterbranchTransferSlip({
                   </tbody>
                 </table>
               </div>
-              <div className="its-col-right">
+              <div>
                 <table className="its-info-table">
                   <tbody>
                     <tr>
@@ -479,7 +479,7 @@ function SubmittedInterbranchTransferSlip({
               >
                 Mode of transport
               </div>
-              <div className="its-col-left">
+              <div>
                 <table className="its-info-table">
                   <tbody>
                     <tr>
@@ -521,7 +521,7 @@ function SubmittedInterbranchTransferSlip({
                   </tbody>
                 </table>
               </div>
-              <div className="its-col-right">
+              <div>
                 <table className="its-transport-table">
                   <tbody>
                     <tr>

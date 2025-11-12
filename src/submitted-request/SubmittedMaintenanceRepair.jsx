@@ -233,8 +233,7 @@ function SubmittedMaintenanceRepair({
     }
   };
 
-  const renderBody = () => {
-    if (loading) {
+  if (loading) {
       return (
         <div className="loading-container">
           <div className="spinner"></div>
@@ -242,6 +241,9 @@ function SubmittedMaintenanceRepair({
         </div>
       );
     }
+
+  const renderBody = () => {
+
 
     if (error) {
       return <p className="pr-error-message">{error}</p>;
@@ -258,9 +260,9 @@ function SubmittedMaintenanceRepair({
     return (
       <>
         <div className="dropdown-section" style={{ marginBottom: "1.5rem" }}>
-          <label htmlFor="itsRequestSelect">Select Reference No: </label>
+          <label htmlFor="mrfRequestSelect">Select Reference No: </label>
           <select
-            id="itsRequestSelect"
+            id="mrfRequestSelect"
             value={selectedCode}
             onChange={handleSelectChange}
             className="pr-input"
@@ -278,8 +280,8 @@ function SubmittedMaintenanceRepair({
 
         {selectedRequest ? (
           // --- STYLING: Using ITS classes ---
-          <div className="submitted-its-request-card" ref={cardRef}>
-            <header className="request-header">
+          <div className="mrf-record-request" ref={cardRef}>
+            <header className="mrf-request-header">
               <div className="header-brand">
                 <img
                   src={rfgLogo}
@@ -294,14 +296,14 @@ function SubmittedMaintenanceRepair({
 
             {/* --- Requestor Details (using ITS table layout) --- */}
             <div 
-              className="its-transport-header"
+              className="mrf-transport-header"
               style={{ marginTop: "1rem" }}
             >
               Requestor Details
             </div>
-            <div className="its-grid-two">
-              <div className="its-col-left">
-                <table className="its-info-table">
+            <div className="mrf-grid-two">
+              <div className="mrf-col-left">
+                <table className="mrf-info-table">
                   <tbody>
                     {/* --- MODIFICATION: Added "" fallback --- */}
                     <tr>
@@ -313,7 +315,7 @@ function SubmittedMaintenanceRepair({
                       <td>{displayText(selectedRequest.employee_id, "")}</td>
                     </tr>
                     <tr>
-                      <th>Branch / Dept</th>
+                      <th>Branch / Department</th>
                       <td>
                         {displayText(selectedRequest.branch, "")} /{" "}
                         {displayText(selectedRequest.department, "")}
@@ -323,8 +325,8 @@ function SubmittedMaintenanceRepair({
                   </tbody>
                 </table>
               </div>
-              <div className="its-col-right">
-                <table className="its-info-table">
+              <div className="mrf-col-right">
+                <table className="mrf-info-table">
                   <tbody>
                     {/* --- MODIFICATION: Added "" fallback --- */}
                     <tr>
@@ -346,20 +348,20 @@ function SubmittedMaintenanceRepair({
             </div>
 
             {/* --- Description of Work (using new block style) --- */}
-            <div className="its-transport-header">
+            <div className="mrf-transport-header">
               Description of Work Required
             </div>
-            <div className="its-field-block">
+            <div className="mrf-field-block">
               {/* --- MODIFICATION: Added "" fallback --- */}
               <p>{displayText(selectedRequest.work_description, "")}</p>
               {/* --- END MODIFICATION --- */}
             </div>
             
             {/* --- Completion Info (using ITS table layout) --- */}
-            <div className="its-transport-header">Completion Information</div>
-            <div className="its-grid-two">
-              <div className="its-col-left">
-                <table className="its-info-table">
+            <div className="mrf-transport-header">Completion Information</div>
+            <div className="mrf-grid-two">
+              <div className="mrf-col-left">
+                <table className="mrf-info-table">
                   <tbody>
                     {/* --- MODIFICATION: Added "" fallback --- */}
                     <tr>
@@ -370,8 +372,8 @@ function SubmittedMaintenanceRepair({
                   </tbody>
                 </table>
               </div>
-              <div className="its-col-right">
-                <table className="its-info-table">
+              <div className="mrf-col-right">
+                <table className="mrf-info-table">
                   <tbody>
                     <tr>
                       <th>Date Completed</th>
@@ -381,10 +383,10 @@ function SubmittedMaintenanceRepair({
                 </table>
               </div>
             </div>
-            <div className="its-transport-header">
+            <div className="mrf-transport-header">
               Completion Remarks
             </div>
-            <div className="its-field-block">
+            <div className="mrf-field-block">
               {/* --- MODIFICATION: Added "" fallback --- */}
               <p>{displayText(selectedRequest.completion_remarks, "")}</p>
               {/* --- END MODIFICATION --- */}
@@ -392,7 +394,7 @@ function SubmittedMaintenanceRepair({
 
 
             {/* --- Signature Table (using ITS sig table layout) --- */}
-            <table className="its-sig-table">
+            <table className="mrf-sig-table">
               <thead>
                 <tr>
                   <th></th>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react"; // 1. useRef removed
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api.js";
 import "./styles/submitted-request.css";
@@ -71,7 +71,7 @@ function SubmittedCreditCardAcknowledgement({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCode, setSelectedCode] = useState("");
-  const cardRef = useRef(null);
+  // 2. const cardRef = useRef(null); removed
 
   const effectiveUserId = showAll
     ? null
@@ -170,154 +170,18 @@ function SubmittedCreditCardAcknowledgement({
     navigate("/");
   };
 
-  const handlePrint = () => {
-    if (!cardRef.current) {
-      return;
-    }
-    const printContents = cardRef.current.outerHTML;
-    const printWindow = window.open("", "", "width=1000,height=800");
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print Credit Card Acknowledgement - ${
-            selectedRequest?.form_code || ""
-          }</title>
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 0; 
-              padding: 0.25in; 
-              font-size: 10pt;
-            }
-            .pay-print-card { 
-              border: 1px solid #000; 
-              padding: 0.25in; 
-              margin: 0 auto; 
-              max-width: 8in; 
-              background: #fff;
-              color: #000;
-            }
-            .pay-header { 
-              display: flex; 
-              justify-content: space-between;
-              align-items: flex-start; 
-              padding-bottom: 0.25rem; 
-            }
-            .pay-form-code { 
-              font-weight: bold; 
-              font-size: 1.1rem; 
-              border: 1px solid #000;
-              padding: 5px 10px;
-              min-width: 150px;
-              text-align: center;
-              font-size: 1rem;
-            }
-            .pay-header-title { 
-              font-size: 1.3rem; 
-              font-weight: bold; 
-              text-align: center;
-              width: 100%;
-              padding-bottom: 0.25in;
-              margin-top: 0;
-            }
-            
-            /* NEW CCA STYLES */
-            .cca-details-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 0.25in;
-            }
-            .cca-details-table th, .cca-details-table td {
-              border: 1px solid #000;
-              padding: 6px 10px;
-              text-align: left;
-              vertical-align: top;
-            }
-            .cca-details-table th {
-              font-weight: bold;
-              width: 140px; /* Label width */
-            }
-            .cca-details-table td {
-              width: 35%; /* Value width */
-            }
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <span>Loading submitted credit card acknowledgement receipts…</span>
+      </div>
+    );
+  }
 
-            .cca-section-header {
-              background: #000;
-              color: #fff;
-              font-weight: bold;
-              padding: 6px 10px;
-              font-size: 1rem;
-              text-align: center;
-              margin-top: 0.25in;
-            }
-            
-            .cca-ack-block {
-              border: 1px solid #000;
-              border-top: none;
-              padding: 0.2in;
-              margin-bottom: 0.25in;
-            }
-            .cca-ack-block p, .cca-ack-block ol {
-              margin: 0 0 1rem 0;
-              font-size: 10pt;
-            }
-            .cca-ack-block ol {
-              padding-left: 1.5rem;
-            }
-            .cca-ack-block li {
-              margin-bottom: 0.25rem;
-            }
-
-            .cca-sig-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: -1px; /* Connects to header */
-            }
-            .cca-sig-table th, .cca-sig-table td {
-              border: 1px solid #000;
-              padding: 6px 10px;
-              text-align: left;
-              height: 4.5rem; /* Give space for signature */
-              vertical-align: top;
-            }
-            .cca-sig-table th {
-              font-weight: bold;
-              width: 140px; /* Label width */
-            }
-            .cca-sig-table td {
-              text-align: center;
-              vertical-align: middle;
-            }
-            .cca-sig-table .cca-sig-col {
-              width: 30%;
-            }
-
-            .signature-img {
-              max-width: 120px;
-              height: auto;
-              margin: 0 auto;
-              display: block;
-            }
-          </style>
-        </head>
-        <body>
-          ${printContents}
-        </body>
-      </html>
-    `);
-
-    setTimeout(() => {
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-    }, 1000);
-  };
+  // 3. The entire 'handlePrint' function (approx. 115 lines) has been removed.
 
   const renderBody = () => {
-    if (loading) {
-      return <p>Loading submitted credit card acknowledgement receipts...</p>;
-    }
-
     if (error) {
       return <p className="pr-error-message">{error}</p>;
     }
@@ -353,23 +217,21 @@ function SubmittedCreditCardAcknowledgement({
         </div>
 
         {selectedRequest ? (
-          <div className="pay-print-card" ref={cardRef}>
-            <header className="pay-header">
-              {/* Added invisible placeholder to balance the title */}
-              <div style={{ width: "150px" }}></div>
-              <h1 className="pay-header-title">
-                COMPANY CREDIT CARD ACKNOWLEDGEMENT RECEIPT
-              </h1>
-              {/* --- MODIFICATION HERE --- */}
-              <div
-                className="pay-form-code"
-                style={{
-                  fontSize: "1rem",
-                  minWidth: "150px",
-                  textAlign: "center",
-                }}
-              >
-                {displayText(selectedRequest.form_code)}
+          // 4. 'ref={cardRef}' was removed from the div below
+          <div className="cca-record-request">
+            <header className="cca-request-header">
+              <div className="header-brand">
+                <img
+                  src={rfgLogo}
+                  alt="Ribshack Food Group"
+                  className="header-logo"
+                />
+              </div>
+
+              <div className="header-request-code">
+                <i className="request-code">
+                  {displayText(selectedRequest.form_code)}
+                </i>
               </div>
             </header>
 
@@ -456,7 +318,7 @@ function SubmittedCreditCardAcknowledgement({
                   <td className="cca-sig-col">
                     {formatDate(selectedRequest.received_by_date)}
                   </td>
-                  <td className="cca-sig-col">
+                  <td className="cca-sig-col sig-box">
                     {selectedRequest.received_by_signature ? (
                       <img
                         src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.received_by_signature}`}
@@ -490,6 +352,29 @@ function SubmittedCreditCardAcknowledgement({
                 </tr>
               </tbody>
             </table>
+
+            {/* --- STATUS DISPLAY --- */}
+            {/* Added status display block, copied from other forms */}
+            {(selectedRequest.status || selectedRequest.declined_reason) && (
+              <div
+                className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}
+              >
+                <div className="floating-decline-content">
+                  {selectedRequest.status && (
+                    <p className="status-text">
+                      <strong>Status:</strong> {selectedRequest.status}
+                    </p>
+                  )}
+                  {selectedRequest.declined_reason && (
+                    <>
+                      <strong>Declined Reason:</strong>
+                      <p>{selectedRequest.declined_reason}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* --- END STATUS DISPLAY --- */}
           </div>
         ) : (
           // Show nothing if no request is selected
@@ -549,7 +434,8 @@ function SubmittedCreditCardAcknowledgement({
           </div>
 
           {selectedRequest && (
-            <button onClick={handlePrint} className="print-btn">
+            // 5. Button onClick was changed to window.print()
+            <button onClick={() => window.print()} className="print-btn">
               🖨️ Print
             </button>
           )}
