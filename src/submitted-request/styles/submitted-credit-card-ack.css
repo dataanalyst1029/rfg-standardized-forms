@@ -2,6 +2,26 @@
   This file styles the on-screen submitted credit card receipt.
   The print styles are embedded in the component's handlePrint function.
 */
+.cca-record-request{
+  background: #ffffff;
+  padding: 1.15rem 1.4rem;
+  margin: 0 auto;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
+  color: var(--card-text, #222);
+  display: flex;
+  flex-direction: column;
+}
+
+.cca-request-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 0.6rem;
+  margin-bottom: 1.05rem;
+}
+
 
 /* --- Details Table --- */
 .cca-details-table {
@@ -71,15 +91,15 @@
   width: 100%;
   border-collapse: collapse;
   margin-top: -1.5rem; /* Connects to header */
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .cca-sig-table th,
 .cca-sig-table td {
   border: 1px solid #ccc;
-  padding: 8px 12px;
+  padding: 8px 8px;
   text-align: left;
-  height: 6rem; /* Give space for signature */
+  height: 2rem; /* Give space for signature */
   vertical-align: top;
   background: #fff;
 }
@@ -102,12 +122,69 @@
 }
 
 .cca-sig-table .cca-sig-col {
-  width: 30%;
+  width: 29%;
+}
+
+.sig-box {
+  overflow: visible !important;
+  position: relative;
+  height: 20px !important;
 }
 
 .signature-img {
-  max-width: 120px;
-  height: auto;
-  margin: 0 auto;
-  display: block;
+  position: absolute; 
+  top: 50%; 
+  left: 50%; 
+  transform: translate(-50%, -50%); 
+  max-height: 100px;
+  width: auto;
+  max-width: 150px;
+  object-fit: contain; /* <-- Prevents stretching */
+}
+
+@media print {
+
+  body * {
+    visibility: hidden;
+  }
+
+  .pr-layout,
+  .pr-main,
+  .submitted-requests-container,
+  .cca-record-request,
+  .cca-record-request * {
+    visibility: visible;
+  }
+
+  .pr-layout,
+  .pr-main,
+  .submitted-requests-container {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .pr-main {
+    height: auto;
+    background-color: #ffffff !important;
+    padding: 0;
+  }
+   @page {
+    margin: 0.5in;
+  }
+
+  .cca-record-request::before {
+    content: "Credit Card Acknowledgement Receipt";
+    display: block;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  .cca-record-request p,
+  .cca-record-request td,
+  .cca-record-request th {
+    font-size: 10pt;
+  }
 }

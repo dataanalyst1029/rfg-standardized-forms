@@ -350,7 +350,7 @@ function InterbranchTransferSlip({ onLogout }) {
   // Navigate between sidebar sections
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/forms/submitted-interbranch-transfer-slip");
+      navigate("/forms/interbranch-transfer-slip/submitted");
       return;
     } 
     

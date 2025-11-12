@@ -1,38 +1,53 @@
 /* --- STYLES COPIED FROM submitted-interbranch-transfer.css --- */
 
-.its-items-table {
+.mrf-record-request{
+  background: #ffffff;
+  padding: 1.15rem 1.4rem;
+  margin: 0 auto;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
+  color: var(--card-text, #222);
+  display: flex;
+  flex-direction: column;
+}
+
+.mrf-request-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 0.6rem;
+  margin-bottom: 1.05rem;
+}
+
+.mrf-items-table {
   width: 100%;
   border: 1px solid #111;
   border-collapse: collapse;
   font-size: 0.88rem;
 }
-.its-items-table th,
-.its-items-table td {
+.mrf-items-table th,
+.mrf-items-table td {
   border: 1px solid #111;
   padding: 0.45rem 0.6rem;
   text-align: left;
 }
-.its-items-table th {
+.mrf-items-table th {
   text-transform: uppercase;
   font-size: 0.85rem;
   letter-spacing: 0.04em;
   background: #f1f1f1;
 }
-.its-items-table .text-center {
+.mrf-items-table .text-center {
   text-align: center;
 }
-.its-footnote {
+.mrf-footnote {
   font-size: 0.78rem;
   font-style: italic;
   color: #444;
 }
-.submitted-its-request-card {
-  margin-bottom: 3rem;
-  color: var(--card-text, #111);
-  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-  position: relative;
-}
-.its-transport-header {
+
+.mrf-transport-header {
   background: #111;
   color: #fff;
   padding: 0.55rem 0.75rem;
@@ -43,14 +58,16 @@
   letter-spacing: 0.04em;
   margin-top: 1rem;
 }
-.its-info-table {
+
+.mrf-info-table {
   width: 100%;
   border-collapse: collapse;
   border: 1px solid #111;
   font-size: 0.9rem;
 }
-.its-info-table th,
-.its-info-table td {
+
+.mrf-info-table th,
+.mrf-info-table td {
   border: 1px solid #111;
   padding: 0.5rem 0.65rem;
   text-align: left;
@@ -58,41 +75,47 @@
   word-break: break-word;
   line-height: 1.4;
 }
-.its-info-table th {
+
+.mrf-info-table th {
   font-weight: 600;
   background: #f7f7f7;
   width: 40%;
 }
-.its-transport-table {
+
+.mrf-transport-table {
   width: 100%;
   border-collapse: collapse;
   border: 1px solid #111;
   font-size: 0.9rem;
   height: fit-content;
 }
-.its-sig-table,
-.its-received-table {
+
+.mrf-sig-table,
+.mrf-received-table {
   width: 100%;
   border: 1px solid #111;
   border-collapse: collapse;
   font-size: 0.88rem;
   margin-top: 1rem;
 }
-.its-sig-table th,
-.its-sig-table td,
-.its-received-table th,
-.its-received-table td {
+
+.mrf-sig-table th,
+.mrf-sig-table td,
+.mrf-received-table th,
+.mrf-received-table td {
   border: 1px solid #111;
   padding: 0.6rem 0.7rem;
   text-align: left;
   vertical-align: top;
 }
-.its-sig-table th,
-.its-received-table th {
+
+.mrf-sig-table th,
+.mrf-received-table th {
   font-weight: 600;
   width: 20%;
   background: #f7f7f7;
 }
+
 .sig-box {
   overflow: visible !important;
   position: relative;
@@ -112,14 +135,14 @@
 }
 /* --- END MODIFICATION --- */
 
-.its-receiving-section {
+.mrf-receiving-section {
   border: 1px solid #111;
   border-radius: 8px;
   overflow: hidden;
   margin-top: 1rem;
   font-size: 0.9rem;
 }
-.its-receiving-header {
+.mrf-receiving-header {
   background: #111;
   color: #fff;
   padding: 0.55rem 0.75rem;
@@ -128,21 +151,26 @@
   text-transform: uppercase;
   font-size: 0.85rem;
 }
-.its-receiving-content {
+
+.mrf-receiving-content {
   display: flex;
   width: 100%;
 }
-.its-receiving-col {
+
+.mrf-receiving-col {
   flex: 1;
   padding: 0.75rem 1rem;
   box-sizing: border-box;
 }
-.its-receiving-col:first-child {
+
+.mrf-receiving-col:first-child {
   border-right: 1px solid #111;
 }
-.its-receiving-col p {
+
+.mrf-receiving-col p {
   margin: 0 0 0.5rem 0;
 }
+
 .reason {
   font-size: 0.85rem;
   min-height: 3rem;
@@ -150,19 +178,22 @@
   padding-top: 0.5rem;
   color: #333;
 }
-.its-transport-table th,
-.its-transport-table td {
+
+.mrf-transport-table th,
+.mrf-transport-table td {
   border: 1px solid #111;
   text-align: left;
   vertical-align: top;
   padding: 0.01rem 0.01rem;
 }
-.its-transport-table th {
+
+.mrf-transport-table th {
   font-weight: 600;
   background: #f7f7f7;
   width: 100%;
 }
-.its-field-block {
+
+.mrf-field-block {
   border: 1px solid #111;
   border-top: none;
   padding: 0.75rem 1rem;
@@ -171,11 +202,13 @@
   line-height: 1.5;
   background: #fff;
 }
-.its-field-block p {
+
+.mrf-field-block p {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
 }
+
 .floating-receive-btn {
   position: fixed;
   top: 8rem;
@@ -190,14 +223,17 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   transition: all 0.25s ease;
 }
+
 .floating-receive-btn:hover {
   background-color: #218838;
   transform: scale(1.05);
 }
+
 .status-text {
   margin: 0 0 0.5rem 0;
   font-weight: 600;
 }
+
 @media print {
   body * {
     visibility: hidden;
@@ -205,8 +241,8 @@
   .pr-layout,
   .pr-main,
   .submitted-requests-container,
-  .submitted-its-request-card,
-  .submitted-its-request-card * {
+  .mrf-record-request,
+  .mrf-record-request * {
     visibility: visible;
   }
   .pr-layout,
@@ -221,69 +257,44 @@
     background-color: #ffffff !important;
     padding: 0;
   }
-  .pr-sidebar,
-  .pr-topbar,
-  .dropdown-section,
-  .print-btn,
-  .floating-receive-btn,
-  .floating-decline-reason,
-  .request-header {
-    display: none !important;
-  }
-  .submitted-its-request-card {
+ 
+  .mrf-record-request {
     max-width: 700px;
-    border: none;
-    box-shadow: none;
-    background: #fff !important;
-    color: #000 !important;
-    page-break-inside: avoid;
-    margin: 0;
-    padding: 0;
   }
-  .its-grid-two {
+  .mrf--grid-two {
     page-break-inside: avoid;
   }
+  
   @page {
     margin: 0.5in;
   }
-  .submitted-its-request-card::before {
-    content: "MAINTENANCE/REPAIR FORM";
+  .mrf-record-request::before {
+    content: "Maintenance/Repair Form";
     display: block;
     text-align: center;
     font-size: 20px;
     font-weight: bold;
     margin-bottom: 10px;
   }
-  .submitted-its-request-card {
+  .mrf-record-request {
     font-size: 10pt;
   }
-  .submitted-its-request-card p,
-  .submitted-its-request-card td,
-  .submitted-its-request-card th {
+  .mrf-record-request p,
+  .mrf-record-request td,
+  .mrf-record-request th {
     font-size: 9pt;
   }
-  .its-items-table th,
-  .its-items-table td,
-  .its-info-table th,
-  .its-info-table td,
-  .its-transport-table th,
-  .its-transport-table td,
-  .its-sig-table th,
-  .its-sig-table td,
-  .its-received-table th,
-  .its-received-table td {
-    padding: 0.25rem 0.25rem !important;
-  }
-  .its-info-table,
-  .its-sig-table,
-  .its-received-table {
+
+  .mrf-info-table,
+  .mrf-sig-table,
+  .mrf-received-table {
     table-layout: fixed;
     height: auto !important;
   }
-  .its-info-table th,
-  .its-sig-table th,
-  .its-received-table th {
-    width: 80px !important;
+  .mrf-info-table th,
+  .mrf-sig-table th,
+  .mrf-received-table th {
+    width: 120px !important;
   }
   
   /* --- MODIFICATION: Added width/max-width/object-fit for print --- */
@@ -300,49 +311,33 @@
   }
   /* --- END MODIFICATION --- */
   
-  .its-items-table,
-  .its-info-table,
-  .its-transport-table,
-  .its-sig-table,
-  .its-received-table,
-  .its-receiving-section,
-  .its-field-block {
+  .mrf-items-table,
+  .mrf-info-table,
+  .mrf-transport-table,
+  .mrf-sig-table,
+  .mrf-received-table,
+  .mrf-receiving-section,
+  .mrf-field-block {
     border: 1px solid #55555535 !important;
     page-break-inside: avoid;
   }
-  .its-items-table th,
-  .its-items-table td,
-  .its-info-table th,
-  .its-info-table td,
-  .its-transport-table th,
-  .its-transport-table td,
-  .its-sig-table th,
-  .its-sig-table td,
-  .its-received-table th,
-  .its-received-table td {
+  .mrf-items-table th,
+  .mrf-items-table td,
+  .mrf-info-table th,
+  .mrf-info-table td,
+  .mrf-transport-table th,
+  .mrf-transport-table td,
+  .mrf-sig-table th,
+  .mrf-sig-table td,
+  .mrf-received-table th,
+  .mrf-received-table td {
     border: 1px solid #55555535 !important;
   }
-  .its-items-table th,
-  .its-info-table th,
-  .its-transport-table th,
-  .its-sig-table th,
-  .its-received-table th {
-    background: #fff !important;
-    color: #000 !important;
-    font-weight: bold;
-  }
-  .its-transport-header,
-  .its-receiving-header {
-    background: #fff !important;
-    color: #000 !important;
-    border: 1px solid #55555535 !important;
-    font-weight: bold;
-    page-break-after: avoid;
-  }
-  .its-field-block {
+
+  .mrf-field-block {
     border-top: 1px solid #55555535 !important;
   }
-  .its-receiving-col:first-child {
+  .mrf-receiving-col:first-child {
     border-right: 1px solid #55555535 !important;
   }
 }

@@ -411,7 +411,7 @@ function App() {
         />
 
         <Route
-          path="/forms/submitted-interbranch-transfer-slip"
+          path="/forms/interbranch-transfer-slip/submitted"
           element={
             user ? (
               <SubmittedInterbranchTransferSlip onLogout={handleLogout} currentUserId={user.id} />

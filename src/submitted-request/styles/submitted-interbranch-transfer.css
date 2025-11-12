@@ -74,7 +74,7 @@
   border-collapse: collapse;
   border: 1px solid #111;
   font-size: 0.9rem;
-  height: fit-content;
+  table-layout: fixed;
 }
 
 .its-sig-table,
@@ -121,7 +121,6 @@
 
 .its-receiving-section {
   border: 1px solid #111;
-  border-radius: 8px;
   overflow: hidden;
   margin-top: 1rem;
   font-size: 0.9rem;
@@ -164,18 +163,17 @@
   color: #333;
 }
 
+.its-transport-table th {
+  font-weight: 600;
+  background: #f7f7f7;
+}
+
 .its-transport-table th,
 .its-transport-table td {
   border: 1px solid #111;
   text-align: left;
-  vertical-align: top;
-  padding: 0.01rem 0.01rem;
-}
-
-.its-transport-table th {
-  font-weight: 600;
-  background: #f7f7f7;
-  width: 100%;
+  vertical-align: top;  
+  padding: 0.1rem 0.5rem !important;
 }
 
 /* Floating Receive Button */
@@ -291,35 +289,6 @@
     font-size: 8pt;
   }
   
-  /* --- Table Cell Padding & Height --- */
-  .its-items-table th,
-  .its-items-table td,
-  .its-info-table th,
-  .its-info-table td,
-  .its-transport-table th,
-  .its-transport-table td,
-  .its-sig-table th,
-  .its-sig-table td,
-  .its-received-table th,
-  .its-received-table td {
-    padding: 0.25rem 0.25rem !important; 
-  }
-  
-  /* --- Force table layout --- */
-  .its-info-table,
-  .its-sig-table,
-  .its-received-table {
-    table-layout: fixed;
-    height: auto !important; /* Resets on-screen height: 100% */
-  }
-  
-  /* --- Column Widths (FIXED) --- */
-  .its-info-table th, 
-  .its-sig-table th,
-  .its-received-table th { /* <-- ADDED .its-received-table th */
-    width: 80px !important; 
-  }
-  
   /* --- Signature Image (Cleaned up) --- */
   .signature-img {
     max-height: 45px;
@@ -345,6 +314,7 @@
     border: 1px solid #55555535 !important;
     page-break-inside: avoid;
   }
+
   .its-items-table th,
   .its-items-table td,
   .its-info-table th,
@@ -357,27 +327,7 @@
   .its-received-table td {
     border: 1px solid #55555535 !important;
   }
-  
-  /* --- Table Header Backgrounds (Remove for print) --- */
-  .its-items-table th,
-  .its-info-table th,
-  .its-transport-table th,
-  .its-sig-table th,
-  .its-received-table th {
-    background: #fff !important;
-    color: #000 !important;
-    font-weight: bold;
-  }
 
-  /* --- Section Headers --- */
-  .its-transport-header,
-  .its-receiving-header {
-    background: #fff !important;
-    color: #000 !important;
-    border: 1px solid #55555535 !important;
-    font-weight: bold;
-    page-break-after: avoid;
-  }
 
   /* --- Section Dividers --- */
   .its-receiving-col:first-child {
