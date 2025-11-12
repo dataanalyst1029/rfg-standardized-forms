@@ -366,7 +366,7 @@ function FormsList({ onLogout }) {
                       type="text"
                       name="employee_id"
                       value={formData.employee_id}
-                      className="pr-input"
+                      className="car-input"
                       readOnly
                     />
                 </div>
@@ -379,7 +379,7 @@ function FormsList({ onLogout }) {
                     name="name"
                     value={formData.name || ""}
                     onChange={handleChange}
-                    className="pr-input"
+                    className="car-input"
                     required
                     />
                 </div>
@@ -394,7 +394,7 @@ function FormsList({ onLogout }) {
                       name="email"
                       value={formData.email || ""}
                       onChange={handleChange}
-                      className="pr-input"
+                      className="car-input"
                       required
                     />
                 </div>
@@ -407,7 +407,7 @@ function FormsList({ onLogout }) {
                       name="contact_no"
                       value={formData.contact_no || ""}
                       onChange={handleChange}
-                      className="pr-input"
+                      className="car-input"
                       required
                     />
                 </div>
@@ -422,10 +422,10 @@ function FormsList({ onLogout }) {
                       name="branch"
                       value={formData.branch}
                       onChange={handleChange}
-                      className="pr-input"
+                      className="car-input"
                       required
                     >
-                      <option value="" disabled>Select branch</option>
+                      <option value="">Select branch</option>
                       {branches.map((b) => (
                         <option key={b.branch_name} value={b.branch_name}>
                           {b.branch_name}
@@ -442,7 +442,7 @@ function FormsList({ onLogout }) {
                       name="department"
                       value={formData.department}
                       onChange={handleChange}
-                      className="pr-input"
+                      className="car-input"
                       required
                     >
                       <option value="" disabled>Select department</option>
@@ -567,6 +567,7 @@ function FormsList({ onLogout }) {
                   type="file"
                   name="signature"
                   accept="image/*"
+                  className="car-input"
                   onChange={handleChange}
                 />
               </div>
@@ -581,6 +582,7 @@ function FormsList({ onLogout }) {
                   placeholder="Enter new password (optional)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="car-input"
                 />
               </div>
             </div>

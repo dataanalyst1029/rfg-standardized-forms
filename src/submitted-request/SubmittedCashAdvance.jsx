@@ -396,22 +396,25 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                             )}
                           </td>
                         </tr>
-                        <tr>
-                          <th><small>Approved by</small></th>
-                          <td><small><input type="text" className="prf-input" value={selectedRequest.approved_by}/></small></td>
-                          <th><small>Signature</small></th>
-                          <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.approve_signature} readOnly required/></small>
-                            {selectedRequest.approve_signature ? (
-                            <img
-                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approve_signature}`}
-                                alt="Signature"
-                                className="img-sign-prf"
-                            />
-                            ) : (
-                            <div className="img-sign-prf empty-sign"></div>
-                            )}
-                          </td>
-                        </tr>
+                        {(selectedRequest.approved_by || selectedRequest.approve_signature) && (
+                          <tr>
+                            <th><small>Approved by</small></th>
+                            <td><small><input type="text" className="prf-input" value={selectedRequest.approved_by}/></small></td>
+                            <th><small>Signature</small></th>
+                            <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.approve_signature} readOnly required/></small>
+                              {selectedRequest.approve_signature ? (
+                              <img
+                                  src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approve_signature}`}
+                                  alt="Signature"
+                                  className="img-sign-prf"
+                              />
+                              ) : (
+                              <div className="img-sign-prf empty-sign"></div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+
                         {(selectedRequest.status === "Received" || selectedRequest.status === "Completed") && (
                           <tr>
                             <th><small>Received by</small></th>
