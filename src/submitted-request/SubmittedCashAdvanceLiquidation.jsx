@@ -6,8 +6,8 @@ import "./styles/submitted-cash-advance.css";
 import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
-  { id: "submitted", label: "Submitted cash advance liquidation" },
   { id: "new-request", label: "New cash advance liquidation" },
+  { id: "submitted", label: "Cash Advance Liquidation Reports" },
 ];
 
 function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false }) {
@@ -113,326 +113,6 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
     setSelectedRequestCode(e.target.value);
   };
 
-  const handlePrint = () => {
-    if (!cardRef.current) return;
-
-    const printContents = cardRef.current.outerHTML;
-    const printWindow = window.open("", "", "width=900,height=650");
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print Cash Advance Liquidation</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
-              background: #fff;
-              position: relative;
-            }
-
-            h2, h3, h4 {
-              margin-bottom: 8px;
-            }
-
-            .submitted-revolving-request-card {
-              margin-bottom: 2rem;
-              padding: 1rem;
-              background-color: var(--card-bg, #ffffff);
-              color: var(--card-text, #111);
-              transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-            }
-
-            .record-request{
-              background: #ffffff;
-              padding: 1.15rem 1.4rem;
-              margin: 0 auto;
-              box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
-              color: var(--card-text, #222);
-              display: flex;
-              flex-direction: column;
-              gap: 1.05rem;
-            }
-
-            .request-header {
-              display: flex;
-              align-items: flex-start;
-              justify-content: space-between;
-              gap: 1.5rem;
-              border-bottom: 2px solid #ddd;
-              padding-bottom: 0.6rem;
-            }
-
-            .header-brand {
-              display: flex;
-              align-items: center;
-              gap: 0.65rem;
-            }
-
-            .header-logo {
-              width: 150px; 
-            }
-            
-            .header-request-code {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-end;
-            }
-
-            .table table {
-              width: 100%;
-              border-collapse: collapse;
-              border: 1px solid #ddd;  
-            } 
-
-            .table table th,
-            .table table td {
-              border: 1px solid #ddd;
-              padding: .5rem;
-              text-align: left;
-            }
-
-            .rf-signature-row {
-              margin-top: 1.5rem;
-              display: flex;
-              justify-content: center;
-              align-items: flex-end;
-              gap: 4rem;
-              flex-wrap: wrap;
-            }
-
-            .rf-signature-block {
-              min-width: 220px;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              gap: 0.3rem;
-            }
-
-            .rf-signature-line {
-              display: inline-block;
-              min-width: 220px;
-              text-align: center;
-              padding-bottom: 0.2rem;
-              border-bottom: 1px solid currentColor;
-              font-weight: 600;
-            }
-
-            .rf-signature-line.muted {
-              font-style: italic;
-              color: var(--card-meta, #555);
-            }
-
-            .rf-signature-image {
-              max-width: 160px;
-              height: auto;
-              object-fit: contain;
-            }
-
-            .rf-no-border {
-              border: none !important;
-              background: transparent !important;
-              box-shadow: none !important;
-              padding: 0 !important;
-            }
-
-            .rf-status-row {
-              margin-top: 1rem;
-            }
-
-            .rfrf-items-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 0.75rem;
-              font-size: 0.95rem;
-              border: 1px solid var(--table-border, #aaaaaa);
-              background-color: var(--table-bg, #fff);
-              color: var(--table-text, #333);
-            }
-
-            .rfrf-items-table thead tr th {
-              background: var(--color-table-header);
-              text-transform: uppercase;
-              padding: 0.3rem 0.8rem;
-              font-size: 0.72rem;
-              letter-spacing: 0.08em;
-              color: var(--color-text-muted);
-            }
-
-            .rfrf-items-table td {
-              border: 1px solid var(--table-border, #dcdcdc);
-              padding: 0.5rem 0.75rem;
-              text-align: left;
-            }
-
-            .rfrf-items-table tbody tr:hover {
-              background-color: var(--table-hover, #ececec);
-            }
-
-            .rfrf-items-table td.text-center {
-              text-align: center !important;
-              vertical-align: middle;
-            }
-
-            .signature-section{
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-            }
-
-            .signature-section > div > div {
-              width: 100%;
-            }
-
-            .signature-format .s-by {
-              font-weight: bold;
-            }
-
-            .signature-format .s-name {
-              border-bottom: 1px solid #555;
-              font-size: 1rem;
-              padding: 0 1rem;
-            }
-
-            .signature-format {
-              display: flex;
-              flex-direction: row;
-              text-align: center;
-              justify-content: space-evenly;
-              padding: 16px;
-              width: 100%;
-              margin-top: 2rem;
-            }
-
-            .signature-format label {
-              display: flex;
-              flex-direction: column;
-              font-size: 0.9rem;
-            }
-
-            .submitter-signature {
-              position: relative;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-            }
-
-            .submitter-signature .sub-sign {
-              color: transparent;
-              border-bottom: 1px solid #555;
-              font-size: 1rem;
-              padding: 0 1rem;
-            }
-
-            .submitter-signature .img-sign {
-              position: absolute;
-              top: 0;
-              left: 50%;
-              width: 120px;
-              height: auto;
-              object-fit: contain;
-              transform: translate(-53%, -50%);
-              z-index: 0;
-              max-width: 25vw;
-              margin-top: 8px;
-            }
-
-
-            .floating-buttons {
-              position: fixed;
-              bottom: 20px;
-              right: 20px;
-              display: flex;
-              gap: 10px;
-              z-index: 9999;
-            }
-
-            .action-btn {
-              width: 44px;
-              height: 44px;
-              border-radius: 50%;
-              border: none;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-              color: white;
-              font-size: 20px;
-              transition: transform 0.2s ease;
-            }
-
-            .action-btn:hover {
-              transform: scale(1.1);
-            }
-
-            .print-btn {
-              background-color: #007bff;
-            }
-
-            .pdf-btn {
-              background-color: #28a745;
-            }
-
-            @media print {
-              .floating-buttons {
-                display: none !important;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="floating-buttons">
-            <button class="action-btn print-btn" onclick="window.print()" title="Print">🖨️</button>
-            <button class="action-btn pdf-btn" id="downloadPDF" title="Download PDF">📥</button>
-          </div>
-
-          ${printContents}
-
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-          <script>
-            async function toBase64Image(img) {
-              const response = await fetch(img.src, {mode: 'cors'});
-              const blob = await response.blob();
-              return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(blob);
-              });
-            }
-
-            document.getElementById("downloadPDF").addEventListener("click", async function() {
-              const element = document.body.cloneNode(true);
-              const buttons = element.querySelector('.floating-buttons');
-              if (buttons) buttons.remove();
-
-              const imgs = element.querySelectorAll('img');
-              for (let img of imgs) {
-                try {
-                  const base64 = await toBase64Image(img);
-                  img.src = base64;
-                } catch (err) {
-                  console.warn('Could not convert image:', img.src);
-                }
-              }
-
-              const opt = {
-                margin: 0.5,
-                filename: 'Revolving Request.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-              };
-
-              html2pdf().from(element).set(opt).save();
-            });
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
-
   const selectedRequest = requests.find(
     (req) => req.cal_request_code === selectedRequestCode
   );
@@ -499,13 +179,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
           </div>
 
           {selectedRequest && (
-            <button
-              onClick={handlePrint}
-              className="print-btn"
-              style={{
-                
-              }}
-            >
+            <button className="print-btn" onClick={() => window.print()}>
               🖨️ Print
             </button>
           )}
@@ -538,7 +212,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
 
               {selectedRequest && (
                 <div
-                  className="submitted-revolving-request-card"
+                  className="submitted-ca-request-card"
                   ref={cardRef}
                   style={{ marginTop: "1rem" }} >
 
@@ -591,7 +265,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                           <em>{new Date(selectedRequest.inclusive_date_from).toLocaleDateString()} - {new Date(selectedRequest.inclusive_date_to).toLocaleDateString()}</em>
                       </p>
                     </div>
-                    <div>
+                    <div className="table pr-items-table-wrapper">
                       {loadingItems ? (
                         <p>Loading items…</p>
                       ) : items.length === 0 ? (
@@ -725,7 +399,105 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                             </div>
                       </div>
                     </div>
-                    <div className="signature-section">
+                    <div className="table pr-items-table-wrapper">
+                      <p hidden>ID: {selectedRequest.id}</p>
+                      <table>
+                        <tr>
+                          <th><small>Submitted by</small></th>
+                          <td><small><input className="prf-input" value={selectedRequest.prepared_by}/></small></td>
+                          <th><small>Signature</small></th>
+                          <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.prepared_signature} readOnly required/></small>
+                            {selectedRequest.prepared_signature ? (
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.prepared_signature}`}
+                                alt="Signature"
+                                className="img-sign-prf"
+                            />
+                            ) : (
+                            <div className="img-sign-prf empty-sign"></div>
+                            )}
+                          </td>
+                        </tr>
+                        {(selectedRequest.endorsed_by || selectedRequest.endorsed_signature) && (
+                          <tr>
+                            <th><small>Endorsed by</small></th>
+                            <td><small><input type="text" className="prf-input" value={selectedRequest.endorsed_by}/></small></td>
+                            <th><small>Signature</small></th>
+                            <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.endorsed_signature} readOnly required/></small>
+                              {selectedRequest.endorsed_signature ? (
+                              <img
+                                  src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.endorsed_signature}`}
+                                  alt="Signature"
+                                  className="img-sign-prf"
+                              />
+                              ) : (
+                              <div className="img-sign-prf empty-sign"></div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+
+                        {(selectedRequest.approved_by || selectedRequest.approve_signature) && (
+                          <tr>
+                            <th><small>Approved by</small></th>
+                            <td><small><input type="text" className="prf-input" value={selectedRequest.approved_by}/></small></td>
+                            <th><small>Signature</small></th>
+                            <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.approve_signature} readOnly required/></small>
+                              {selectedRequest.approve_signature ? (
+                              <img
+                                  src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approve_signature}`}
+                                  alt="Signature"
+                                  className="img-sign-prf"
+                              />
+                              ) : (
+                              <div className="img-sign-prf empty-sign"></div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+
+                        {/* {(selectedRequest.status === "Received" || selectedRequest.status === "Completed") && (
+                          <tr>
+                            <th><small>Received by</small></th>
+                            <td>
+                              <input
+                                type="text"
+                                className="prf-input"
+                                value={selectedRequest.received_by}
+                                onChange={(e) =>
+                                  setReceiveInputs({ ...receiveInputs, received_by: e.target.value })
+                                }
+                                required
+                              />
+                            </td>
+                            <th><small>Signature</small></th>
+                            <td className="receive-signature">
+                              <input
+                                type="text"
+                                className="prf-input requests-signature"
+                                style={{ border: "transparent", color: "black" }}
+                                value={selectedRequest.received_signature}
+                                onChange={(e) =>
+                                  setReceiveInputs({ ...receiveInputs, received_signature: e.target.value })
+                                }
+                                readOnly
+                                required
+                              />
+                              {selectedRequest.received_signature ? (
+                                <img
+                                  src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.received_signature}`}
+                                  alt="Signature"
+                                  className="img-sign-prf"
+                                />
+                              ) : (
+                                <div className="img-sign-prf empty-sign"></div>
+                              )}
+                            </td>
+                          </tr>
+                        )} */}
+                      </table>
+                    </div>
+                    {/* <div className="signature-section">
                       <div className="signature-format">
                         <div className="submitter-signature">
                           <label htmlFor="submitted-by">
@@ -770,7 +542,7 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                           </label>
                         </div>
                       </div>
-                    </div>
+                    </div> */}
                     {(selectedRequest.status || selectedRequest.declined_reason) && (
                       <div className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}>
                         <div className="floating-decline-content">

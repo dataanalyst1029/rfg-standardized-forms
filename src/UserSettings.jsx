@@ -153,7 +153,7 @@ function UserSettings() {
             <label><Briefcase size={16}/> Role:</label>
             <input value={(formData.role || "").toUpperCase()} readOnly />
           </div>
-          <div className="form-group signature-img">
+          <div className="form-group form-group-items">
             <label><Image size={16}/> Signature</label>
             {formData.signature && typeof formData.signature === "string" && (
               <img

@@ -62,7 +62,7 @@ function LoginPage({ onLogin }) {
         onLogin(userPayload);
 
         setTimeout(() => {
-          navigate(data.role === "user" ? "/forms-list" : "/dashboard");
+          navigate(data.role === "user" ? "/forms-list" : "/overview");
         }, 600);
       } else {
         showMessage("error", "Invalid email or password");

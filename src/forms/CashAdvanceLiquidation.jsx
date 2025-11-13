@@ -892,101 +892,140 @@ const handleNavigate = (sectionId) => {
 
 
         <section className="pr-items-card" id="purpose">
-            <div className="pr-flex-container">
-                <div
-                className="pr-section"
-                >
-                <h2 className="pr-section-title">When Budgeted Exceeds Actual</h2>
-                <div>
-                  <span>Deposit of Excess</span>
+          <div className="pr-flex-container">
+            <div className="pr-section responsive">
+              <h2 className="pr-section-title">When Budgeted Exceeds Actual</h2>
+              <div>
+                <span>Deposit of Excess</span>
+                <input
+                  type="text"
+                  name="excess_deposit"
+                  value={formData.excess_deposit || ""}
+                  onChange={handleChange}
+                />
+              </div>
+              <div>
+                <span>Date</span>
+                <input
+                  type="date"
+                  name="date_excess"
+                  value={formData.date_excess || ""}
+                  onChange={handleChange}
+                />
+              </div>
+              <div>
+                <span>Acknowledgement Receipt No.</span>
+                <input
+                  type="text"
+                  name="ack_rcpt_no"
+                  value={formData.ack_rcpt_no || ""}
+                  onChange={handleChange}
+                />
+              </div>
+              <div>
+                  <span>Amount</span>
                   <input
-                    type="text"
-                    name="excess_deposit"
-                    value={formData.excess_deposit || ""}
-                    onChange={handleChange}
+                  type="text"
+                  name="exceed_amount"
+                  value={difference >= 0 ? difference.toFixed(2) : ""}
+                  readOnly
                   />
-                </div>
-                <div>
-                  <span>Date</span>
-                  <input
-                    type="date"
-                    name="date_excess"
-                    value={formData.date_excess || ""}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <span>Acknowledgement Receipt No.</span>
-                  <input
-                    type="text"
-                    name="ack_rcpt_no"
-                    value={formData.ack_rcpt_no || ""}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                    <span>Amount</span>
-                    <input
-                    type="text"
-                    name="exceed_amount"
-                    value={difference >= 0 ? difference.toFixed(2) : ""}
-                    readOnly
-                    />
-                </div>
-                </div>
-
-                <div
-                className="pr-section"
-                >
-                  <h2 className="pr-section-title">When Actual Exceeds Budgeted</h2>
-                  <div>
-                      <span>Reimbursable Amount</span>
-                      <input
-                      type="text"
-                      name="rb_amount"
-                      value={difference < 0 ? Math.abs(difference).toFixed(2) : ""}
-                      readOnly
-                      />
-                  </div>
-                </div>
+              </div>
             </div>
-          </section>
+
+            <div className="pr-section responsive">
+              <h2 className="pr-section-title">When Actual Exceeds Budgeted</h2>
+              <div>
+                <span>Reimbursable Amount</span>
+                <input
+                type="text"
+                name="rb_amount"
+                value={difference < 0 ? Math.abs(difference).toFixed(2) : ""}
+                readOnly
+                />
+              </div>
+            </div>
+          </div>
+        </section>
 
 
           <section className="rfr-form-section" id="signature">
             <h2 className="rfr-section-title">Signature Details</h2>
-
-            <div className="signature-details">
-              <label htmlFor="prepared-by">
-                <input
-                  type="text"
-                  name="prepared_by"
-                  value={formData.prepared_by || ""}
-                  onChange={handleChange}
-                />
-                <p>Prepared by:</p>
-              </label>
-
-              <label htmlFor="submitted-signature" className="signature-by">
-                {userData.signature ? (
-                  <img
-                    src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                    alt="Signature"
-                    className="signature-img"
-                  />
-                ) : (
-                  <p>No signature available</p>
-                )}
-
-                <input
-                  type="text"
-                  name="prepared_signature"
-                  value={formData.prepared_signature || ""}
-                  onChange={handleChange}
-                />
-                <p>Signature:</p>
-              </label>
+            <div className="pr-grid-two">
+                <div className="pr-field">
+                    <label className="pr-label" htmlFor="prepared-by">
+                    Prepared by
+                    </label>
+                    <input
+                        id="prepared-by"
+                        name="prepared_by"
+                        value={formData.prepared_by || ""}
+                        className="pr-input"
+                        onChange={handleChange}
+                        readOnly
+                        required
+                    />
+                </div>
+                
+                <div className="pr-field receive-signature">
+                  <label className="pr-label" htmlFor="signaturePrepared">
+                    Signature
+                  </label>
+                    <input type="text" 
+                      name="request_signature" 
+                      className="car-input received-signature" 
+                      value={userData.signature || ""} 
+                      onChange={handleChange}
+                      required
+                      readOnly /> 
+                      {userData.signature ? (
+                      <img
+                        src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                        alt="Signature"
+                        className="img-sign"/>
+                        ) : (
+                          <p>No signature available</p>
+                    )}
+                </div>
             </div>
+
+            {/* <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="name">
+                        Name
+                    </label>
+                <label htmlFor="prepared-by">
+                  <input
+                    type="text"
+                    name="prepared_by"
+                    value={formData.prepared_by || ""}
+                    className="car-input"
+                    onChange={handleChange}
+                  />
+                  <p>Prepared by:</p>
+                </label>
+
+                <label htmlFor="submitted-signature" className="signature-by">
+                  {userData.signature ? (
+                    <img
+                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                      alt="Signature"
+                      className="signature-img"
+                    />
+                  ) : (
+                    <p>No signature available</p>
+                  )}
+
+                  <input
+                    type="text"
+                    name="prepared_signature"
+                    value={formData.prepared_signature || ""}
+                    onChange={handleChange}
+                  />
+                  <p>Signature:</p>
+                </label>
+              </div>
+            </div> */}
           </section>
 
           <div className="pr-form-actions">

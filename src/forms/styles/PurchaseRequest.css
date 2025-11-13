@@ -642,4 +642,8 @@
   .requests-signature{
     padding: .3rem;
   }
+
+  .pr-flex-container {
+    flex-direction: column; 
+  }
 }

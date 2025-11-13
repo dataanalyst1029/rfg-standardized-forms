@@ -14,7 +14,8 @@ import RequestReimbursement from "./RequestReimbursement";
 import RequestPayment from "./RequestPayment";
 import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ReportsAudit from "./reports/ReportsAudit.jsx";
 import ReportsPurchaseRequest from "./reports/ReportsPurchaseRequest.jsx";
 import ReportsRevolvingFund from "./reports/ReportsRevolvingFund.jsx";
@@ -515,7 +516,22 @@ function Dashboard({ role, name, onLogout }) {
   const storedId = sessionStorage.getItem("id");
   const [userAccess, setUserAccess] = useState([]);
   const [userRole, setUserRole] = useState([]);
+  const { view } = useParams();
   const navigate = useNavigate();
+
+  // const [activeView, setActiveView] = useState(view || "overview");
+
+  useEffect(() => {
+    if (view && view !== activeView) {
+      setActiveView(view);
+    }
+  }, [view]);
+
+  const handleMenuClick = (menuId) => {
+    setActiveView(menuId);
+    navigate(`/${menuId}`);
+  };
+
 
   useEffect(() => {
     let ignore = false;
@@ -666,6 +682,20 @@ function Dashboard({ role, name, onLogout }) {
               <span className="sidebar-section-title">{section.title}</span>
               <nav className="sidebar-nav">
                 {section.items.map((item) => {
+                  if (item.id === "overview") {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`sidebar-item${activeView === "overview" ? " sidebar-item-active" : ""}`}
+                        onClick={() => handleMenuClick("overview")}
+                      >
+                        <span className="sidebar-item-icon">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  } 
+
                   if (item.id === "requests") {
                     if (role === "admin") return null;
                     return (
@@ -707,7 +737,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "purchase-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("purchase-request")}
+                                onClick={() => handleMenuClick("purchase-request")}
                               >
                                 Purchase Request
                               </button>
@@ -719,7 +749,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "revolving-fund-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("revolving-fund-request")}
+                                onClick={() => handleMenuClick("revolving-fund-request")}
                               >
                                 Revolving Fund
                               </button>
@@ -741,7 +771,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "cash-advance-liquidation" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("cash-advance-liquidation")}
+                                onClick={() => handleMenuClick("cash-advance-liquidation")}
                               >
                                 Cash Advance Liquidation
                               </button>
@@ -763,7 +793,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "reimbursement" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("reimbursement")}
+                                onClick={() => handleMenuClick("reimbursement")}
                               >
                                 Reimbursement Form
                               </button>
@@ -774,7 +804,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "payment-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("payment-request")}
+                                onClick={() => handleMenuClick("payment-request")}
                               >
                                 Payment Request
                               </button>
@@ -785,7 +815,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "purchase-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("purchase-request")}
+                                onClick={() => handleMenuClick("purchase-request")}
                               >
                                 Maintenance or Repair
                               </button>
@@ -796,7 +826,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "purchase-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("purchase-request")}
+                                onClick={() => handleMenuClick("purchase-request")}
                               >
                                 HR Overtime Approval
                               </button>
@@ -807,7 +837,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "purchase-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("purchase-request")}
+                                onClick={() => handleMenuClick("purchase-request")}
                               >
                                 HR Leave Application
                               </button>
@@ -818,7 +848,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "purchase-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("purchase-request")}
+                                onClick={() => handleMenuClick("purchase-request")}
                               >
                                 Interbranch Transfer Slip
                               </button>
@@ -829,7 +859,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "purchase-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("purchase-request")}
+                                onClick={() => handleMenuClick("purchase-request")}
                               >
                                 Credit Card Acknowledgement Receipt
                               </button>
@@ -866,7 +896,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "reports-purchase-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("reports-purchase-request")}
+                                onClick={() => handleMenuClick("reports-purchase-request")}
                               >
                                 Purchase Request
                               </button>
@@ -878,7 +908,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "reports-revolving-fund" ? " underline-active" : ""
                                 }`}
-                                  onClick={() => setActiveView("reports-revolving-fund")}
+                                  onClick={() => handleMenuClick("reports-revolving-fund")}
                                 >
                                   Revolving Fund
                                 </button>
@@ -890,7 +920,7 @@ function Dashboard({ role, name, onLogout }) {
                                   className={`sidebar-item sidebar-item-nested${
                                     activeView === "reports-cash-advance" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => setActiveView("reports-cash-advance")}
+                                  onClick={() => handleMenuClick("reports-cash-advance")}
                                 >
                                   Cash Advance Request
                                 </button>
@@ -902,7 +932,7 @@ function Dashboard({ role, name, onLogout }) {
                                   className={`sidebar-item sidebar-item-nested${
                                     activeView === "reports-cash-advance-liquidation" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => setActiveView("reports-cash-advance-liquidation")}
+                                  onClick={() => handleMenuClick("reports-cash-advance-liquidation")}
                                 >
                                   Cash Advance Liquidation
                                 </button>
@@ -914,7 +944,7 @@ function Dashboard({ role, name, onLogout }) {
                                   className={`sidebar-item sidebar-item-nested${
                                     activeView === "reports-audit" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => setActiveView("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-audit")}
                                 >
                                   CA Receipt Form
                                 </button>
@@ -926,7 +956,7 @@ function Dashboard({ role, name, onLogout }) {
                                   className={`sidebar-item sidebar-item-nested${
                                     activeView === "reports-reimbursement-form" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => setActiveView("reports-reimbursement-form")}
+                                  onClick={() => handleMenuClick("reports-reimbursement-form")}
                                 >
                                   Reimbursement Form
                                 </button>
@@ -938,7 +968,7 @@ function Dashboard({ role, name, onLogout }) {
                                   className={`sidebar-item sidebar-item-nested${
                                     activeView === "reports-payment" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => setActiveView("reports-payment")}
+                                  onClick={() => handleMenuClick("reports-payment")}
                                 >
                                   Payment Request Form
                                 </button>
@@ -950,7 +980,7 @@ function Dashboard({ role, name, onLogout }) {
                                   className={`sidebar-item sidebar-item-nested${
                                     activeView === "reports-audit" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => setActiveView("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-audit")}
                                 >
                                   Maintenance or Repair
                                 </button>
@@ -962,7 +992,7 @@ function Dashboard({ role, name, onLogout }) {
                                   className={`sidebar-item sidebar-item-nested${
                                     activeView === "reports-audit" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => setActiveView("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-audit")}
                                 >
                                   HR Overtime Approval
                                 </button>
@@ -974,7 +1004,7 @@ function Dashboard({ role, name, onLogout }) {
                                   className={`sidebar-item sidebar-item-nested${
                                     activeView === "reports-audit" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => setActiveView("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-audit")}
                                 >
                                   HR Leave Application
                                 </button>
@@ -986,7 +1016,7 @@ function Dashboard({ role, name, onLogout }) {
                                   className={`sidebar-item sidebar-item-nested${
                                     activeView === "reports-audit" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => setActiveView("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-audit")}
                                 >
                                   Interbranch Transfer Slip
                                 </button>
@@ -998,7 +1028,7 @@ function Dashboard({ role, name, onLogout }) {
                                   className={`sidebar-item sidebar-item-nested${
                                     activeView === "reports-audit" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => setActiveView("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-audit")}
                                 >
                                   Credit Card Acknowledgement Receipt
                                 </button>
@@ -1064,7 +1094,7 @@ function Dashboard({ role, name, onLogout }) {
             type="button"
             className={`sidebar-item${activeView === "profile" ? " sidebar-item-active" : ""}`}
             onClick={() => {
-              setActiveView("profile");
+              handleMenuClick("profile");
               setRequestsOpen(false);
               setReportsOpen(false);
             }}
@@ -1109,13 +1139,13 @@ function Dashboard({ role, name, onLogout }) {
             <h1 className="topbar-title">{activeItem?.headline}</h1>
             <p className="topbar-subtitle">{activeItem?.description}</p>
           </div>
-          <div className="topbar-actions">
+          {/* <div className="topbar-actions">
             <input
               type="search"
               placeholder="Quick find (⌘K)"
               className="topbar-search"
             />
-          </div>
+          </div> */}
         </header>
 
         {renderActiveView(activeView, {

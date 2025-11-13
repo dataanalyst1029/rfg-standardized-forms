@@ -92,7 +92,7 @@ function App() {
         />
 
         <Route
-          path="/dashboard"
+          path="/:view"
           element={
             user && user.role !== "user" ? (
               <Dashboard role={user.role} name={user.name} onLogout={handleLogout} />
