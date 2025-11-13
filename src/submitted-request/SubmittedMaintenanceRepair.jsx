@@ -4,7 +4,7 @@ import { API_BASE_URL } from "../config/api.js";
 import "./styles/submitted-request.css";
 import "./styles/submitted-payment-request.css";
 // This CSS file will now be a copy of the interbranch one
-import "./styles/submitted-maintenance-repair.css"; 
+import "./styles/submitted-maintenance-repair.css";
 import rfgLogo from "../assets/rfg_logo.png"; // <-- Added logo import
 
 const NAV_SECTIONS = [
@@ -137,12 +137,7 @@ function SubmittedMaintenanceRepair({
     };
 
     fetchRequests();
-  }, [
-    effectiveRole,
-    effectiveUserId,
-    showAll,
-    storedUser.employee_id,
-  ]);
+  }, [effectiveRole, effectiveUserId, showAll, storedUser.employee_id]);
 
   const selectedRequest = requests.find(
     (request) => request.form_code === selectedCode,
@@ -170,7 +165,7 @@ function SubmittedMaintenanceRepair({
   const handlePrint = () => {
     window.print();
   };
-  
+
   const handleAccomplish = async (request) => {
     try {
       if (!request?.id) {
@@ -197,7 +192,7 @@ function SubmittedMaintenanceRepair({
         accomplished_by: userData.name,
         accomplished_signature: userData.signature,
         date_completed: new Date().toISOString(),
-        performed_by: userData.name, 
+        performed_by: userData.name,
       };
 
       const res = await fetch(
@@ -234,17 +229,15 @@ function SubmittedMaintenanceRepair({
   };
 
   if (loading) {
-      return (
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <span>Loading submitted maintenance/repair requests…</span>
-        </div>
-      );
-    }
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <span>Loading submitted maintenance/repair requests…</span>
+      </div>
+    );
+  }
 
   const renderBody = () => {
-
-
     if (error) {
       return <p className="pr-error-message">{error}</p>;
     }
@@ -294,58 +287,47 @@ function SubmittedMaintenanceRepair({
               </div>
             </header>
 
-            {/* --- Requestor Details (using ITS table layout) --- */}
-            <div 
+            {/* --- MODIFICATION: Requestor Details (now a single 3-row table) --- */}
+            <div
               className="mrf-transport-header"
               style={{ marginTop: "1rem" }}
             >
               Requestor Details
             </div>
-            <div className="mrf-grid-two">
-              <div className="mrf-col-left">
-                <table className="mrf-info-table">
-                  <tbody>
-                    {/* --- MODIFICATION: Added "" fallback --- */}
-                    <tr>
-                      <th>Name</th>
-                      <td>{displayText(selectedRequest.requester_name, "")}</td>
-                    </tr>
-                    <tr>
-                      <th>Employee ID</th>
-                      <td>{displayText(selectedRequest.employee_id, "")}</td>
-                    </tr>
-                    <tr>
-                      <th>Branch / Department</th>
-                      <td>
-                        {displayText(selectedRequest.branch, "")} /{" "}
-                        {displayText(selectedRequest.department, "")}
-                      </td>
-                    </tr>
-                    {/* --- END MODIFICATION --- */}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mrf-col-right">
-                <table className="mrf-info-table">
-                  <tbody>
-                    {/* --- MODIFICATION: Added "" fallback --- */}
-                    <tr>
-                      <th>Date</th>
-                      <td>{formatDate(selectedRequest.request_date)}</td>
-                    </tr>
-                    <tr>
-                      <th>Date Needed</th>
-                      <td>{formatDate(selectedRequest.date_needed)}</td>
-                    </tr>
-                    <tr>
-                      <th>Asset Tag/Code</th>
-                      <td>{displayText(selectedRequest.asset_tag, "")}</td>
-                    </tr>
-                    {/* --- END MODIFICATION --- */}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <table className="mrf-info-table">
+              <tbody>
+                <tr>
+                  <th>Name</th>
+                  <td>{displayText(selectedRequest.requester_name, "")}</td>
+                  <th>Date</th>
+                  <td>{formatDate(selectedRequest.request_date)}</td>
+                </tr>
+                <tr>
+                  <th>Employee ID</th>
+                  <td>{displayText(selectedRequest.employee_id, "")}</td>
+                  <th>Date Needed</th>
+                  <td>{formatDate(selectedRequest.date_needed)}</td>
+                </tr>
+                <tr>
+                  <th>Branch / Department</th>
+                  <td>
+                    {displayText(selectedRequest.branch, "")} /{" "}
+                    {displayText(selectedRequest.department, "")}
+                  </td>
+                  <th>Signature</th>
+                  <td className="sig-box">
+                    {selectedRequest.signature ? (
+                      <img
+                        src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.signature}`}
+                        alt="Requester signature"
+                        className="signature-img"
+                      />
+                    ) : null}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            {/* --- END MODIFICATION --- */}
 
             {/* --- Description of Work (using new block style) --- */}
             <div className="mrf-transport-header">
@@ -356,42 +338,46 @@ function SubmittedMaintenanceRepair({
               <p>{displayText(selectedRequest.work_description, "")}</p>
               {/* --- END MODIFICATION --- */}
             </div>
-            
-            {/* --- Completion Info (using ITS table layout) --- */}
-            <div className="mrf-transport-header">Completion Information</div>
+            <span>
+              <table className="mrf-info-table">
+                <tr>
+                  <th>Asset Tag/Code</th>
+                  <td>{displayText(selectedRequest.asset_tag, "")}</td>
+                </tr>
+              </table>
+            </span>
+
+            {/* --- MODIFICATION: Completion Info (now 3 rows on the left) --- */}
             <div className="mrf-grid-two">
               <div className="mrf-col-left">
+                <div className="mrf-transport-header">
+                  Completion Information
+                </div>
                 <table className="mrf-info-table">
                   <tbody>
-                    {/* --- MODIFICATION: Added "" fallback --- */}
                     <tr>
                       <th>Performed By</th>
                       <td>{displayText(selectedRequest.performed_by, "")}</td>
                     </tr>
-                    {/* --- END MODIFICATION --- */}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mrf-col-right">
-                <table className="mrf-info-table">
-                  <tbody>
                     <tr>
                       <th>Date Completed</th>
                       <td>{formatDate(selectedRequest.date_completed)}</td>
                     </tr>
+                    <tr>
+                      <th>Completion Remarks</th>
+                      <td style={{ minHeight: "5rem" }}>
+                        {displayText(selectedRequest.completion_remarks, "")}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
+              <div className="mrf-col-right">
+                {/* This column is intentionally left blank to push the other to the left */}
+                &nbsp;
+              </div>
             </div>
-            <div className="mrf-transport-header">
-              Completion Remarks
-            </div>
-            <div className="mrf-field-block">
-              {/* --- MODIFICATION: Added "" fallback --- */}
-              <p>{displayText(selectedRequest.completion_remarks, "")}</p>
-              {/* --- END MODIFICATION --- */}
-            </div>
-
+            {/* --- END MODIFICATION --- */}
 
             {/* --- Signature Table (using ITS sig table layout) --- */}
             <table className="mrf-sig-table">
@@ -450,7 +436,7 @@ function SubmittedMaintenanceRepair({
                 {/* --- END MODIFICATION --- */}
               </tbody>
             </table>
-            
+
             {/* --- Status & Action Button Logic (from previous step) --- */}
             {(selectedRequest.status || selectedRequest.declined_reason) && (
               <div
@@ -474,7 +460,7 @@ function SubmittedMaintenanceRepair({
 
             {selectedRequest.status === "Approved" && (
               <button
-                className="floating-receive-btn" 
+                className="floating-receive-btn"
                 onClick={() => handleAccomplish({ ...selectedRequest })}
                 disabled={selectedRequest.status === "Accomplished"}
               >

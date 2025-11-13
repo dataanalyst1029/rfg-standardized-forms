@@ -1,6 +1,21 @@
 /* src/styles/LeaveApplication.css */
 
 /* --- ALL NEW STYLES FOR LAF LAYOUT --- */
+
+.laf-record-request {
+  background: #ffffff;
+  padding: 1.15rem 1.4rem;
+  margin: 0 auto;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
+  color: var(--card-text, #000);
+  display: flex;
+  flex-direction: column;
+}
+
+.submitted-leave-header {
+  margin-bottom: 1.5rem;
+}
+
 .laf-card {
   border: 1px solid #000;
   padding: 0.25in;
@@ -8,28 +23,6 @@
   max-width: 8in;
   background: #fff;
   color: #000;
-}
-.laf-header {
-  display: flex;
-  justify-content: center; /* Center title */
-  align-items: flex-start;
-  position: relative; /* For doc num */
-  border-bottom: 2px solid #000;
-  padding-bottom: 0.1in;
-  margin-bottom: 0.2in;
-}
-.laf-header-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  text-align: center;
-  margin: 0;
-}
-.laf-header-doc-num {
-  position: absolute;
-  top: 0;
-  right: 0;
-  font-weight: bold;
-  font-size: 1.1rem;
 }
 
 .laf-grid-top {
@@ -41,15 +34,7 @@
 }
 
 .laf-box {
-  border: 2px solid #000;
-}
-
-.laf-box-header {
-  background: #000;
-  color: #fff;
-  padding: 4px 8px;
-  font-weight: bold;
-  font-size: 1.1rem;
+  border: 1px solid #000;
 }
 
 .laf-box-content {
@@ -59,17 +44,6 @@
 .laf-table {
   width: 100%;
   border-collapse: collapse;
-}
-.laf-table th,
-.laf-table td {
-  padding: 4px;
-  border: 1px solid #999;
-  vertical-align: top;
-}
-.laf-table th {
-  text-align: left;
-  width: 30%;
-  font-weight: bold;
 }
 
 /* Box for Date Filed / Branch */
@@ -89,10 +63,11 @@
 
 /* Main Leave Details Box */
 .laf-leave-details {
-  border: 2px solid #000;
+  border: 1px solid #000;
   padding: 0.15in;
   margin-bottom: 0.2in;
 }
+
 .laf-leave-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -100,22 +75,12 @@
 }
 .laf-leave-grid strong {
   font-size: 1.1rem;
-  text-decoration: underline;
 }
+
 .laf-table-nested {
   width: 100%;
   border-collapse: collapse;
   margin-top: 8px;
-}
-.laf-table-nested th,
-.laf-table-nested td {
-  border: 1px solid #999;
-  padding: 4px;
-  text-align: left;
-}
-.laf-table-nested th {
-  width: 30%;
-  font-weight: bold;
 }
 
 .laf-purpose-line {
@@ -126,7 +91,7 @@
 }
 .laf-purpose-line p {
   min-height: 2.5rem;
-  border-bottom: 1px solid #999;
+  border-bottom: 1px solid #55555535;
   padding: 4px 0;
   margin: 0;
 }
@@ -140,11 +105,7 @@
   grid-template-columns: 2fr 1fr;
   gap: 0.2in;
 }
-.laf-hr-remarks p {
-  min-height: 4rem;
-  border-bottom: 1px solid #999;
-  margin: 0;
-}
+/* --- REMOVED a duplicate, weaker .laf-hr-remarks p rule --- */
 .laf-available-leaves {
   margin-top: 0.15in;
 }
@@ -156,7 +117,8 @@
 /* Signature Section */
 .laf-sig-section {
   display: grid;
-  grid-template-columns: 1.5fr 2fr;
+  /* --- THIS IS THE FIX --- */
+  grid-template-columns: 1fr 1fr; /* Was 1.5fr 2fr */
   gap: 0.2in;
   margin-top: 0.1in;
 }
@@ -177,16 +139,21 @@
   width: 40%;
 }
 .sig-cell {
-  text-align: center;
-  vertical-align: middle;
+  overflow: visible !important;
+  position: relative;
+  height: 20px !important;
 }
 .signature-img {
-  max-width: 120px;
-  height: auto;
-  margin: 0 auto;
-  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 3.5rem;
+  width: auto;
+  max-width: 150px;
 }
 
+/* Duplicated styles from original file, ensuring they are present */
 .laf-card {
   border: 1px solid #000;
   padding: 0.25in;
@@ -202,7 +169,7 @@
   justify-content: center; /* Center title */
   align-items: flex-start;
   position: relative; /* For doc num */
-  border-bottom: 2px solid #000;
+  border-bottom: 1px solid #000;
   padding-bottom: 0.1in;
   margin-bottom: 0.2in;
 }
@@ -219,7 +186,6 @@
   font-weight: bold;
   font-size: 1.1rem;
 }
-
 .laf-grid-top {
   display: grid;
   grid-template-columns: 2fr 1.2fr;
@@ -227,23 +193,20 @@
   width: 100%;
   margin-bottom: 0.2in;
 }
-
 .laf-box {
-  border: 2px solid #000;
+  border: 1px solid #55555535;
 }
-
 .laf-box-header {
   background: #000;
-  color: #fff;
-  padding: 4px 8px;
+  color: #adadadff;
+  text-align: center; 
+  padding: 8px 8px;
   font-weight: bold;
-  font-size: 1.1rem;
+  font-size: 1.0rem;
 }
-
 .laf-box-content {
   padding: 8px;
 }
-
 .laf-table {
   width: 100%;
   border-collapse: collapse;
@@ -251,33 +214,29 @@
 .laf-table th,
 .laf-table td {
   padding: 4px;
-  border: 1px solid #999;
+  border: 1px solid #55555535;
   vertical-align: top;
 }
 .laf-table th {
   text-align: left;
-  width: 30%;
+  width: 20%;
   font-weight: bold;
 }
-
-/* Box for Date Filed / Branch */
 .laf-table-inline {
   width: 100%;
   border-collapse: collapse;
 }
 .laf-table-inline th,
 .laf-table-inline td {
-  border: 1px solid #000;
+  border: 1px solid #55555535;
   padding: 6px 8px;
 }
 .laf-table-inline th {
   font-weight: bold;
   width: 40%;
 }
-
-/* Main Leave Details Box */
 .laf-leave-details {
-  border: 2px solid #000;
+  border: 1px solid #55555535;
   padding: 0.15in;
   margin-bottom: 0.2in;
 }
@@ -288,7 +247,6 @@
 }
 .laf-leave-grid strong {
   font-size: 1.1rem;
-  text-decoration: underline;
 }
 .laf-table-nested {
   width: 100%;
@@ -297,7 +255,7 @@
 }
 .laf-table-nested th,
 .laf-table-nested td {
-  border: 1px solid #999;
+  border: 1px solid #55555535;
   padding: 4px;
   text-align: left;
 }
@@ -305,7 +263,6 @@
   width: 30%;
   font-weight: bold;
 }
-
 .laf-purpose-line {
   margin-top: 0.2in;
 }
@@ -314,12 +271,10 @@
 }
 .laf-purpose-line p {
   min-height: 2.5rem;
-  border-bottom: 1px solid #999;
+  border-bottom: 1px solid #55555535;
   padding: 4px 0;
   margin: 0;
 }
-
-/* HR Box */
 .laf-hr-box {
   margin-bottom: 0.2in;
 }
@@ -330,9 +285,19 @@
 }
 .laf-hr-remarks p {
   min-height: 4rem;
-  border-bottom: 1px solid #999;
+  border-bottom: 1px solid #55555535;
   margin: 0;
 }
+
+/* --- THIS IS THE FIX --- */
+/* This targets the <p> tag for "Date Received" and gives it
+   the same min-height as the "Remarks" <p> tag. */
+.laf-hr-grid > div:not(.laf-hr-remarks) p {
+  min-height: 4rem;
+  margin: 0;
+}
+/* --- END FIX --- */
+
 .laf-available-leaves {
   margin-top: 0.15in;
 }
@@ -340,22 +305,21 @@
   margin: 4px 0;
   padding-left: 1rem;
 }
-
-/* Signature Section */
 .laf-sig-section {
   display: grid;
-  grid-template-columns: 1.5fr 2fr;
+  /* --- THIS IS THE FIX (for the duplicate rule) --- */
+  grid-template-columns: 1fr 1fr; /* Was 1.5fr 2fr */
   gap: 0.2in;
   margin-top: 0.1in;
 }
 .laf-sig-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid #000;
+  border: 1px solid #55555535;
 }
 .laf-sig-table th,
 .laf-sig-table td {
-  border: 1px solid #000;
+  border: 1px solid #55555535;
   padding: 6px 8px;
   height: 2.5rem; /* Set height for sig boxes */
 }
@@ -373,4 +337,64 @@
   height: auto;
   margin: 0 auto;
   display: block;
+}
+
+.laf-table-nested th,
+.laf-table-inline th,
+.laf-sig-table th,
+.laf-table th {
+  background: #f7f7f7;
+}
+
+/* --- MODIFIED: Print Media Query --- */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  /* --- THIS IS THE FIX --- */
+  /* It now targets .laf-record-request AND its children (*) */
+  .laf-record-request,
+  .laf-record-request * {
+    visibility: visible;
+  }
+  /* --- END FIX --- */
+  .laf-record-request::before {
+    content: "HR Leave Application";
+    display: block;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  .pr-layout {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+  }
+  .pr-main {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+  .laf-card {
+    /* This rule is fine, but .laf-record-request is the main one */
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    max-width: 100%;
+  }
+  .laf-record-request {
+    border: none;
+    box-shadow: none;
+  }
+  .pr-sidebar,
+  .pr-topbar,
+  .print-btn,
+  .dropdown-section,
+  .floating-status-indicator,
+  .floating-decline-reason { /* Also hide the status box */
+    display: none !important;
+  }
 }

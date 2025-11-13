@@ -1,6 +1,6 @@
 /* --- STYLES COPIED FROM submitted-interbranch-transfer.css --- */
 
-.mrf-record-request{
+.mrf-record-request {
   background: #ffffff;
   padding: 1.15rem 1.4rem;
   margin: 0 auto;
@@ -22,13 +22,13 @@
 
 .mrf-items-table {
   width: 100%;
-  border: 1px solid #111;
+  border: 1px solid #55555535;
   border-collapse: collapse;
   font-size: 0.88rem;
 }
 .mrf-items-table th,
 .mrf-items-table td {
-  border: 1px solid #111;
+  border: 1px solid #55555535;
   padding: 0.45rem 0.6rem;
   text-align: left;
 }
@@ -48,27 +48,25 @@
 }
 
 .mrf-transport-header {
-  background: #111;
-  color: #fff;
-  padding: 0.55rem 0.75rem;
-  font-weight: 600;
-  text-align: center;
+  background: #000;
+  color: #adadadff;
+  text-align: center; 
+  padding: 8px 8px;
+  font-weight: bold;
+  font-size: 1.0rem;
   text-transform: uppercase;
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
-  margin-top: 1rem;
 }
 
 .mrf-info-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid #111;
+  border: 1px solid #55555535;
   font-size: 0.9rem;
 }
 
 .mrf-info-table th,
 .mrf-info-table td {
-  border: 1px solid #111;
+  border: 1px solid #55555535;
   padding: 0.5rem 0.65rem;
   text-align: left;
   vertical-align: top;
@@ -78,14 +76,16 @@
 
 .mrf-info-table th {
   font-weight: 600;
-  background: #f7f7f7;
-  width: 40%;
+  background: #fff;
+  /* --- MODIFICATION: Adjusted width for 4-column layout --- */
+  width: 20%;
 }
+/* --- END MODIFICATION --- */
 
 .mrf-transport-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid #111;
+  border: 1px solid #55555535;
   font-size: 0.9rem;
   height: fit-content;
 }
@@ -93,7 +93,7 @@
 .mrf-sig-table,
 .mrf-received-table {
   width: 100%;
-  border: 1px solid #111;
+  border: 1px solid #55555535;
   border-collapse: collapse;
   font-size: 0.88rem;
   margin-top: 1rem;
@@ -103,7 +103,7 @@
 .mrf-sig-table td,
 .mrf-received-table th,
 .mrf-received-table td {
-  border: 1px solid #111;
+  border: 1px solid #55555535;
   padding: 0.6rem 0.7rem;
   text-align: left;
   vertical-align: top;
@@ -124,10 +124,10 @@
 
 /* --- MODIFICATION: Added object-fit --- */
 .signature-img {
-  position: absolute; 
-  top: 50%; 
-  left: 50%; 
-  transform: translate(-50%, -50%); 
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   max-height: 100px;
   width: auto;
   max-width: 150px;
@@ -136,8 +136,7 @@
 /* --- END MODIFICATION --- */
 
 .mrf-receiving-section {
-  border: 1px solid #111;
-  border-radius: 8px;
+  border: 1px solid #55555535;
   overflow: hidden;
   margin-top: 1rem;
   font-size: 0.9rem;
@@ -164,7 +163,7 @@
 }
 
 .mrf-receiving-col:first-child {
-  border-right: 1px solid #111;
+  border-right: 1px solid #55555535;
 }
 
 .mrf-receiving-col p {
@@ -181,7 +180,7 @@
 
 .mrf-transport-table th,
 .mrf-transport-table td {
-  border: 1px solid #111;
+  border: 1px solid #55555535;
   text-align: left;
   vertical-align: top;
   padding: 0.01rem 0.01rem;
@@ -194,7 +193,7 @@
 }
 
 .mrf-field-block {
-  border: 1px solid #111;
+  border: 1px solid #55555535;
   border-top: none;
   padding: 0.75rem 1rem;
   min-height: 6rem;
@@ -208,25 +207,7 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
-/* .floating-receive-btn {
-  position: fixed;
-  top: 8rem;
-  right: 30px;
-  background-color: #28a745;
-  color: #fff;
-  border: none;
-  padding: 0.9rem 1.6rem;
-  font-size: 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  transition: all 0.25s ease;
-}
 
-.floating-receive-btn:hover {
-  background-color: #218838;
-  transform: scale(1.05);
-} */
 .status-text {
   margin: 0 0 0.5rem 0;
   font-weight: 600;
@@ -255,14 +236,14 @@
     background-color: #ffffff !important;
     padding: 0;
   }
- 
+
   .mrf-record-request {
     max-width: 700px;
   }
-  .mrf--grid-two {
+  .mrf-grid-two {
     page-break-inside: avoid;
   }
-  
+
   @page {
     margin: 0.5in;
   }
@@ -294,48 +275,17 @@
   .mrf-received-table th {
     width: 120px !important;
   }
-  
+
   /* --- MODIFICATION: Added width/max-width/object-fit for print --- */
   .signature-img {
-    max-height: 100px; 
-    position: absolute; 
-    transform: none; 
-    top: -30px; 
-    left: 10px; 
-    z-index: 10px; 
+    max-height: 100px;
+    position: absolute;
+    transform: none;
+    top: -30px;
+    left: 10px;
+    z-index: 10px;
     width: auto; /* <-- Prevents stretching */
     max-width: 150px; /* <-- Prevents stretching */
     object-fit: contain; /* <-- Prevents stretching */
-  }
-  /* --- END MODIFICATION --- */
-  
-  .mrf-items-table,
-  .mrf-info-table,
-  .mrf-transport-table,
-  .mrf-sig-table,
-  .mrf-received-table,
-  .mrf-receiving-section,
-  .mrf-field-block {
-    border: 1px solid #55555535 !important;
-    page-break-inside: avoid;
-  }
-  .mrf-items-table th,
-  .mrf-items-table td,
-  .mrf-info-table th,
-  .mrf-info-table td,
-  .mrf-transport-table th,
-  .mrf-transport-table td,
-  .mrf-sig-table th,
-  .mrf-sig-table td,
-  .mrf-received-table th,
-  .mrf-received-table td {
-    border: 1px solid #55555535 !important;
-  }
-
-  .mrf-field-block {
-    border-top: 1px solid #55555535 !important;
-  }
-  .mrf-receiving-col:first-child {
-    border-right: 1px solid #55555535 !important;
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react"; // 1. useRef removed
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api.js";
 // import "./styles/submitted-request.css";
@@ -75,9 +75,9 @@ function SubmittedInterbranchTransferSlip({
   const [selectedCode, setSelectedCode] = useState("");
   const [items, setItems] = useState([]);
   const [loadingItems, setLoadingItems] = useState(false);
-  const cardRef = useRef(null);
+  // 2. const cardRef = useRef(null); removed
 
- const effectiveUserId = showAll
+  const effectiveUserId = showAll
     ? null
     : currentUserId || storedUser.id || null;
   const effectiveRole = storedUser.role || "";
@@ -98,7 +98,9 @@ function SubmittedInterbranchTransferSlip({
 
         const query = params.toString();
         const response = await fetch(
-          `${API_BASE_URL}/api/interbranch_transfer_slip${query ? `?${query}` : ""}`,
+          `${API_BASE_URL}/api/interbranch_transfer_slip${
+            query ? `?${query}` : ""
+          }`,
         );
 
         if (!response.ok) {
@@ -295,17 +297,17 @@ function SubmittedInterbranchTransferSlip({
   // --- END FEATURE ---
 
   // --- FEATURE: Added loading spinner (matches Payment Request) ---
-    if (loading) {
-      // Assumes .loading-container and .spinner styles are available globally
-      // (from submitted-request.css or similar)
-      return (
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <span>Loading submitted transfer slips…</span>
-        </div>
-      );
-    }
-    // --- END FEATURE ---
+  if (loading) {
+    // Assumes .loading-container and .spinner styles are available globally
+    // (from submitted-request.css or similar)
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <span>Loading submitted transfer slips…</span>
+      </div>
+    );
+  }
+  // --- END FEATURE ---
 
   const renderBody = () => {
     if (error) {
@@ -339,8 +341,8 @@ function SubmittedInterbranchTransferSlip({
         </div>
 
         {selectedRequest && (
-          <div className="submitted-its-request-card" ref={cardRef}>
-
+          // 3. 'ref={cardRef}' removed from the div below
+          <div className="its-request-card">
             <header className="request-header">
               <div className="header-brand">
                 <img
@@ -615,7 +617,7 @@ function SubmittedInterbranchTransferSlip({
             </table>
 
             <div className="its-receiving-section">
-              <div className="its-receiving-header">
+              <div className="its-transport-header">
                 RECEIVING BRANCH USE ONLY
               </div>
               <div className="its-receiving-content">
@@ -670,7 +672,9 @@ function SubmittedInterbranchTransferSlip({
                 onClick={() => handleReceive({ ...selectedRequest })}
                 disabled={selectedRequest.status === "Received"}
               >
-                {selectedRequest.status === "Received" ? "✅ Received" : "Receive"}
+                {selectedRequest.status === "Received"
+                  ? "✅ Received"
+                  : "Receive"}
               </button>
             )}
             {/* --- END FEATURE --- */}

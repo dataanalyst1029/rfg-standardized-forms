@@ -1,14 +1,24 @@
 /* --- Compact Element Styles --- */
+.its-request-card {
+  background: #fff;
+  padding: 1.15rem 1.4rem;
+  margin: 0 auto;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
+  color: var(--card-text, #222);
+  display: flex;
+  flex-direction: column;
+}
+
 .its-items-table {
   width: 100%;
-  border: 1px solid #111;
+  border: 1px solid #55555535 !important;
   border-collapse: collapse;
   font-size: 0.88rem;
 }
 
 .its-items-table th,
 .its-items-table td {
-  border: 1px solid #111;
+  border: 1px solid #55555535 !important;
   padding: 0.45rem 0.6rem;
   text-align: left;
 }
@@ -17,7 +27,7 @@
   text-transform: uppercase;
   font-size: 0.85rem;
   letter-spacing: 0.04em;
-  background: #f1f1f1;
+  background: #fff !important;
 }
 
 .its-items-table .text-center {
@@ -38,26 +48,24 @@
 
 .its-transport-header {
   background: #111;
-  color: #fff;
-  padding: 0.55rem 0.75rem;
-  font-weight: 600;
+  color: #adadadff !important;
+  padding: 8px 8px;
+  font-weight: bold;
   text-align: center;
   text-transform: uppercase;
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
-  margin-top: 1rem;
+  font-size: 1rem;
 }
 
 .its-info-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid #111;
+  border: 1px solid #55555535 !important;
   font-size: 0.9rem;
 }
 
 .its-info-table th,
 .its-info-table td {
-  border: 1px solid #111;
+  border: 1px solid #55555535 !important;
   padding: 0.5rem 0.65rem;
   text-align: left;
   vertical-align: top;
@@ -65,7 +73,7 @@
 
 .its-info-table th {
   font-weight: 600;
-  background: #f7f7f7;
+  background: #fff !important;
   width: 40%;
 }
 
@@ -73,14 +81,14 @@
 .its-sig-table,
 .its-received-table {
   width: 100%;
-  border: 1px solid #111;
+  border: 1px solid #55555535 !important;
   border-collapse: collapse;
   font-size: 0.88rem;
   margin-top: 1rem;
   table-layout: fixed;
 }
 
-.its-transport-table{
+.its-transport-table {
   margin-top: 0;
 }
 
@@ -90,7 +98,7 @@
 .its-sig-table td,
 .its-received-table th,
 .its-received-table td {
-  border: 1px solid #111;
+  border: 1px solid #55555535 !important;
   padding: 0.6rem 0.7rem;
   text-align: left;
   vertical-align: top;
@@ -111,11 +119,11 @@
 
 .its-transport-table th {
   font-weight: 600;
-  background: #f7f7f7;
+  background: #fff !important;
 }
 
 .sig-box {
-  overflow: visible !important;  
+  overflow: visible !important;
   position: relative;
   height: 20px !important;
 }
@@ -131,7 +139,7 @@
 }
 
 .its-receiving-section {
-  border: 1px solid #111;
+  border: 1px solid #55555535 !important;
   overflow: hidden;
   margin-top: 1rem;
   font-size: 0.9rem;
@@ -159,7 +167,7 @@
 }
 
 .its-receiving-col:first-child {
-  border-right: 1px solid #111;
+  border-right: 1px solid #55555535 !important;
 }
 
 .its-receiving-col p {
@@ -174,161 +182,117 @@
   color: #333;
 }
 
-/* Floating Receive Button */
-/* .floating-receive-btn {
-  position: fixed;
-  top: 8rem;
-  right: 30px;
-  background-color: #28a745;
-  color: #fff;
-  border: none;
-  padding: 0.9rem 1.6rem;
-  font-size: 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  transition: all 0.25s ease;
-}
-
-.floating-receive-btn:hover {
-  background-color: #218838;
-  transform: scale(1.05);
-}
-
-@media print {
-  .floating-receive-btn {
-    display: none !important;
-  }
-} */
-
 .status-text {
   margin: 0 0 0.5rem 0;
   font-weight: 600;
 }
 
 /* =================================================================
-   PRINT STYLES - Based on Payment Request (Working Implementation)
+   PRINT STYLES - MODIFIED FOR 1:1 RENDER
    ================================================================= */
 
 @media print {
-
   /* --- Base Layout & Visibility --- */
   body * {
     visibility: hidden;
   }
+
+  /* CORRECTED: Target .its-request-card and its layout parents */
   .pr-layout,
   .pr-main,
   .submitted-requests-container,
-  .submitted-its-request-card,
-  .submitted-its-request-card * {
+  .its-request-card,
+  .its-request-card * {
     visibility: visible;
   }
+
+  /* --- Hide specific UI elements *within* the card --- */
+  .its-request-card .floating-receive-btn,
+  .its-request-card .floating-decline-reason {
+    visibility: hidden !important;
+    display: none !important;
+  }
+
+  /* --- Reset Layout Containers --- */
   .pr-layout,
   .pr-main,
   .submitted-requests-container {
     width: 100%;
     margin: 0;
     padding: 0;
+    background: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
+    position: static !important;
   }
+
   .pr-main {
     height: auto;
-    background-color: #ffffff !important;
     padding: 0;
   }
-  /* .pr-sidebar,
-  .pr-topbar,
-  .dropdown-section,
-  .print-btn,
-  .floating-receive-btn,
-  .floating-decline-reason {
-    display: none !important;
-  } */
-  .submitted-its-request-card {
-    max-width: 700px; 
-    border: none;
-    box-shadow: none;
+
+  /* --- Style the Card for 1:1 Printing --- */
+  .its-request-card {
+    width: 95%; /* Fill the page width */
+    max-width: 95% !important; /* Override any screen max-width */
+    margin: 0;
+    box-shadow: none !important; /* Shadows don't print well */
     background: #fff !important;
     color: #000 !important;
     page-break-inside: avoid;
+    font-size: 100%; /* Let component's rem/em sizes work */
+    position: static !important;
   }
+
+  /* Force all text in card to be black */
+  .its-request-card * {
+    color: #000 !important;
+  }
+
+  .its-transport-table th {
+    width: 50% !important; /* Adjust to your desired label width */
+  }
+
+  .its-transport-table td {
+    width: 50% !important; /* This should be 100% minus the th width */
+  }
+
+  /* ==========================================================================
+    --- 📏 CUSTOM PRINT SIZES ---
+    ==========================================================================
+    */
+
+  @page {
+    margin: 0.5in; /* Keep original page margin */
+  }
+
+  /* --- Force Header Backgrounds (for 1:1 fidelity) --- */
+  .its-items-table th {
+    background-color: #fff !important; /* From on-screen styles */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .its-info-table th,
+  .its-transport-table th,
+  .its-sig-table th {
+    background-color: #fff !important; /* From on-screen styles */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .its-transport-header {
+    background: #111;
+    color: #adadadff !important;
+    padding: 8px 8px;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 1rem;
+  }
+
+  /* Keep page break rules */
   .its-grid-two {
     page-break-inside: avoid;
-  }
-
-  /* ==========================================================================
-  --- 📏 CUSTOM PRINT SIZES ---
-  ==========================================================================
-  */
-  
-  @page {
-    margin: 0.5in;
-  }
-
-  /* --- Title Font --- */
-  .submitted-its-request-card::before {
-    content: "RFG Interbranch Transfer Slip";
-    display: block;
-    text-align: center;
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 10px;
-  }
-  
-  /* --- General Fonts --- */
-  .submitted-its-request-card {
-    font-size: 10pt;
-  }
-  .submitted-its-request-card p,
-  .submitted-its-request-card td,
-  .submitted-its-request-card th {
-    font-size: 9pt;
-  }
-  .its-footnote {
-    font-size: 8pt;
-  }
-  
-  /* --- Signature Image (Cleaned up) --- */
-  .signature-img {
-    max-height: 45px;
-    position: absolute;
-    transform: none;
-    top: -20px;           /* <-- PULLS image up, overlapping the border */
-    left: 10px;           /* <-- Adjust horizontal position */
-    z-index: 10px;
-  }
-  
-  /* ==========================================================================
-  --- 🎨 CUSTOM PRINT STYLES (Colors & Borders) ---
-  ==========================================================================
-  */
-
-  /* --- Table Borders --- */
-  .its-items-table,
-  .its-info-table,
-  .its-transport-table,
-  .its-sig-table,
-  .its-received-table,
-  .its-receiving-section {
-    border: 1px solid #55555535 !important;
-    page-break-inside: avoid;
-  }
-
-  .its-items-table th,
-  .its-items-table td,
-  .its-info-table th,
-  .its-info-table td,
-  .its-transport-table th,
-  .its-transport-table td,
-  .its-sig-table th,
-  .its-sig-table td,
-  .its-received-table th,
-  .its-received-table td {
-    border: 1px solid #55555535 !important;
-  }
-
-
-  /* --- Section Dividers --- */
-  .its-receiving-col:first-child {
-    border-right: 1px solid #55555535 !important;
   }
 }
