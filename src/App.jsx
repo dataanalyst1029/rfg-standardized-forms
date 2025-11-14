@@ -378,7 +378,7 @@ function App() {
         />
 
         <Route
-          path="/forms/maintenance-or-repair/submitted"
+          path="/forms/submitted-maintenance-or-repair"
           element={
             user ? (
               <SubmittedMaintenanceRepair formSlug="maintenance-or-repair" />
@@ -389,7 +389,7 @@ function App() {
         />
 
         <Route
-          path="/forms/hr-overtime-approval/submitted"
+          path="/forms/submitted-hr-overtime-approval"
           element={
             user ? (
               <SubmittedRequests formSlug="hr-overtime-approval" />
@@ -400,7 +400,7 @@ function App() {
         />
 
         <Route
-          path="/forms/hr-leave-application/submitted"
+          path="/forms/submitted-hr-leave-application"
           element={
             user ? (
               <SubmittedLeaveApplication onLogout={handleLogout} currentUserId={user.id} />
@@ -411,7 +411,7 @@ function App() {
         />
 
         <Route
-          path="/forms/interbranch-transfer-slip/submitted"
+          path="/forms/submitted-interbranch-transfer-slip"
           element={
             user ? (
               <SubmittedInterbranchTransferSlip onLogout={handleLogout} currentUserId={user.id} />
