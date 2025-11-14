@@ -287,7 +287,7 @@ function MaintenanceRepair({ onLogout }) {
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/forms/maintenance-or-repair/submitted");
+      navigate("/forms/submitted-maintenance-or-repair");
       return;
     }
 

@@ -3016,9 +3016,9 @@ app.post("/api/maintenance_requests", async (req, res) => {  // Create new maint
     submitted_by,
     submitted_at,
     approved_by,
-    approved_at,
+    approved_sig,
     accomplished_by,
-    accomplished_at,
+    accomplished_sig,
 
     items = [],  // Default to empty array if no items
   } = req.body;

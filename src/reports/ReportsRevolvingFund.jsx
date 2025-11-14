@@ -8,8 +8,17 @@ import { API_BASE_URL } from "../config/api.js";
 // Pagination options for the table
 const PAGE_SIZES = [5, 10, 20];
 
+// ✅ Updated Date Parser (from ReportsMaintenanceRepair.jsx)
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
+
+  // Handle YYYY-MM-DD (ISO format from date inputs)
+  // This MUST come first to avoid UTC conversion issues
+  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch.map(Number);
+    return new Date(year, month - 1, day);
+  }
 
   // Handle MM/DD/YYYY (U.S. format)
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
@@ -18,14 +27,15 @@ const parseLocalDate = (dateStr) => {
     return new Date(year, month - 1, day);
   }
 
-  // Handle YYYY-MM-DD (ISO format)
-  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/); // ✅ Added `$` for stricter match
-  if (isoMatch) {
-    const [, year, month, day] = isoMatch.map(Number);
+  // Fallback – for full timestamps (e.g., from the database)
+  // Extract just the date part if it's a full ISO timestamp
+  const timestampMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})[T\s]/);
+  if (timestampMatch) {
+    const [, year, month, day] = timestampMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Fallback — native parse attempt
+  // Last resort fallback
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
@@ -54,7 +64,8 @@ function ReportsRevolvingFund() {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/revolving_fund_request`);
-      if (!response.ok) throw new Error("Failed to fetch revolving fund requests");
+      if (!response.ok)
+        throw new Error("Failed to fetch revolving fund requests");
       const data = await response.json();
 
       const sortedData = data.sort((a, b) =>
@@ -92,46 +103,55 @@ function ReportsRevolvingFund() {
   }, [search, rowsPerPage, startDate, endDate]);
 
   // ---------------------- FILTERING LOGIC ----------------------
+  // ✅ Updated Filtering Logic (from ReportsMaintenanceRepair.jsx)
   const filteredRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
     let categorizedRequests = requests;
 
-    // Start date filter
+    // Start date filter (inclusive)
     if (startDate) {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      categorizedRequests = categorizedRequests.filter((req) => {
-        const reqDate = parseLocalDate(req.date_request);
-        return reqDate && reqDate >= start;
-      });
+      // Use parseLocalDate to ensure YYYY-MM-DD is treated as LOCAL
+      const start = parseLocalDate(startDate);
+      if (start) {
+        start.setHours(0, 0, 0, 0);
+        categorizedRequests = categorizedRequests.filter((req) => {
+          const reqDate = parseLocalDate(req.date_request); // Adapted field
+          return reqDate && reqDate >= start;
+        });
+      }
     }
 
-    // End date filter
+    // End date filter (inclusive)
     if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      categorizedRequests = categorizedRequests.filter((req) => {
-        const reqDate = parseLocalDate(req.date_request);
-        return reqDate && reqDate <= end;
-      });
+      // Use parseLocalDate to ensure YYYY-MM-DD is treated as LOCAL
+      const end = parseLocalDate(endDate);
+      if (end) {
+        end.setHours(23, 59, 59, 999);
+        categorizedRequests = categorizedRequests.filter((req) => {
+          const reqDate = parseLocalDate(req.date_request); // Adapted field
+          return reqDate && reqDate <= end;
+        });
+      }
     }
 
-    // Text search
+    // Text search (Preserved from original)
     if (term) {
       const normalizedTerm = term.replace(/[^0-9.]/g, "");
-      categorizedRequests = categorizedRequests.filter((req) =>
-        [
-          "revolving_request_code",
-          "date_request",
-          "employee_id",  
-          "custodian",
-          "branch",
-          "department",
-          "status",
-        ].some((key) => req[key]?.toString().toLowerCase().includes(term)) ||
-        (req.replenish_amount && 
-          req.replenish_amount.toString().replace(/[^0-9.]/g, "") === normalizedTerm
-        )
+      categorizedRequests = categorizedRequests.filter(
+        (req) =>
+          [
+            "revolving_request_code",
+            "date_request",
+            "employee_id",
+            "custodian",
+            "branch",
+            "department",
+            "status",
+          ].some((key) => req[key]?.toString().toLowerCase().includes(term)) ||
+          (req.replenish_amount &&
+            req.replenish_amount
+              .toString()
+              .replace(/[^0-9.]/g, "") === normalizedTerm)
       );
     }
 
@@ -139,7 +159,10 @@ function ReportsRevolvingFund() {
   }, [requests, search, startDate, endDate]);
 
   // ---------------------- PAGINATION ----------------------
-  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / rowsPerPage) || 1);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredRequests.length / rowsPerPage) || 1
+  );
 
   const visibleRequests = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -248,22 +271,26 @@ function ReportsRevolvingFund() {
             ) : (
               visibleRequests.map((req) => {
                 const displayDate =
-                  parseLocalDate(req.date_request)?.toLocaleDateString() || "—"; // ✅ safer
+                  parseLocalDate(req.date_request)?.toLocaleDateString() || "—";
                 return (
                   <tr key={req.id}>
-                    <td style={{ textAlign: "center" }}>{req.revolving_request_code}</td>
+                    <td style={{ textAlign: "center" }}>
+                      {req.revolving_request_code}
+                    </td>
                     <td style={{ textAlign: "center" }}>{displayDate}</td>
                     <td>{req.employee_id}</td>
                     <td>{req.custodian}</td>
                     <td>{req.branch}</td>
                     <td>{req.department}</td>
-                    <td style={{textAlign: "left"}}>
+                    <td style={{ textAlign: "left" }}>
                       {Number(req.replenish_amount).toLocaleString("en-PH", {
                         style: "currency",
                         currency: "PHP",
                       })}
                     </td>
-                    <td style={{ textAlign: "center" }}>{req.status.toUpperCase()}</td>
+                    <td style={{ textAlign: "center" }}>
+                      {req.status.toUpperCase()}
+                    </td>
                     <td style={{ textAlign: "center" }}>
                       <button
                         className="admin-primary-btn"
@@ -326,208 +353,244 @@ function ReportsRevolvingFund() {
 
       {/* ---------- Modal for Viewing Request Details ---------- */}
       {modalOpen && modalRequest && (
-                <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
-                    <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-                        <div className="admin-modal-panel request-modals">
-                            <button
-                                className="admin-close-btn"
-                                onClick={handleCloseModal}
-                                aria-label="Close"
-                                >
-                                ×
-                            </button>
+        <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
+          <div
+            className="admin-modal-backdrop"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-panel request-modals">
+              <button
+                className="admin-close-btn"
+                onClick={handleCloseModal}
+                aria-label="Close"
+              >
+                ×
+              </button>
 
-                            <h2>{modalRequest.revolving_request_code}</h2>
-                            <p>
-                                <strong>Date:</strong>{" "}
-                                <em>{new Date(modalRequest.date_request).toLocaleDateString()}</em>
-                            </p>
-                            <div className="employee-info">
-                              <p>
-                                <strong>Employee ID:</strong>{" "}
-                                <em>{modalRequest.employee_id}</em>
-                              </p>
-                              <p>
-                                <strong>Custodian:</strong>{" "}
-                                <em>{modalRequest.custodian}</em>
-                              </p>
-                              <p>
-                                <strong>Branch:</strong>{" "}
-                                <em>{modalRequest.branch}</em>
-                              </p>
-                              <p>
-                                <strong>Department:</strong>{" "}
-                                <em>{modalRequest.department}</em>
-                              </p>
-                            </div>
+              <h2>{modalRequest.revolving_request_code}</h2>
+              <p>
+                <strong>Date:</strong>{" "}
+                {/* ✅ Using new parser */}
+                <em>
+                  {parseLocalDate(
+                    modalRequest.date_request
+                  )?.toLocaleDateString() || "—"}
+                </em>
+              </p>
+              <div className="employee-info">
+                <p>
+                  <strong>Employee ID:</strong>{" "}
+                  <em>{modalRequest.employee_id}</em>
+                </p>
+                <p>
+                  <strong>Custodian:</strong> <em>{modalRequest.custodian}</em>
+                </p>
+                <p>
+                  <strong>Branch:</strong> <em>{modalRequest.branch}</em>
+                </p>
+                <p>
+                  <strong>Department:</strong> <em>{modalRequest.department}</em>
+                </p>
+              </div>
 
-                            <div class="replenish-amount">
-                              <span><b>Amount for Replenishment: </b> 
-                                <i>
-                                  {modalRequest.replenish_amount
-                                    ? Number(modalRequest.replenish_amount).toLocaleString("en-PH", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })
-                                : "0.00"}
-                                </i>
-                              </span>
-                            </div>
+              <div class="replenish-amount">
+                <span>
+                  <b>Amount for Replenishment: </b>
+                  <i>
+                    {modalRequest.replenish_amount
+                      ? Number(modalRequest.replenish_amount).toLocaleString(
+                          "en-PH",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )
+                      : "0.00"}
+                  </i>
+                </span>
+              </div>
 
-                            {modalRequest.items && modalRequest.items.length > 0 ? (
-                            <table className="request-items-table">
-                                <thead>
-                                <tr>
-                                    <th className="text-center">DATE</th>
-                                    <th className="text-center">VOUCHER NO.</th>
-                                    <th className="text-center">OR REF. NO.</th>
-                                    <th className="text-center">AMOUNT</th>
-                                    <th>EXP. CATEGORY</th>
-                                    <th>GL ACCOUNT</th>
-                                    <th>REMARKS</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {modalRequest.items.map((item) => (
-                                    <tr key={item.id}>
-                                        <td className="text-center">{new Date(modalRequest.date_request).toLocaleDateString()}</td>
-                                        <td className="text-center">{item.voucher_no}</td>
-                                        <td className="text-center">{item.or_ref_no}</td>
-                                        <td className="text-center">
-                                            {item.amount
-                                                ? Number(item.amount).toLocaleString("en-PH", {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })
-                                            : "0.00"}</td>
-                                        <td>{item.exp_cat}</td>
-                                        <td>{item.gl_account}</td>
-                                        <td>{item.remarks}</td>
-                                    </tr>
-    
-                                ))}
-                                <tr>
-                                    <td className="text-center" colSpan={3}>Total</td>
-                                    <td className="text-center">{modalRequest.total
-                                            ? Number(modalRequest.total).toLocaleString("en-PH", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })
-                                        : "0.00"}
-                                    </td>
-                                    <td colSpan={3}></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                            ) : (
-                            <p>—</p>
-                            )}
+              {modalRequest.items && modalRequest.items.length > 0 ? (
+                <table className="request-items-table">
+                  <thead>
+                    <tr>
+                      <th className="text-center">DATE</th>
+                      <th className="text-center">VOUCHER NO.</th>
+                      <th className="text-center">OR REF. NO.</th>
+                      <th className="text-center">AMOUNT</th>
+                      <th>EXP. CATEGORY</th>
+                      <th>GL ACCOUNT</th>
+                      <th>REMARKS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modalRequest.items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="text-center">
+                          {/* ✅ Using new parser & item date */}
+                          {parseLocalDate(
+                            item.replenish_date
+                          )?.toLocaleDateString() || "—"}
+                        </td>
+                        <td className="text-center">{item.voucher_no}</td>
+                        <td className="text-center">{item.or_ref_no}</td>
+                        <td className="text-center">
+                          {item.amount
+                            ? Number(item.amount).toLocaleString("en-PH", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : "0.00"}
+                        </td>
+                        <td>{item.exp_cat}</td>
+                        <td>{item.gl_account}</td>
+                        <td>{item.remarks}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td className="text-center" colSpan={3}>
+                        Total
+                      </td>
+                      <td className="text-center">
+                        {modalRequest.total
+                          ? Number(modalRequest.total).toLocaleString("en-PH", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : "0.00"}
+                      </td>
+                      <td colSpan={3}></td>
+                    </tr>
+                  </tbody>
+                </table>
+              ) : (
+                <p>—</p>
+              )}
 
-                            <div className="replenishment-cash">
-                                <label htmlFor="revolving-fund-amount">
-                                    <p>Petty Cash/Revolving Fund Amount:</p>
-                                    <em>{modalRequest.revolving_amount
-                                            ? Number(modalRequest.revolving_amount).toLocaleString("en-PH", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })
-                                        : "0.00"}
-                                    </em>
-                                </label>
-                                <label htmlFor="total-expense">
-                                    <p>Less: Total Expenses per vouchers:</p>
-                                    <em>{modalRequest.total_exp
-                                            ? Number(modalRequest.total_exp).toLocaleString("en-PH", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })
-                                        : "0.00"}
-                                    </em>
-                                    
-                                </label>
-                                <label htmlFor="cash-onhand">
-                                    <p>Cash on Hand:</p>
-                                    <em>{modalRequest.cash_onhand
-                                            ? Number(modalRequest.cash_onhand).toLocaleString("en-PH", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })
-                                        : "0.00"}
-                                    </em>
-                                </label>
-                            </div>
+              <div className="replenishment-cash">
+                <label htmlFor="revolving-fund-amount">
+                  <p>Petty Cash/Revolving Fund Amount:</p>
+                  <em>
+                    {modalRequest.revolving_amount
+                      ? Number(modalRequest.revolving_amount).toLocaleString(
+                          "en-PH",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )
+                      : "0.00"}
+                  </em>
+                </label>
+                <label htmlFor="total-expense">
+                  <p>Less: Total Expenses per vouchers:</p>
+                  <em>
+                    {modalRequest.total_exp
+                      ? Number(modalRequest.total_exp).toLocaleString("en-PH", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      : "0.00"}
+                  </em>
+                </label>
+                <label htmlFor="cash-onhand">
+                  <p>Cash on Hand:</p>
+                  <em>
+                    {modalRequest.cash_onhand
+                      ? Number(modalRequest.cash_onhand).toLocaleString(
+                          "en-PH",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )
+                      : "0.00"}
+                  </em>
+                </label>
+              </div>
 
-                            <div className="submit-content">
-                              <div className="submit-by-content">
-                                <div>
-                                  <span>{modalRequest.submitted_by}</span>
-                                  <p>Submitted by</p>
-                                </div>
+              <div className="submit-content">
+                <div className="submit-by-content">
+                  <div>
+                    <span>{modalRequest.submitted_by}</span>
+                    <p>Submitted by</p>
+                  </div>
 
-                                <div className="revolving-signature">
-                                  <input className="submit-sign" type="text" value={modalRequest.submitter_signature} readOnly />
-                                  {modalRequest.submitter_signature ? (
-                                    <>
-                                      <img
-                                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.submitter_signature}`}
-                                        alt="Signature"
-                                        className="signature-image"
-                                      />
-                                    </>
-                                  ) : (
-                                    <p><i>No signature available</i></p>
-                                  )}
-                                  <p>Signature</p>
-                                </div>
-                              </div>
-                            </div>
-
-                            <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                              <div className="submit-content">
-                                <div className="submit-by-content">
-                                    <div>
-                                        <label>
-                                            <span>
-                                              <input
-                                                type="text"
-                                                name="approved_by"
-                                                value={userData.name || ""}
-                                                readOnly
-                                              />
-                                            </span>
-                                            <p>Approved by</p>
-                                        </label>
-                                    </div>
-
-                                    <div className="approver-signature">
-                                        <label>
-                                          <input
-                                            type="text"
-                                            name="approver_signature"
-                                            value={userData.signature || ""}
-                                            className="submit-sign"
-                                            required
-                                            readOnly
-                                          />
-                                          {userData.signature ? (
-                                          <img
-                                          src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                                          alt="Signature"
-                                          className="signature-img"/>
-                                          ) : (
-                                              <p>No signature available</p>
-                                          )}
-                                          <p>Signature</p>
-                                        </label>
-                                    </div>
-                                </div>
-                              </div>
-
-                            </form>
-                        </div>
-                    </div>
+                  <div className="revolving-signature">
+                    <input
+                      className="submit-sign"
+                      type="text"
+                      value={modalRequest.submitter_signature}
+                      readOnly
+                    />
+                    {modalRequest.submitter_signature ? (
+                      <>
+                        <img
+                          src={`${API_BASE_URL}/uploads/signatures/${modalRequest.submitter_signature}`}
+                          alt="Signature"
+                          className="signature-image"
+                        />
+                      </>
+                    ) : (
+                      <p>
+                        <i>No signature available</i>
+                      </p>
+                    )}
+                    <p>Signature</p>
+                  </div>
                 </div>
-            )}
+              </div>
+
+              <form
+                className="request-footer-form"
+                onSubmit={(e) => e.preventDefault()}
+              >
+                <div className="submit-content">
+                  <div className="submit-by-content">
+                    <div>
+                      <label>
+                        <span>
+                          <input
+                            type="text"
+                            name="approved_by"
+                            value={userData.name || ""}
+                            readOnly
+                          />
+                        </span>
+                        <p>Approved by</p>
+                      </label>
+                    </div>
+
+                    <div className="approver-signature">
+                      <label>
+                        <input
+                          type="text"
+                          name="approver_signature"
+                          value={userData.signature || ""}
+                          className="submit-sign"
+                          required
+                          readOnly
+                        />
+                        {userData.signature ? (
+                          <img
+                            src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                            alt="Signature"
+                            className="signature-img"
+                          />
+                        ) : (
+                          <p>No signature available</p>
+                        )}
+                        <p>Signature</p>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

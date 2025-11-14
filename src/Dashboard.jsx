@@ -23,6 +23,8 @@ import ReportsCashAdvance from "./reports/ReportsCashAdvance.jsx";
 import ReportsCashAdvanceLiquidation from "./reports/ReportsCashAdvanceLiquidation.jsx";
 import ReportsReimbursementForm from "./reports/ReportsReimbursementForm.jsx";
 import ReportsPayment from "./reports/ReportsPayment.jsx";
+import ReportsCAReceipt from "./reports/ReportsCAReceipt.jsx";
+import ReportsMaintenanceRepair from "./reports/ReportsMaintenanceRepair.jsx";
 
 const STORAGE_KEY = "rfg-dashboard-active-view";
 
@@ -411,6 +413,7 @@ function renderActiveView(view, extraProps = {}) {
           description="Overview of system activity and form submissions."
         />
       );
+
     case "reports-revolving-fund":
       return (
         <ReportsRevolvingFund/>
@@ -448,6 +451,20 @@ function renderActiveView(view, extraProps = {}) {
       return (
         <div className="dashboard-content dashboard-content--flush">
           <ReportsPayment/>
+        </div>
+      );
+
+    case "reports-ca-receipt":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ReportsCAReceipt/>
+        </div>
+      );
+
+    case "reports-maintenance-request":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ReportsMaintenanceRepair/>
         </div>
       );
 
@@ -942,9 +959,9 @@ function Dashboard({ role, name, onLogout }) {
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
-                                    activeView === "reports-audit" ? " underline-active" : ""
+                                    activeView === "reports-ca-receipt" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => handleMenuClick("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-ca-receipt")}
                                 >
                                   CA Receipt Form
                                 </button>
@@ -978,9 +995,9 @@ function Dashboard({ role, name, onLogout }) {
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
-                                    activeView === "reports-audit" ? " underline-active" : ""
+                                    activeView === "reports-maintenance-request" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => handleMenuClick("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-maintenance-request")}
                                 >
                                   Maintenance or Repair
                                 </button>
