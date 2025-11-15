@@ -2810,6 +2810,7 @@ app.get("/api/interbranch_transfer_slip/next-code", async (req, res) => {  // Ge
 app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new interbranch transfer slip
   const {
     form_code,
+    user_id,
     date_transferred,
     from_branch,
     from_address,
@@ -2848,11 +2849,12 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
 
     const result = await client.query(  // Insert main request record
       `INSERT INTO interbranch_transfer_slip
-      (form_code, date_transferred, from_branch, from_address, from_area_ops_controller, date_received, to_branch, to_address, to_area_ops_controller, dispatch_method, vehicle_no, driver_name, driver_contact, expected_date, prepared_by, prepared_date, prepared_signature)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+      (form_code, user_id, date_transferred, from_branch, from_address, from_area_ops_controller, date_received, to_branch, to_address, to_area_ops_controller, dispatch_method, vehicle_no, driver_name, driver_contact, expected_date, prepared_by, prepared_date, prepared_signature)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       RETURNING id`,
       [
         form_code,
+        user_id,
         date_transferred,
         from_branch,
         from_address,

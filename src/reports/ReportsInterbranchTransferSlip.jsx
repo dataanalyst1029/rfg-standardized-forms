@@ -115,27 +115,55 @@ function ReportsInterbranchTransferSlip() {
         return reqDate && reqDate <= end;
       });
     }
+    
+    const checkDate = (dateStr) => {
+      if (!dateStr) return false;
+      // 1. Check raw string
+      if (dateStr.toLowerCase().includes(term)) return true;
+      // 2. Check formatted string
+      const dateObj = parseLocalDate(dateStr);
+      return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
+    };
 
     // ✅ Text search
     if (term) {
-      const normalizedTerm = term.replace(/[^0-9.]/g, "");
-      categorizedRequests = categorizedRequests.filter((req) =>
+      categorizedRequests = categorizedRequests.filter((req) => {
+        const topLevelMatch =
         [
           "form_code",
-          "received_by_date",
-          "cal_no",
-          "employee_id",
-          "name",
-          "branch",
-          "department",
+          "prepared_date",
+          "prepared_by",
+          "from_branch",
+          "to_branch",
+          "from_address",
+          "to_address",
+          "item_code",
           "status",
-        ].some((key) => req[key]?.toString().toLowerCase().includes(term))||
-        (req.total_rb_amount && 
-          req.total_rb_amount.toString().replace(/[^0-9.]/g, "") === normalizedTerm
-        )
+        ].some((key) => req[key]?.toString().toLowerCase().includes(term)
       );
-    }
 
+        if (topLevelMatch) return true;
+
+        const dateMatch = [
+          req.prepared_date,
+          req.date_transferred,
+          req.date_received
+        ].some(checkDate); // <-- This is much simpler now
+
+        if (dateMatch) return true;
+
+        // 2. Check nested item details
+        const itemMatch = (req.items || []).some(item =>
+          item.item_code?.toLowerCase().includes(term) ||
+          item.item_description?.toLowerCase().includes(term)
+          // You could also add qty, unit_measure, etc. here
+        );
+
+        if (itemMatch) return true;
+
+        return false;
+      });
+    }
     return categorizedRequests;
   }, [requests, search, startDate, endDate]);
 

@@ -28,12 +28,7 @@ const initialFormData = (storedUser) => ({
 
   // Signatures / Dates
   prepared_by: storedUser.name || "",
-  approved_by: "",
-  received_by: "",
   prepared_date: new Date().toISOString().split("T")[0],
-  approved_date: "",
-  dispatched_date: "",
-  received_date: "",
   // MODIFIED: Set to null initially, will be fetched
   prepared_signature: null, 
 
@@ -42,6 +37,7 @@ const initialFormData = (storedUser) => ({
   // Extra fields needed for form UI
   request_date: new Date().toISOString().split("T")[0],
   employee_id: storedUser.employee_id || "",
+  user_id: storedUser.id || null,
 });
 
 // Define an empty item row, similar to PaymentRequest
@@ -97,6 +93,7 @@ function InterbranchTransferSlip({ onLogout }) {
             prepared_by: data.name || storedUser.name,
             prepared_signature: data.signature || null, // <-- This is the fix
             employee_id: data.employee_id || storedUser.employee_id,
+            user_id: data.id || storedUser.id,
           }));
         })
         .catch((err) => {
@@ -106,6 +103,7 @@ function InterbranchTransferSlip({ onLogout }) {
             ...prev,
             prepared_by: storedUser.name || "",
             employee_id: storedUser.employee_id || "",
+            user_id: storedUser.id || "",
           }));
         });
     }
@@ -350,7 +348,7 @@ function InterbranchTransferSlip({ onLogout }) {
   // Navigate between sidebar sections
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/forms/interbranch-transfer-slip/submitted");
+      navigate("/forms/submitted-interbranch-transfer-slip");
       return;
     } 
     
@@ -906,9 +904,17 @@ function InterbranchTransferSlip({ onLogout }) {
               className="pr-sidebar-logout" // Re-using class, might want a different one
               onClick={() => {
                 setRequest(null);
-                setFormData(initialFormData(storedUser)); // Reset form
-                setItems([]); // Reset items
-                setNextReferenceCode(null); // Will trigger refetch
+                setFormData(prevData => ({
+                  ...initialFormData(storedUser),
+
+                  prepared_by: prevData.prepared_by,
+                  prepared_signature: prevData.prepared_signature,
+                  employee_id: prevData.employee_id,
+                  user_id: prevData.user_id,
+                })); // Reset form
+
+                setItems([]);
+                setNextReferenceCode(null);
               }}
               disabled={isSaving}
             >
