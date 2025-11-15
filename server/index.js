@@ -2015,7 +2015,8 @@ app.get("/api/ca_receipt", async (req, res) => {
         php_word,
         received_by,
         received_signature,
-        user_id
+        user_id,
+        status
       FROM ca_receipt
       ORDER BY request_date DESC
     `);

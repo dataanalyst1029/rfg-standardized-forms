@@ -226,6 +226,7 @@ function ReportsReimbursementForm() {
               <th style={{ textAlign: "center" }}>CA Liquidation No.</th>
               <th style={{ textAlign: "center" }}>Employee ID</th>
               <th style={{ textAlign: "center" }}>Reimbursement Amount</th>
+              <th style={{ textAlign: "center" }}>Status</th>
               <th style={{ textAlign: "center" }}>Action</th>
             </tr>
           </thead>
@@ -259,6 +260,7 @@ function ReportsReimbursementForm() {
                       currency: "PHP",
                     })}
                     </td>
+                  <td style={{ textAlign: "center" }}>{req.status}</td>
                   <td style={{ textAlign: "center" }}>
                     <button
                       className="admin-primary-btn"

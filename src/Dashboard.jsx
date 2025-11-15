@@ -25,7 +25,8 @@ import ReportsReimbursementForm from "./reports/ReportsReimbursementForm.jsx";
 import ReportsPayment from "./reports/ReportsPayment.jsx";
 import ReportsCAReceipt from "./reports/ReportsCAReceipt.jsx";
 import ReportsMaintenanceRepair from "./reports/ReportsMaintenanceRepair.jsx";
-
+import ReportsCreditCard from "./reports/ReportsCreditCard.jsx"
+import ReportsInterbranchTransferSlip from "./reports/ReportsInterbranchTransferSlip.jsx";
 const STORAGE_KEY = "rfg-dashboard-active-view";
 
 const NAVIGATION = [
@@ -465,6 +466,20 @@ function renderActiveView(view, extraProps = {}) {
       return (
         <div className="dashboard-content dashboard-content--flush">
           <ReportsMaintenanceRepair/>
+        </div>
+      );
+
+    case "reports-credit-card-acknowledgement":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ReportsCreditCard/>
+        </div>
+      );
+
+    case "reports-interbranch-transfer-slip":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ReportsInterbranchTransferSlip/>
         </div>
       );
 
@@ -1031,9 +1046,9 @@ function Dashboard({ role, name, onLogout }) {
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
-                                    activeView === "reports-audit" ? " underline-active" : ""
+                                    activeView === "reports-interbranch-transfer-slip" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => handleMenuClick("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-interbranch-transfer-slip")}
                                 >
                                   Interbranch Transfer Slip
                                 </button>
@@ -1043,9 +1058,9 @@ function Dashboard({ role, name, onLogout }) {
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
-                                    activeView === "reports-audit" ? " underline-active" : ""
+                                    activeView === "reports-credit-card-acknowledgement" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => handleMenuClick("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-credit-card-acknowledgement")}
                                 >
                                   Credit Card Acknowledgement Receipt
                                 </button>

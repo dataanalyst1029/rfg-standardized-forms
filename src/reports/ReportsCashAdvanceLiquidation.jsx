@@ -269,6 +269,7 @@ function ReportsCashAdvanceLiquidation() {
               <th style={{ textAlign: "left" }}>Department</th>
               <th style={{ textAlign: "left" }}>Check No.</th>
               <th style={{ textAlign: "center" }}>Nature of Activity</th>
+              <th style={{ textAlign: "center" }}>Status</th>
               <th style={{ textAlign: "center" }}>Action</th>
             </tr>
           </thead>
@@ -285,7 +286,7 @@ function ReportsCashAdvanceLiquidation() {
                 <td colSpan={8} className="admin-empty-state">
                   {search || startDate || endDate
                     ? "No requests match your search/filter."
-                    : "No pending cash advance luquidation found."}
+                    : "No cash advance luquidation reports found."}
                 </td>
               </tr>
             ) : (
@@ -306,6 +307,7 @@ function ReportsCashAdvanceLiquidation() {
                   <td style={{ textAlign: "center" }}>
                     {req.status.toUpperCase()}
                   </td>
+                  <td style={{ textAlign: "center" }}>{req.status}</td>
                   <td style={{ textAlign: "center" }}>
                     <button
                       className="admin-primary-btn"
