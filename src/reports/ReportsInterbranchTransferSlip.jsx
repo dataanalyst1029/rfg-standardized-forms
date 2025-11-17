@@ -123,7 +123,7 @@ function ReportsInterbranchTransferSlip() {
       // 2. Check formatted string
       const dateObj = parseLocalDate(dateStr);
       return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
-    };
+    }
 
     // ✅ Text search
     if (term) {
@@ -139,8 +139,7 @@ function ReportsInterbranchTransferSlip() {
           "to_address",
           "item_code",
           "status",
-        ].some((key) => req[key]?.toString().toLowerCase().includes(term)
-      );
+        ].some((key) => req[key]?.toString().toLowerCase().includes(term));
 
         if (topLevelMatch) return true;
 
@@ -210,6 +209,7 @@ function ReportsInterbranchTransferSlip() {
             className="audit-date-filter"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            max={endDate}
           />
           <span style={{ margin: "0 5px" }}>to</span>
           <input
@@ -217,6 +217,7 @@ function ReportsInterbranchTransferSlip() {
             className="audit-date-filter"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            min={startDate}
           />
 
           <input

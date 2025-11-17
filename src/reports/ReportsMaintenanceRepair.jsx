@@ -131,8 +131,19 @@ function ReportsMaintenanceRepair() {
       }
     }
 
+    const checkDate = (dateStr) => {
+      if (!dateStr) return false;
+
+      if (dateStr.toLowerCase().includes(term)) return true;
+
+      const dateObj = parseLocalDate(dateStr);
+      return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
+    }
+
     if (term) {
       categorizedRequests = categorizedRequests.filter((req) =>
+      {
+        const topLevelMatch =
         [
           "form_code",
           "request_date",
@@ -144,8 +155,20 @@ function ReportsMaintenanceRepair() {
           "status",
           "work_description",
           "asset_tag",
-        ].some((key) => req[key]?.toString().toLowerCase().includes(term))
-      );
+        ].some((key) => req[key]?.toString().toLowerCase().includes(term));
+
+        if (topLevelMatch) return true;
+
+        const dateMatch = [
+          req.request_date,
+          req.date_needed,
+          req.date_completed,
+        ].some(checkDate);
+
+        if (dateMatch) return true;
+
+        return false;
+      });
     }
 
     return categorizedRequests;
@@ -191,6 +214,7 @@ function ReportsMaintenanceRepair() {
             className="audit-date-filter"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            max={endDate}
           />
           <span style={{ margin: "0 5px" }}>to</span>
           <input
@@ -198,6 +222,7 @@ function ReportsMaintenanceRepair() {
             className="audit-date-filter"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+             min={startDate}
           />
 
           <input

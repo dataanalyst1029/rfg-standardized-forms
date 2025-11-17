@@ -116,10 +116,20 @@ function ReportsCreditCard() {
       });
     }
 
+    const checkDate = (dateStr) => {
+      if (!dateStr) return false;
+
+      if (dateStr.toLowerCase().includes(term)) return true;
+
+      const dateObj = parseLocalDate(dateStr);
+      return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
+    }
+
     // ✅ Text search
     if (term) {
       const normalizedTerm = term.replace(/[^0-9.]/g, "");
-      categorizedRequests = categorizedRequests.filter((req) =>
+      categorizedRequests = categorizedRequests.filter((req) => {
+        const topLevelMatch = 
         [
           "form_code",
           "received_by_date",
@@ -133,7 +143,19 @@ function ReportsCreditCard() {
         (req.total_rb_amount && 
           req.total_rb_amount.toString().replace(/[^0-9.]/g, "") === normalizedTerm
         )
-      );
+
+        if (topLevelMatch) return true;
+
+        const dateMatch = [
+          req.received_by_date,
+          req.date_received,
+          req.issued_by_date,
+        ].some(checkDate);
+
+        if (dateMatch) return true;
+
+        return false;
+      });
     }
 
     return categorizedRequests;
@@ -182,6 +204,7 @@ function ReportsCreditCard() {
             className="audit-date-filter"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            max={endDate}
           />
           <span style={{ margin: "0 5px" }}>to</span>
           <input
@@ -189,6 +212,7 @@ function ReportsCreditCard() {
             className="audit-date-filter"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            min={startDate}
           />
 
           <input
@@ -198,6 +222,7 @@ function ReportsCreditCard() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search requests"
             style={{ marginLeft: "20px" }}
+            
           />
         </div>
       </div>

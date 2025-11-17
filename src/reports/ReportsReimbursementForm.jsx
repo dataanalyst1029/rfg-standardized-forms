@@ -116,10 +116,21 @@ function ReportsReimbursementForm() {
       });
     }
 
+    const checkDate = (dateStr) => {
+      if (!dateStr) return false;
+
+      if (dateStr.toLowerCase().includes(term)) return true;
+
+      const dateObj = parseLocalDate(dateStr);
+      return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
+    }
+
     // ✅ Text search
     if (term) {
       const normalizedTerm = term.replace(/[^0-9.]/g, "");
       categorizedRequests = categorizedRequests.filter((req) =>
+      {
+        const topLevelMatch = 
         [
           "rb_request_code",
           "request_date",
@@ -132,8 +143,18 @@ function ReportsReimbursementForm() {
         ].some((key) => req[key]?.toString().toLowerCase().includes(term))||
         (req.total_rb_amount && 
           req.total_rb_amount.toString().replace(/[^0-9.]/g, "") === normalizedTerm
-        )
-      );
+        );
+
+        if (topLevelMatch) return true;
+
+        const dateMatch = [
+          req.request_date,
+        ].some(checkDate);
+
+        if(dateMatch) return true;
+
+        return false;
+      });
     }
 
     return categorizedRequests;
@@ -182,6 +203,7 @@ function ReportsReimbursementForm() {
             className="audit-date-filter"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            max={endDate}
           />
           <span style={{ margin: "0 5px" }}>to</span>
           <input
@@ -189,6 +211,7 @@ function ReportsReimbursementForm() {
             className="audit-date-filter"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            min={startDate}
           />
 
           <input

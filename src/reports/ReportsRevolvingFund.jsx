@@ -134,12 +134,23 @@ function ReportsRevolvingFund() {
       }
     }
 
+    const checkDate = (dateStr) => {
+      if (!dateStr) return false;
+
+      if (dateStr.toLowerCase().includes(term)) return true;
+
+      const dateObj = parseLocalDate(dateStr);
+      return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
+    }
+
     // Text search (Preserved from original)
     if (term) {
       const normalizedTerm = term.replace(/[^0-9.]/g, "");
       categorizedRequests = categorizedRequests.filter(
         (req) =>
-          [
+        {
+         const topLevelMatch =
+         [
             "revolving_request_code",
             "date_request",
             "employee_id",
@@ -151,7 +162,19 @@ function ReportsRevolvingFund() {
           (req.replenish_amount &&
             req.replenish_amount
               .toString()
-              .replace(/[^0-9.]/g, "") === normalizedTerm)
+              .replace(/[^0-9.]/g, "") === normalizedTerm);
+
+          if (topLevelMatch) return true;
+
+          const dateMatch = [
+            req.date_request,
+          ].some(checkDate);
+
+          if (dateMatch) return true;
+
+          return false;
+        }
+          
       );
     }
 
@@ -203,6 +226,7 @@ function ReportsRevolvingFund() {
             className="audit-date-filter"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            max={endDate}
           />
           <span style={{ margin: "0 5px" }}>to</span>
           <input
@@ -210,6 +234,7 @@ function ReportsRevolvingFund() {
             className="audit-date-filter"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            min={startDate}
           />
           <input
             type="search"

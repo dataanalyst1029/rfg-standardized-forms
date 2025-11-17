@@ -115,38 +115,65 @@ function ReportsPayment() {
           });
         }
 
-    if (term) {
-        const normalizedTerm = term.replace(/[^0-9.]/g, "");
-        categorizedRequests = categorizedRequests.filter((req) =>
-        [
-            "prf_request_code",
-            "request_date",
-            "employee_id",
-            "name",
-            "branch",
-            "department",
-            "nature_activity",
-            "status",
-        ].some((key) => req[key]?.toString().toLowerCase().includes(term))||
-        (req.total_amount && 
-          req.total_amount.toString().replace(/[^0-9.]/g, "") === normalizedTerm
-        )
-      );
-    }
+        const checkDate = (dateStr) => {
+            if(!dateStr) return false;
 
-    return categorizedRequests;
-    }, [requests, search, startDate, endDate]);
+            if(dateStr.toLowerCase().includes(term)) return true;
+
+            const dateObj = parseLocalDate(dateStr);
+            return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
+        }
+
+        if (term) {
+            const normalizedTerm = term.replace(/[^0-9.]/g, "");
+            categorizedRequests = categorizedRequests.filter((req) =>
+            {
+                const topLevelMatch = 
+                [
+                "prf_request_code",
+                "request_date",
+                "employee_id",
+                "name",
+                "branch",
+                "department",
+                "nature_activity",
+                "status",
+            ].some((key) => req[key]?.toString().toLowerCase().includes(term))||
+            (req.total_amount && 
+            req.total_amount.toString().replace(/[^0-9.]/g, "") === normalizedTerm);
+
+            if(topLevelMatch) return true;
+
+            const dateMatch = [
+                req.request_date,
+            ].some(checkDate);
+
+            if (dateMatch) return true;
+
+            const itemMatch = (req.items || []).some(item =>
+                item.item?.toLowerCase().includes(term) || 
+                item.location?.toLowerCase().includes(term)
+            );
+
+            if (itemMatch) return true;
+
+            return false
+            });
+        }
+
+        return categorizedRequests;
+        }, [requests, search, startDate, endDate]);
 
 
-    const totalPages = Math.max(
-        1,
-        Math.ceil(filteredRequests.length / rowsPerPage) || 1
-    );
+        const totalPages = Math.max(
+            1,
+            Math.ceil(filteredRequests.length / rowsPerPage) || 1
+        );
 
-    const visibleRequests = useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    return filteredRequests.slice(start, start + rowsPerPage);
-  }, [filteredRequests, page, rowsPerPage]);
+        const visibleRequests = useMemo(() => {
+        const start = (page - 1) * rowsPerPage;
+        return filteredRequests.slice(start, start + rowsPerPage);
+    }, [filteredRequests, page, rowsPerPage]);
 
     const openModal = (request) => {
         setModalRequest(request);
@@ -179,6 +206,7 @@ function ReportsPayment() {
                     className="audit-date-filter"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
+                    max={endDate}
                 />
                 <span style={{ margin: "0 5px" }}>to</span>
                 <input
@@ -186,6 +214,7 @@ function ReportsPayment() {
                     className="audit-date-filter"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate}
                 />
                 
                 <input

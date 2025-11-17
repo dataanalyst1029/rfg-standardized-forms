@@ -126,9 +126,19 @@ function ReportsRequestPurchase() {
       });
     }
 
+    const checkDate = (dateStr) => {
+      if (!dateStr) return false;
+
+      if (dateStr.toLowerCase().includes(term)) return true;
+
+      const dateObj = parseLocalDate(dateStr);
+      return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
+    }
+
     // ✅ Text search
     if (term) {
-      categorizedRequests = categorizedRequests.filter((req) =>
+      categorizedRequests = categorizedRequests.filter((req) => {
+        const topLevelMatch =
         [
           "purchase_request_code",
           "request_by",
@@ -136,10 +146,20 @@ function ReportsRequestPurchase() {
           "department",
           "purpose",
           "status",
-        ].some((key) => req[key]?.toString().toLowerCase().includes(term))
-      );
-    }
+        ].some((key) => req[key]?.toString().toLowerCase().includes(term));
 
+        if(topLevelMatch) return true;
+
+        const dateMatch = [
+          req.request_date,
+        ].some(checkDate);
+
+        if (dateMatch) return true;
+        
+        return false;
+
+      });
+    }
     return categorizedRequests;
   }, [requests, search, startDate, endDate]);
 
@@ -188,6 +208,7 @@ function ReportsRequestPurchase() {
             className="audit-date-filter"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            max={endDate}
           />
           <span style={{ margin: "0 5px" }}>to</span>
           <input
@@ -195,6 +216,7 @@ function ReportsRequestPurchase() {
             className="audit-date-filter"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            min={startDate}
           />
 
           <input
