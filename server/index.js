@@ -3457,6 +3457,54 @@ app.post("/api/overtime_requests", async (req, res) => {
   }
 });
 
+app.get("/api/overtime_requests", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT oar.*,
+        json_agg(
+          json_build_object(
+            'id', oare.id, 
+            'ot_date', oare.ot_date, 
+            'time_from', oare.time_from, 
+            'time_to', oare.time_to,
+            'purpose', oare.purpose, 
+            'hours', oare.hours
+          )
+        ) FILTER (WHERE oare.id IS NOT NULL) AS entries
+      FROM overtime_requests oar
+      LEFT JOIN overtime_entries oare ON oar.id = oare.request_id
+      GROUP BY oar.id
+      ORDER BY oar.created_at DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching overtime application requests:", err);
+    res.status(500).json({ message: "Server error fetching overtime application requests" });
+  }
+});
+
+app.get("/api/overtime_entries", async (req, res) => {
+  const { request_id } = req.query;
+
+  if (!request_id) {
+    return res.status(400).json({ message: "request_id is required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT *
+       FROM overtime_entries
+       WHERE request_id = $1
+       ORDER BY id ASC`,
+      [request_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching overtime application entries:", err);
+    res.status(500).json({ message: "Server error fetching overtime application entries" });
+  }
+});
+
 /* ------------------------
    START SERVER
 ------------------------ */

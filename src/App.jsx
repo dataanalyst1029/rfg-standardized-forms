@@ -20,6 +20,7 @@ import SubmittedInterbranchTransferSlip from "./submitted-request/SubmittedInter
 import SubmittedLeaveApplication from "./submitted-request/SubmittedLeaveApplication";
 import SubmittedMaintenanceRepair from "./submitted-request/SubmittedMaintenanceRepair";
 import SubmittedCreditCardAcknowledgement from "./submitted-request/SubmittedCreditCardAcknowledgement";
+import SubmittedOvertimeApproval from "./submitted-request/SubmittedOvertimeApproval";
 import RevolvingFund from "./forms/RevolvingFund";
 import CashAdvanceRequest from "./forms/CashAdvanceRequest";
 import CashAdvanceLiquidation from "./forms/CashAdvanceLiquidation";
@@ -392,9 +393,9 @@ function App() {
           path="/forms/submitted-hr-overtime-approval"
           element={
             user ? (
-              <SubmittedRequests formSlug="hr-overtime-approval" />
+              <SubmittedOvertimeApproval onLogout={handleLogout} currentUserId={user.id}/>
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/hr-overtime-approval" replace />
             )
           }
         />

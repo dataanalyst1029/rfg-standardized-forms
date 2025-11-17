@@ -1,0 +1,298 @@
+/* --- Compact Element Styles --- */
+.oar-request-card {
+  background: #fff;
+  padding: 1.15rem 1.4rem;
+  margin: 0 auto;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
+  color: var(--card-text, #222);
+  display: flex;
+  flex-direction: column;
+}
+
+.oar-items-table {
+  width: 100%;
+  border: 1px solid #55555535 !important;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.oar-items-table th,
+.oar-items-table td {
+  border: 1px solid #55555535 !important;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+}
+
+.oar-items-table th {
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  background: #fff !important;
+}
+
+.oar-items-table .text-center {
+  text-align: center;
+}
+
+.oar-footnote {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: #444;
+}
+
+.submitted-oar-request-card {
+  margin-bottom: 3rem;
+  color: var(--card-text, #111);
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.oar-transport-header {
+  background: #111;
+  color: #adadadff !important;
+  padding: 8px 8px;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 1rem;
+}
+
+.oar-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #55555535 !important;
+  font-size: 0.9rem;
+}
+
+.oar-info-table th,
+.oar-info-table td {
+  border: 1px solid #55555535 !important;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.oar-info-table th {
+  font-weight: 600;
+  background: #fff !important;
+  width: 40%;
+}
+
+.oar-transport-table,
+.oar-sig-table,
+.oar-received-table {
+  width: 100%;
+  border: 1px solid #55555535 !important;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin-top: 1rem;
+  table-layout: fixed;
+}
+
+.oar-transport-table {
+  margin-top: 0;
+}
+
+.oar-transport-table th,
+.oar-transport-table td,
+.oar-sig-table th,
+.oar-sig-table td,
+.oar-received-table th,
+.oar-received-table td {
+  border: 1px solid #55555535 !important;
+  padding: 0.6rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.oar-transport-table td,
+.oar-transport-table th {
+  width: 200px;
+  height: 20px !important;
+}
+
+.oar-sig-table th,
+.oar-received-table th {
+  font-weight: 600;
+  width: 20%;
+  background: #f7f7f7;
+}
+
+.oar-transport-table th {
+  font-weight: 600;
+  background: #fff !important;
+}
+
+.sig-box {
+  overflow: visible !important;
+  position: relative;
+  height: 20px !important;
+}
+
+.signature-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 3.5rem;
+  width: auto;
+  max-width: 150px;
+}
+
+.oar-receiving-section {
+  border: 1px solid #55555535 !important;
+  overflow: hidden;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.oar-receiving-header {
+  background: #111;
+  color: #fff;
+  padding: 0.55rem 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.oar-receiving-content {
+  display: flex;
+  width: 100%;
+}
+
+.oar-receiving-col {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  box-sizing: border-box;
+}
+
+.oar-receiving-col:first-child {
+  border-right: 1px solid #55555535 !important;
+}
+
+.oar-receiving-col p {
+  margin: 0 0 0.5rem 0;
+}
+
+.reason {
+  font-size: 0.85rem;
+  min-height: 3rem;
+  border-top: 1px solid #ccc;
+  padding-top: 0.5rem;
+  color: #333;
+}
+
+.status-text {
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+/* =================================================================
+   PRINT STYLES - MODIFIED FOR 1:1 RENDER
+   ================================================================= */
+
+@media print {
+  /* --- Base Layout & Visibility --- */
+  body * {
+    visibility: hidden;
+  }
+
+  /* CORRECTED: Target .its-request-card and its layout parents */
+  .pr-layout,
+  .pr-main,
+  .submitted-requests-container,
+  .oar-request-card,
+  .oar-request-card * {
+    visibility: visible;
+  }
+
+  /* --- Hide specific UI elements *within* the card --- */
+  .oar-request-card .floating-receive-btn,
+  .oar-request-card .floating-decline-reason {
+    visibility: hidden !important;
+    display: none !important;
+  }
+
+  /* --- Reset Layout Containers --- */
+  .pr-layout,
+  .pr-main,
+  .submitted-requests-container {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
+    position: static !important;
+  }
+
+  .pr-main {
+    height: auto;
+    padding: 0;
+  }
+
+  /* --- Style the Card for 1:1 Printing --- */
+  .oar-request-card {
+    width: 95%; /* Fill the page width */
+    max-width: 95% !important; /* Override any screen max-width */
+    margin: 0;
+    box-shadow: none !important; /* Shadows don't print well */
+    background: #fff !important;
+    color: #000 !important;
+    page-break-inside: avoid;
+    font-size: 100%; /* Let component's rem/em sizes work */
+    position: static !important;
+  }
+
+  /* Force all text in card to be black */
+  .oar-request-card * {
+    color: #000 !important;
+  }
+
+  .oar-transport-table th {
+    width: 50% !important; /* Adjust to your desired label width */
+  }
+
+  .oar-transport-table td {
+    width: 50% !important; /* This should be 100% minus the th width */
+  }
+
+  /* ==========================================================================
+    --- 📏 CUSTOM PRINT SIZES ---
+    ==========================================================================
+    */
+
+  @page {
+    margin: 0.5in; /* Keep original page margin */
+  }
+
+  /* --- Force Header Backgrounds (for 1:1 fidelity) --- */
+  .oar-items-table th {
+    background-color: #fff !important; /* From on-screen styles */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .oar-info-table th,
+  .oar-transport-table th,
+  .oar-sig-table th {
+    background-color: #fff !important; /* From on-screen styles */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .oar-transport-header {
+    background: #111;
+    color: #adadadff !important;
+    padding: 8px 8px;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 1rem;
+  }
+
+  /* Keep page break rules */
+  .oar-grid-two {
+    page-break-inside: avoid;
+  }
+}

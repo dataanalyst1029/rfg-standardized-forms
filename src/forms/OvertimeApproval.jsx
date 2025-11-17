@@ -323,7 +323,7 @@ function OvertimeApproval({ onLogout }) {
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/forms/hr-overtime-approval/submitted");
+      navigate("/forms/submitted-hr-overtime-approval");
       return;
     }
 
