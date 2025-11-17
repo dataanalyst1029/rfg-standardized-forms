@@ -3319,6 +3319,143 @@ app.get("/api/credit_card_acknowledgement_receipt", async (req, res) => {
   }
 });
 
+/* ------------------------
+   HR OVERTIME APPROVAL API
+------------------------ */
+app.get("/api/overtime_requests/next-code", async (req, res) => {  // Generate next available credit card receipt code
+  try {
+    const year = new Date().getFullYear();  // Get current year for code prefix
+
+    const result = await pool.query(  // Query latest code that matches current year
+      `SELECT form_code 
+       FROM overtime_requests 
+       WHERE form_code LIKE $1 
+       ORDER BY form_code DESC 
+       LIMIT 1`,
+      [`OAR-${year}-%`]  // Pattern for current year’s codes
+    );
+
+    let nextCode;  // Variable to store generated code
+    if (result.rows.length > 0) {  // If a record exists for this year
+      const lastCode = result.rows[0].form_code;  // Get latest code
+      const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
+      const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
+      nextCode = `OAR-${year}-${nextNum}`;  // Construct next code
+    } else {
+      nextCode = `OAR-${year}-000001`;  // If none found, start from 000001
+    }
+
+    res.json({ nextCode });  // Return next code to client
+  } catch (err) {
+    console.error("❌ Error generating next overtime approval form code:", err);  // Log error
+    res.status(500).json({ message: "Server error generating next code" });  // Send error response
+  }
+});
+
+app.post("/api/overtime_requests", async (req, res) => {
+  const {
+    form_code,
+    requester_name,
+    branch,
+    department,
+    employee_id,
+    request_date,
+    signature,
+    total_hours, // Make sure client sends this
+    submitted_by,
+    cutoff_start,
+    cutoff_end,
+
+    // 1. This is the array of multiple entries from the client
+    entries = [], 
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN"); // Start transaction
+
+    // 2. Insert the main request
+    const result = await client.query(
+      `INSERT INTO overtime_requests
+       (form_code, requester_name, branch, department, employee_id, request_date, signature, total_hours, submitted_by, submitted_at, cutoff_start, cutoff_end)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING id`,
+      [
+        form_code,
+        requester_name,
+        branch,
+        department,
+        employee_id,
+        request_date,
+        signature,
+        total_hours,
+        submitted_by,
+        new Date(), // Set timestamp on server
+        cutoff_start,
+        cutoff_end,
+      ]
+    );
+
+    const requestId = parseInt(result.rows[0]?.id, 10);
+    if (!requestId) throw new Error("Failed to get overtime approval request ID");
+
+    // 3. Check if there are any entries to save
+    if (entries.length > 0) {
+      const values = [];
+      const placeholders = [];
+
+      // 4. Loop over EACH entry to build placeholders and values
+      entries.forEach((entry, i) => {
+        const base = i * 6; // 6 columns per entry
+        
+        // Build: ($1, $2, $3, $4, $5, $6), ($7, $8, ...), etc.
+        placeholders.push(
+          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`
+        );
+
+        // 5. Push this entry's values INSIDE the loop
+        values.push(
+          requestId,             // $${base + 1}
+          entry.ot_date || null, // $${base + 2}
+          entry.time_from || null, // $${base + 3}
+          entry.time_to || null, // $${base + 4}
+          entry.purpose || null, // $${base + 5}
+          entry.hours || 0       // $${base + 6}
+        );
+      });
+
+      // 6. Build the final bulk INSERT query
+      // (Assuming your table is 'overtime_entries')
+      const entriesQuery = `
+        INSERT INTO overtime_entries (request_id, ot_date, time_from, time_to, purpose, hours)
+        VALUES ${placeholders.join(", ")}
+      `;
+
+      // 7. Run the query ONCE to insert all entries
+      await client.query(entriesQuery, values);
+    }
+
+    await client.query("COMMIT"); // All good, commit changes
+
+    res.status(201).json({
+      success: true,
+      message: `Overtime Approval Request ${form_code} saved successfully!`,
+      request: {
+        id: requestId,
+        form_code: form_code,
+        status: 'submitted', // Or your default status
+        ...req.body
+      }
+    });
+
+  } catch (err) {
+    await client.query("ROLLBACK"); // Something failed, undo
+    console.error("❌ Error saving overtime approval request:", err);
+    res.status(500).json({ message: "Server error saving overtime approval request" });
+  } finally {
+    client.release();
+  }
+});
 
 /* ------------------------
    START SERVER

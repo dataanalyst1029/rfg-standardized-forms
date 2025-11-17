@@ -61,17 +61,25 @@ function OvertimeApproval({ onLogout }) {
   const [activeSection, setActiveSection] = useState("details");
 
   const role = (storedUser.role || "").toLowerCase();
-  const isUserAccount = role === "user";
+  const isUserAccount = role === "user" || role === "staff";
 
-  const availableDepartments = formData.branch
-    ? departments.filter((dept) => {
+  const availableDepartments = useMemo(() => {
+      if (!formData.branch) {
+        return departments;
+      }
+      const selected = branches.find(
+        (branch) => branch.branch_name === formData.branch,
+      );
+
+      return selected
+      ? departments.filter((dept) => {
         if (dept.branch_id === null || dept.branch_id === undefined) {
           return true;
         }
-        const selected = branches.find((branch) => branch.branch_name === formData.branch);
-        return selected ? Number(dept.branch_id) === Number(selected.id) : true;
+        return Number(dept.branch_id) === Number(selected.id);
       })
-    : departments;
+      : departments;
+    }, [formData.branch, departments, branches]);
 
   const totalHours = useMemo(
     () => entries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0),
@@ -89,7 +97,7 @@ function OvertimeApproval({ onLogout }) {
 
     const fetchNextCode = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/overtime_request/next-code`);
+        const res = await fetch(`${API_BASE_URL}/api/overtime_requests/next-code`);
         if (!res.ok) {
           throw new Error("Failed to load next reference code");
         }
@@ -274,6 +282,7 @@ function OvertimeApproval({ onLogout }) {
     setIsSaving(true);
 
     const payload = {
+      form_code: nextReferenceCode,
       requester_name: formData.requester_name,
       branch: formData.branch,
       department: formData.department,
@@ -284,10 +293,13 @@ function OvertimeApproval({ onLogout }) {
       cutoff_end: formData.cutoff_end,
       entries: cleanedEntries,
       submitted_by: storedUser.id || null,
+      cleanedEntries,
     };
 
+    console.log("Submitting: ", payload)
+
     try {
-      const res = await fetch(`${API_BASE_URL}/api/overtime_request`, {
+      const res = await fetch(`${API_BASE_URL}/api/overtime_requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
