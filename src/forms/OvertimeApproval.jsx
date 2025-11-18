@@ -48,7 +48,7 @@ function OvertimeApproval({ onLogout }) {
     department: storedUser.department || "",
     employee_id: storedUser.employee_id || "",
     request_date: new Date().toISOString().split("T")[0],
-    signature: storedUser.name || "",
+    signature: storedUser.signature || "",
     cutoff_start: "",
     cutoff_end: "",
   });
@@ -62,6 +62,20 @@ function OvertimeApproval({ onLogout }) {
 
   const role = (storedUser.role || "").toLowerCase();
   const isUserAccount = role === "user" || role === "staff";
+
+  useEffect(() => {
+    const storedId = sessionStorage.getItem("id");
+    if (!storedId) return;
+    fetch(`${API_BASE_URL}/users/${storedId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setFormData((prev) => ({
+          ...prev,
+          signature: data.signature || "",
+        }));
+      })
+      .catch((err) => console.error("Error fetching user data:", err));
+  }, []);
 
   const availableDepartments = useMemo(() => {
       if (!formData.branch) {
@@ -291,9 +305,9 @@ function OvertimeApproval({ onLogout }) {
       signature: formData.signature,
       cutoff_start: formData.cutoff_start,
       cutoff_end: formData.cutoff_end,
+      total_hours: totalHours,
       entries: cleanedEntries,
       submitted_by: storedUser.id || null,
-      cleanedEntries,
     };
 
     console.log("Submitting: ", payload)
@@ -495,7 +509,7 @@ function OvertimeApproval({ onLogout }) {
               <input
                 id="signature"
                 name="signature"
-                value={formData.signature}
+                value={formData.requester_name}
                 onChange={handleFieldChange}
                 className="pr-input"
                 disabled={isReadOnly}
@@ -646,7 +660,7 @@ function OvertimeApproval({ onLogout }) {
                   department: storedUser.department || "",
                   employee_id: storedUser.employee_id || "",
                   request_date: new Date().toISOString().split("T")[0],
-                  signature: storedUser.name || "",
+                  signature: formData.signature || "",
                   cutoff_start: "",
                   cutoff_end: "",
                 });

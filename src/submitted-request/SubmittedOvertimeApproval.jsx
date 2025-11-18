@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api.js";
 
-import "./styles/submitted-interbranch-transfer.css"; 
+import "./styles/submitted-overtime.css"; 
 import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
@@ -120,7 +120,7 @@ function SubmittedOvertimeApproval({
           if (prev && filtered.some((request) => request.form_code === prev)) {
             return prev;
           }
-          return filtered.length > 0 ? filtered[0].form_code : "";
+          return /*filtered.length > 0 ? filtered[0].form_code :*/ "";
         });
       } catch (err) {
         console.error("Error fetching overtime applications", err);
@@ -182,8 +182,12 @@ function SubmittedOvertimeApproval({
   const requesterSignature = selectedRequest?.signature;
 
   // These fields are for the "Approved by" row
-  const approvedByValue = displayText(selectedRequest?.approved_by, "");
-  const approvedSignatureValue = selectedRequest?.approved_sig;
+  const approvedBy = displayText(selectedRequest?.approved_by, "");
+  const approvedSignature = selectedRequest?.approved_sig;
+
+  // These fields are for the "Approved by" row
+  const receivedBy = displayText(selectedRequest?.received_by, "");
+  const receivedSignature = selectedRequest?.received_sig;
 
   const handleSelectChange = (event) => {
     setSelectedCode(event.target.value);
@@ -248,7 +252,7 @@ function SubmittedOvertimeApproval({
         </div>
 
         {selectedRequest && (
-          <div className="its-request-card">
+          <div className="oar-request-card">
             <header className="request-header">
               <div className="header-brand">
                 <img
@@ -262,9 +266,9 @@ function SubmittedOvertimeApproval({
               </div>
             </header>
 
-            <div className="its-grid-two">
+            <div className="oar-grid-two">
               <div>
-                <table className="its-info-table" style={{ borderTop: 'none', borderRight: 'none' }}>
+                <table className="oar-info-table" style={{ borderTop: 'none', borderRight: 'none' }}>
                   <tbody>
                     <tr>
                       <th>Name</th>
@@ -282,7 +286,7 @@ function SubmittedOvertimeApproval({
                 </table>
               </div>
               <div>
-                <table className="its-info-table" style={{ borderTop: 'none' }}>
+                <table className="oar-info-table" style={{ borderTop: 'none' }}>
                   <tbody>
                     <tr>
                       <th>Branch</th>
@@ -296,10 +300,10 @@ function SubmittedOvertimeApproval({
                       <th>Signature</th>
                       <td className="sig-box">
                         <img
-                            src={`${API_BASE_URL}/uploads/signatures/${storedUser.signature}`}
-                            alt="Prepared signature"
-                            className="signature-img"
-                        />   
+                          src={`${API_BASE_URL}/uploads/signatures/${requesterSignature}`}
+                          alt="Requester signature"
+                          className="signature-img"
+                        />
                       </td>
                     </tr>
                   </tbody>
@@ -309,7 +313,7 @@ function SubmittedOvertimeApproval({
 
             {/* [CHANGE 1] Removed style={{ marginTop: "1.5rem" }} */}
             <div
-              className="its-transport-header"
+              className="oar-transport-header"
             >
               OVERTIME ENTRIES
             </div>
@@ -319,13 +323,13 @@ function SubmittedOvertimeApproval({
                 Loading items...
               </p>
             ) : (
-              <table className="its-items-table" style={{ marginTop: 0 }}>
+              <table className="oar-items-table" style={{ marginTop: 0 }}>
                 <thead>
                   <tr>
                     <th>Date</th>
                     <th>Time From</th>
                     <th>Time To</th>
-                    <th>Purpose / Task</th>
+                    <th>Purpose</th>
                     <th className="text-center">Total Hours</th>
                   </tr>
                 </thead>
@@ -379,19 +383,12 @@ function SubmittedOvertimeApproval({
             )}
             
             {/* [CHANGE 2] Signature table updated */}
-            <table className="its-sig-table">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Name</th>
-                  <th>Signature</th>
-                  {/* <th>Date</th> <-- REMOVED */}
-                </tr>
-              </thead>
+            <table className="oar-sig-table">
               <tbody>
                 <tr>
                   <th>Requested by</th>
                   <td>{requesterName}</td>
+                  <th>Signature</th>
                   <td className="sig-box">
                     {requesterSignature ? (
                       <img
@@ -401,21 +398,34 @@ function SubmittedOvertimeApproval({
                       />
                     ) : null}
                   </td>
-                  {/* <td>{requesterDate}</td> <-- REMOVED */}
                 </tr>
                 <tr>
                   <th>Approved by</th>
-                  <td>{approvedByValue}</td>
+                  <td>{approvedBy}</td>
+                  <th>Signature</th>
                   <td className="sig-box">
-                    {approvedSignatureValue ? (
+                    {approvedSignature ? (
                       <img
-                        src={`${API_BASE_URL}/uploads/signatures/${approvedSignatureValue}`}
+                        src={`${API_BASE_URL}/uploads/signatures/${approvedSignature}`}
                         alt="Approved signature"
                         className="signature-img"
                       />
                     ) : null}
                   </td>
-                  {/* <td>{approvedDateValue}</td> <-- REMOVED */}
+                </tr>
+                <tr>
+                  <th>Received by</th>
+                  <td>{receivedBy}</td>
+                  <th>Signature</th>
+                  <td className="sig-box">
+                    {receivedSignature ? (
+                      <img
+                        src={`${API_BASE_URL}/uploads/signatures/${receivedSignature}`}
+                        alt="Requester signature"
+                        className="signature-img"
+                      />
+                    ) : null}
+                  </td>
                 </tr>
               </tbody>
             </table>
