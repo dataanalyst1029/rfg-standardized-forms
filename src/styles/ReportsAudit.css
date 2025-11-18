@@ -140,3 +140,78 @@
   cursor: pointer;
   color: var(--color-text-primary);
 }
+
+/*
+ * NEW FILE: ReportsModal.css
+ * This file contains shared styles for the report modals
+ * to keep the JSX clean and maintainable.
+ */
+
+/* Card for grouping modal sections */
+.pr-items-card--modal {
+  margin-top: 1.5rem;
+  border: 1px solid #ddd;
+}
+
+/* Header for modal cards */
+.pr-section-title--modal {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #ddd;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  background-color: #fcfcfc;
+}
+
+/* Base table used for displaying details */
+.request-items-table--modal-details {
+  border: none;
+  width: 100%;
+}
+
+.request-items-table--modal-details th,
+.request-items-table--modal-details td {
+  border: none; /* Override base table styles if they exist */
+  vertical-align: top;
+  padding: 0.75rem;
+}
+
+/* Helper classes for modal tables */
+.modal-table-header {
+  border-right: 1px solid #eee;
+  background: #f9f9f9;
+  font-weight: 600;
+}
+.modal-table-cell--border-right {
+  border-right: 1px solid #eee;
+}
+.modal-table-row--border-bottom {
+  border-bottom: 1px solid #eee;
+}
+
+/* Simple two-column grid */
+.modal-grid-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Subtle text for addresses, etc. */
+.text-subtle {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Placeholder for empty item tables */
+.modal-no-items {
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+}
+
+/* Width helpers for item tables */
+.w-10 { width: 10%; }
+.w-15 { width: 15%; }
+.w-20 { width: 20%; }
+.w-30 { width: 30%; }
+.w-35 { width: 35%; }

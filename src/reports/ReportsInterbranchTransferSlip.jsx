@@ -147,7 +147,7 @@ function ReportsInterbranchTransferSlip() {
           req.prepared_date,
           req.date_transferred,
           req.date_received
-        ].some(checkDate); // <-- This is much simpler now
+        ].some(checkDate); 
 
         if (dateMatch) return true;
 
@@ -155,7 +155,6 @@ function ReportsInterbranchTransferSlip() {
         const itemMatch = (req.items || []).some(item =>
           item.item_code?.toLowerCase().includes(term) ||
           item.item_description?.toLowerCase().includes(term)
-          // You could also add qty, unit_measure, etc. here
         );
 
         if (itemMatch) return true;
@@ -255,7 +254,6 @@ function ReportsInterbranchTransferSlip() {
               <th style={{ textAlign: "center" }}>Prepared By</th>
               <th style={{ textAlign: "center" }}>From Branch</th>
               <th style={{ textAlign: "center" }}>To Branch</th>
-              <th style={{ textAlign: "center" }}>Item Code</th>
               <th style={{ textAlign: "center" }}>Status</th>
               <th style={{ textAlign: "center" }}>Action</th>
             </tr>
@@ -263,13 +261,13 @@ function ReportsInterbranchTransferSlip() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="admin-empty-state">
+                <td colSpan={7} className="admin-empty-state">
                   Loading interbranch transfer slips...
                 </td>
               </tr>
             ) : visibleRequests.length === 0 ? (
               <tr>
-                <td colSpan={8} className="admin-empty-state">
+                <td colSpan={7} className="admin-empty-state">
                   {search || startDate || endDate
                     ? "No requests match your search/filter."
                     : "No interbranch transfer slips found."}
@@ -285,11 +283,6 @@ function ReportsInterbranchTransferSlip() {
                   <td style={{ textAlign: "left" }}>{req.prepared_by}</td>
                   <td style={{ textAlign: "left" }}>{req.from_branch}</td>
                   <td style={{ textAlign: "left" }}>{req.to_branch}</td>
-                  <td style={{ textAlign: "center" }}>
-                    {(req.items || []).map(item => (
-                      <div key={item.id}>{item.item_code || 'N/A'}</div>
-                    ))}
-                  </td>
                   <td style={{ textAlign: "Center" }}>{req.status}</td>
                   <td style={{ textAlign: "center" }}>
                     <button
@@ -352,7 +345,7 @@ function ReportsInterbranchTransferSlip() {
         </label>
       </div>
 
-      {/* ---------- Modal for Viewing Request Details ---------- */}
+      {/* ---------- Modal for Viewing Request Details (STYLES UPDATED) ---------- */}
       {modalOpen && modalRequest && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
           <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
@@ -368,137 +361,120 @@ function ReportsInterbranchTransferSlip() {
               <h2>{modalRequest.form_code}</h2>
               <p>
                 <strong>Date:</strong>{" "}
-                <em>
-                  {new Date(modalRequest.prepared_date).toLocaleDateString()}
-                </em>
+                <em>{new Date(modalRequest.prepared_date).toLocaleDateString()}</em>
               </p>
 
-              <section className="pr-form-section" id="details">
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>Date Transferred</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={new Date(modalRequest.date_transferred).toLocaleDateString()}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Date Received</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={new Date(modalRequest.date_received).toLocaleDateString()}
-                      readOnly
-                    />
-                  </div>
-                </div>
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>From Branch</label>
-                    <textarea
-                      className="cabr-textarea"
-                      value={`${(modalRequest.from_branch.trim()).toString()}\n\n${modalRequest.from_address.trim()}`}
-                      rows={5}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>To Branch</label>
-                    <textarea
-                      className="cabr-textarea"
-                      value={`${modalRequest.to_branch.trim()}\n\n${modalRequest.to_address.trim()}`}
-                      rows={5}
-                      readOnly
-                    />
-                  </div>
-                </div>
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>Area Operations Controller</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.from_area_ops_controller}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Area Operations Controller</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.to_area_ops_controller}
-                      readOnly
-                    />
-                  </div>
-                </div>  
-              </section>
+              {/* ----- 1. Employee Info Block ----- */}
+              <div className="employee-info">
+                <p>
+                  <strong>Prepared By:</strong>{" "}
+                  <em>{modalRequest.prepared_by}</em>
+                </p>
+                <p>
+                  <strong>Employee ID:</strong>{" "}
+                  <em>{modalRequest.employee_id || "N/A"}</em> 
+                </p>
+              </div>
 
-              <section className="pr-form-section" id="details">
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>Bank</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.bank}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Issuer</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.issuer}
-                      readOnly
-                    />
-                  </div>
-                </div>
+              {/* ----- 2. Transfer & Dispatch Details Card ----- */}
+              <div className="pr-items-card pr-items-card--modal">
+                <h2 className="pr-section-title pr-section-title--modal">
+                  Transfer Details
+                </h2>
+                
+                {/* From / To Grid */}
+                <table className="request-items-table request-items-table--modal-details">
+                   <tbody>
+                      <tr className="modal-table-row--border-bottom">
+                        <th className="modal-table-header w-15">Origin</th>
+                        <td className="modal-table-cell--border-right w-35">
+                            <strong>{modalRequest.from_branch}</strong><br/>
+                            <span className="text-subtle">{modalRequest.from_address}</span>
+                        </td>
+                        <th className="modal-table-header w-15">Destination</th>
+                        <td className="w-35">
+                            <strong>{modalRequest.to_branch}</strong><br/>
+                            <span className="text-subtle">{modalRequest.to_address}</span>
+                        </td>
+                      </tr>
+                      <tr className="modal-table-row--border-bottom">
+                        <th className="modal-table-header w-15">Area Operations Controller</th>
+                        <td className="modal-table-cell--border-right w-35">
+                            <strong>{modalRequest.from_area_ops_controller}</strong><br/>
+                        </td>
+                        <th className="modal-table-header w-15">Area Operations Controller</th>
+                        <td className="w-35">
+                            <strong>{modalRequest.to_area_ops_controller}</strong><br/>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th className="modal-table-header">Dispatch</th>
+                        <td colSpan="3">
+                            <div className="modal-grid-two">
+                                <span><strong>Method:</strong> {modalRequest.dispatch_method || "—"}</span>
+                                <span><strong>Vehicle No:</strong> {modalRequest.vehicle_no || "—"}</span>
+                                <span><strong>Driver:</strong> {modalRequest.driver_name || "—"}</span>
+                                <span><strong>Contact:</strong> {modalRequest.driver_contact || "—"}</span>
+                            </div>
+                        </td>
+                      </tr>
+                   </tbody>
+                </table>
+              </div>
 
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>Card Number</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.card_number}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Date Received</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={new Date(modalRequest.date_received).toLocaleDateString()}
-                      readOnly
-                    />
-                  </div>
-                </div>
-              </section>
+              {/* ----- 3. Items Table (RE-ORDERED) ----- */}
+              <div className="pr-items-card pr-items-card--modal">
+                 <h2 className="pr-section-title pr-section-title--modal">
+                  Items
+                </h2>
+                
+                {modalRequest.items && modalRequest.items.length > 0 ? (
+                <table className="request-items-table">
+                  <thead>
+                    <tr>
+                      <th>Item Code</th>
+                      <th>Qty</th>
+                      <th>Unit</th>
+                      <th>Description</th>
+                      <th>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modalRequest.items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.item_code || "—"}</td>
+                        <td className="text-center">{item.qty}</td>
+                        <td className="text-center">{item.unit_measure}</td>
+                        <td>{item.item_description || "—"}</td>
+                        <td>{item.remarks || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                ) : (
+                    <p className="modal-no-items">No items listed.</p>
+                )}
+              </div>
 
+              {/* ----- 4. Signatures ----- */}
               <div className="submit-content">
                 <div className="submit-by-content">
                   <div>
-                    <span>{modalRequest.received_by_name}</span>
-                    <p>Received by</p>
+                    <span>{modalRequest.prepared_by}</span>
+                    <p>Prepared by</p>
                   </div>
-
                   <div className="signature-content">
                     <input
                       className="submit-sign"
                       type="text"
-                      value={modalRequest.received_by_signature}
+                      value={modalRequest.prepared_signature}
                       readOnly
                     />
-                    {modalRequest.received_by_signature ? (
+                    {modalRequest.prepared_signature ? (
                       <img
-                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.received_by_signature}`}
+                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.prepared_signature}`}
                         alt="Signature"
-                        className="ca-signature-image"
+                        className="cal-signature-image"
                       />
                     ) : (
                       <div className="img-sign empty-sign"></div>
@@ -508,45 +484,48 @@ function ReportsInterbranchTransferSlip() {
                 </div>
               </div>
 
-              <div className="submit-content">
-                <div className="submit-by-content">
-                  <div>
-                    <label>
+              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
+                <div className="submit-content">
+                  <div className="submit-by-content-approve">
+                    <div>
                       <span>
                         <input
                           type="text"
                           name="approved_by"
-                          value={modalRequest.issued_by_name || ""}
+                          value={modalRequest.approved_by} 
+                          className="approver-name"
                           readOnly
                         />
                       </span>
-                      <p>Issued by</p>
-                    </label>
-                  </div>
+                      <p>Approved by</p>
+                    </div>
 
-                  <div className="approver-signature">
-                    <label>
-                      <input
-                        type="text"
-                        name="approve_signature"
-                        value={modalRequest.issued_by_signature || ""}
-                        className="submit-sign"
-                        readOnly
-                      />
-                      {modalRequest.issued_by_signature ? (
-                        <img
-                          src={`${API_BASE_URL}/uploads/signatures/${modalRequest.issued_by_signature}`}
-                          alt="Signature"
-                          className="signature-img"
+                    <div className="signature-content">
+                      <label>
+                        <input
+                          type="text"
+                          name="approve_signature"
+                          value={userData.signature || ""}
+                          className="submit-sign"
+                          required
+                          readOnly
                         />
-                      ) : (
-                        <div className="img-sign empty-sign"></div>
-                      )}
-                      <p>Signature</p>
-                    </label>
+                        {userData.signature ? (
+                          <img
+                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
+                            alt="Signature"
+                            className="cal-signature-image"
+                          />
+                        ) : (
+                          <div className="img-sign empty-sign"></div>
+                        )}
+                        <p>Signature</p>
+                      </label>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </form>
+
             </div>
           </div>
         </div>

@@ -344,7 +344,7 @@ function ReportsCreditCard() {
         </label>
       </div>
 
-      {/* ---------- Modal for Viewing Request Details ---------- */}
+      {/* ---------- Modal for Viewing Request Details (UPDATED) ---------- */}
       {modalOpen && modalRequest && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
           <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
@@ -365,93 +365,49 @@ function ReportsCreditCard() {
                 </em>
               </p>
 
-              <section className="pr-form-section" id="details">
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>Employee ID</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.employee_id}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Name</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.cardholder_name}
-                      readOnly
-                    />
-                  </div>
-                </div>
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>Department</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.department}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Position</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.position}
-                      readOnly
-                    />
-                  </div>
-                </div>
-              </section>
+              {/* ----- 1. Employee Info Block (Styled like Cash Advance) ----- */}
+              <div className="employee-info">
+                <p>
+                  <strong>Employee ID:</strong>{" "}
+                  <em>{modalRequest.employee_id}</em>
+                </p>
+                <p>
+                  <strong>Name:</strong>{" "}
+                  <em>{modalRequest.cardholder_name}</em>
+                </p>
+                <p>
+                  <strong>Department:</strong>{" "}
+                  <em>{modalRequest.department}</em>
+                </p>
+                <p>
+                  <strong>Position:</strong> <em>{modalRequest.position}</em>
+                </p>
+              </div>
 
-              <section className="pr-form-section" id="details">
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>Bank</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.bank}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Issuer</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.issuer}
-                      readOnly
-                    />
-                  </div>
-                </div>
+              {/* ----- 2. Card Details Block (UPDATED TO TABLE) ----- */}
+              <div className="pr-items-card" style={{ marginTop: '1.5rem', border: '1px solid #ddd' }}>
+              
+                <strong>Card Details</strong>
+                
+                <table className="request-items-table" style={{ border: 'none', width: '100%' }}>
+                  <tbody style={{ border: 'none' }}>
+                    <tr style={{ borderBottom: '1px solid #eee' }}>
+                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Bank</th>
+                      <td style={{ width: '30%', borderRight: '1px solid #eee' }}>{modalRequest.bank}</td>
+                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Issuer</th>
+                      <td style={{ width: '30%' }}>{modalRequest.issuer || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                      <th style={{ borderRight: '1px solid #eee' }}>Card Number</th>
+                      <td style={{ borderRight: '1px solid #eee' }}>{modalRequest.card_number}</td>
+                      <th style={{ borderRight: '1px solid #eee' }}>Date Received</th>
+                      <td>{new Date(modalRequest.date_received).toLocaleDateString()}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>Card Number</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.card_number}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Date Received</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={new Date(modalRequest.date_received).toLocaleDateString()}
-                      readOnly
-                    />
-                  </div>
-                </div>
-              </section>
-
+              {/* ----- 3. "Received by" Signature Block (Already good) ----- */}
               <div className="submit-content">
                 <div className="submit-by-content">
                   <div>
@@ -470,7 +426,7 @@ function ReportsCreditCard() {
                       <img
                         src={`${API_BASE_URL}/uploads/signatures/${modalRequest.received_by_signature}`}
                         alt="Signature"
-                        className="ca-signature-image"
+                        className="cal-signature-image" // Using 'cal-signature-image'
                       />
                     ) : (
                       <div className="img-sign empty-sign"></div>
@@ -480,45 +436,47 @@ function ReportsCreditCard() {
                 </div>
               </div>
 
-              <div className="submit-content">
-                <div className="submit-by-content">
-                  <div>
-                    <label>
+              {/* ----- 4. "Issued by" Signature Block (Styled like Cash Advance "Approved by") ----- */}
+              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
+                <div className="submit-content">
+                  <div className="submit-by-content-approve"> {/* Changed class */}
+                    <div>
                       <span>
                         <input
                           type="text"
-                          name="approved_by"
+                          name="issued_by"
                           value={modalRequest.issued_by_name || ""}
+                          className="approver-name" // Added class
                           readOnly
                         />
                       </span>
                       <p>Issued by</p>
-                    </label>
-                  </div>
+                    </div>
 
-                  <div className="approver-signature">
-                    <label>
-                      <input
-                        type="text"
-                        name="approve_signature"
-                        value={modalRequest.issued_by_signature || ""}
-                        className="submit-sign"
-                        readOnly
-                      />
-                      {modalRequest.issued_by_signature ? (
-                        <img
-                          src={`${API_BASE_URL}/uploads/signatures/${modalRequest.issued_by_signature}`}
-                          alt="Signature"
-                          className="signature-img"
+                    <div className="signature-content"> {/* Changed class */}
+                      <label>
+                        <input
+                          type="text"
+                          name="issued_by_signature"
+                          value={modalRequest.issued_by_signature || ""}
+                          className="submit-sign"
+                          readOnly
                         />
-                      ) : (
-                        <div className="img-sign empty-sign"></div>
-                      )}
-                      <p>Signature</p>
-                    </label>
+                        {modalRequest.issued_by_signature ? (
+                          <img
+                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.issued_by_signature}`}
+                            alt="Signature"
+                            className="cal-signature-image" // Using 'cal-signature-image'
+                          />
+                        ) : (
+                          <div className="img-sign empty-sign"></div>
+                        )}
+                        <p>Signature</p>
+                      </label>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         </div>

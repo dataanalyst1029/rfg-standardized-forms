@@ -481,6 +481,7 @@ function InterbranchTransferSlip({ onLogout }) {
                 onChange={handleFieldChange}
                 className="pr-input"
                 disabled={isReadOnly}
+                max={formData.date_received}
               />
             </div>
             <div className="pr-field">
@@ -495,6 +496,7 @@ function InterbranchTransferSlip({ onLogout }) {
                 onChange={handleFieldChange}
                 className="pr-input"
                 disabled={isReadOnly}
+                min={formData.date_transferred}
               />
             </div>
           </div>
@@ -882,6 +884,7 @@ function InterbranchTransferSlip({ onLogout }) {
                   onChange={handleFieldChange}
                   className="pr-input"
                   disabled={isReadOnly}
+                  min={formData.date_transferred}
                 />
               </div>
             </div>

@@ -282,7 +282,7 @@ function ReportsReimbursementForm() {
                       style: "currency",
                       currency: "PHP",
                     })}
-                    </td>
+                  </td>
                   <td style={{ textAlign: "center" }}>{req.status}</td>
                   <td style={{ textAlign: "center" }}>
                     <button
@@ -345,7 +345,7 @@ function ReportsReimbursementForm() {
         </label>
       </div>
 
-      {/* ---------- Modal for Viewing Request Details ---------- */}
+      {/* ---------- Modal for Viewing Request Details (UPDATED) ---------- */}
       {modalOpen && modalRequest && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
           <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
@@ -366,92 +366,65 @@ function ReportsReimbursementForm() {
                 </em>
               </p>
 
-              <section className="pr-form-section" id="details">
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>Cash Advance Liquidation No</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.cal_no}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Cash Advance No</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.ca_no}
-                      readOnly
-                    />
-                  </div>
-                </div>
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>Employee ID</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.employee_id}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Name</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.name}
-                      readOnly
-                    />
-                  </div>
-                </div>
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>Branch</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.branch}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Department</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.department}
-                      readOnly
-                    />
-                  </div>
-                </div>
-              </section>
+              {/* ----- 1. Employee Info Block ----- */}
+              <div className="employee-info">
+                <p>
+                  <strong>CA Liquidation No:</strong>{" "}
+                  <em>{modalRequest.cal_no}</em>
+                </p>
+                <p>
+                  <strong>Cash Advance No:</strong>{" "}
+                  <em>{modalRequest.ca_no}</em>
+                </p>
+                <p>
+                  <strong>Employee ID:</strong>{" "}
+                  <em>{modalRequest.employee_id}</em>
+                </p>
+                <p>
+                  <strong>Name:</strong> <em>{modalRequest.name}</em>
+                </p>
+                <p>
+                  <strong>Branch:</strong> <em>{modalRequest.branch}</em>
+                </p>
+                <p>
+                  <strong>Department:</strong> <em>{modalRequest.department}</em>
+                </p>
+              </div>
 
-              <section className="pr-form-section" id="details">
-                <div className="pr-grid-two">
-                  <div className="pr-field">
-                    <label>BPI Account No.</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.bpi_acc_no}
-                      readOnly
-                    />
-                  </div>
-                  <div className="pr-field">
-                    <label>Total Reimbursable Amount</label>
-                    <input
-                      type="text"
-                      className="pr-input"
-                      value={modalRequest.total_rb_amount}
-                      readOnly
-                    />
-                  </div>
-                </div>
-              </section>
+              {/* ----- 2. Reimbursement Details (UPDATED TO TABLE) ----- */}
+              <div className="pr-items-card" style={{ marginTop: '1.5rem', border: '1px solid #ddd' }}>
+                <h2 
+                  className="pr-section-title" 
+                  style={{ 
+                    padding: '0.5rem 0.75rem', 
+                    borderBottom: '1px solid #ddd',
+                    margin: 0,
+                    fontSize: '1rem',
+                    fontWeight: 600
+                  }}
+                >
+                  Reimbursement Details
+                </h2>
+                <table className="request-items-table" style={{ border: 'none', width: '100%' }}>
+                  <tbody style={{ border: 'none' }}>
+                    <tr>
+                      <th style={{ width: '30%', borderRight: '1px solid #eee' }}>BPI Account No.</th>
+                      <td style={{ width: '70%' }}>{modalRequest.bpi_acc_no}</td>
+                    </tr>
+                    <tr style={{ borderTop: '1px solid #eee' }}>
+                      <th style={{ borderRight: '1px solid #eee' }}>Total Reimbursable Amount</th>
+                      <td>
+                        {Number(modalRequest.total_rb_amount).toLocaleString("en-PH", {
+                          style: "currency",
+                          currency: "PHP",
+                        })}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
+              {/* ----- 3. "Requested by" Signature Block ----- */}
               <div className="submit-content">
                 <div className="submit-by-content">
                   <div>
@@ -470,7 +443,7 @@ function ReportsReimbursementForm() {
                       <img
                         src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
                         alt="Signature"
-                        className="ca-signature-image"
+                        className="cal-signature-image" // Standardized class
                       />
                     ) : (
                       <div className="img-sign empty-sign"></div>
@@ -480,45 +453,50 @@ function ReportsReimbursementForm() {
                 </div>
               </div>
 
-              <div className="submit-content">
-                <div className="submit-by-content">
-                  <div>
-                    <label>
-                      <span>
+              {/* ----- 4. "Approved by" Signature Block ----- */}
+              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
+                <div className="submit-content">
+                  <div className="submit-by-content-approve"> {/* Changed class */}
+                    <div>
+                      <label>
+                        <span>
+                          <input
+                            type="text"
+                            name="approved_by"
+                            value={userData.name || ""} // Using logged-in user's name
+                            className="approver-name" // Added class
+                            readOnly
+                          />
+                        </span>
+                        <p>Approved by</p>
+                      </label>
+                    </div>
+
+                    <div className="signature-content"> {/* Changed class */}
+                      <label>
                         <input
                           type="text"
-                          name="approved_by"
-                          value={userData.name || ""}
+                          name="approve_signature"
+                          value={userData.signature || ""} // Using logged-in user's signature
+                          className="submit-sign"
                           readOnly
                         />
-                      </span>
-                      <p>Approved by</p>
-                    </label>
-                  </div>
-
-                  <div className="approver-signature">
-                    <label>
-                      <input
-                        type="text"
-                        name="approve_signature"
-                        value={userData.signature || ""}
-                        className="submit-sign"
-                        readOnly
-                      />
-                      {userData.signature ? (
-                        <img
-                          src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                          alt="Signature"
-                          className="signature-img"
-                        />
-                      ) : (
-                        <div className="img-sign empty-sign"></div>
-                      )}
-                      <p>Signature</p>
-                    </label>
+                        {userData.signature ? (
+                          <img
+                            src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                            alt="Signature"
+                            className="cal-signature-image" // Standardized class
+                          />
+                        ) : (
+                          <div className="img-sign empty-sign"></div>
+                        )}
+                        <p>Signature</p>
+                      </label>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </form>
+
             </div>
           </div>
         </div>

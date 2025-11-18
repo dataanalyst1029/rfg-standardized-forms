@@ -6,13 +6,13 @@ import "./styles/CreditCardAcknowledgementReceipt.css";
 import { API_BASE_URL } from "../config/api.js";
 
 const LEAVE_TYPES = [
-  { id: "annual", label: "Annual Leave" },
-  { id: "sick", label: "Sick Leave" },
-  { id: "maternity", label: "Maternity Leave" },
-  { id: "paternity", label: "Paternity Leave" },
-  { id: "emergency", label: "Emergency Leave" },
-  { id: "bereavement", label: "Bereavement Leave" },
-  { id: "others", label: "Others" },
+  { id: "Annual", label: "Annual Leave" },
+  { id: "Sick", label: "Sick Leave" },
+  { id: "Maternity", label: "Maternity Leave" },
+  { id: "Paternity", label: "Paternity Leave" },
+  { id: "Emergency", label: "Emergency Leave" },
+  { id: "Bereavement", label: "Bereavement Leave" },
+  { id: "Others", label: "Others" },
 ];
 
 const createInitialFormState = (storedUser) => ({
@@ -186,22 +186,6 @@ function LeaveApplication({ onLogout }) {
     loadLookups();
   }, [storedUser.branch, storedUser.department]);
 
-  useEffect(() => {
-    if (!formData.branch) {
-      return;
-    }
-    if (
-      formData.department &&
-      availableDepartments.some(
-        (dept) => dept.department_name === formData.department,
-      )
-    ) {
-      return;
-    }
-    const firstDepartment = availableDepartments[0]?.department_name || "";
-    setFormData((prev) => ({ ...prev, department: firstDepartment }));
-  }, [formData.branch, formData.department, availableDepartments]);
-
   const handleBackToForms = () => {
     navigate("/forms-list");
   };
@@ -219,11 +203,33 @@ function LeaveApplication({ onLogout }) {
   };
 
   const handleBranchChange = (event) => {
+    const newBranchName = event.target.value;
+
+    // 1. Find the branch record for the new branch name
+    const branchRecord = branches.find(
+      (branch) => branch.branch_name === newBranchName,
+    );
+
+    // 2. Filter departments based on the new branch
+    const newAvailableDepartments = newBranchName
+      ? departments.filter((dept) => {
+          if (dept.branch_id === null || dept.branch_id === undefined) {
+            return true;
+          }
+          return branchRecord
+            ? Number(dept.branch_id) === Number(branchRecord.id)
+            : true;
+        })
+      : departments;
+
+    // 3. Get the first department from the new list
+    const firstDepartment = newAvailableDepartments[0]?.department_name || "";
+
+    // 4. Set both branch and department at the same time
     setFormData((prev) => ({
       ...prev,
-      branch: event.target.value,
-      // The useEffect hook [line 186] will automatically handle
-      // setting the department based on this branch change.
+      branch: newBranchName,
+      department: firstDepartment,
     }));
   };
 
@@ -232,7 +238,7 @@ function LeaveApplication({ onLogout }) {
     setFormData((prev) => ({
       ...prev,
       leave_type: value,
-      leave_other_text: value === "others" ? prev.leave_other_text : "",
+      leave_other_text: value === "Others" ? prev.leave_other_text : "",
     }));
   };
 
@@ -289,7 +295,7 @@ function LeaveApplication({ onLogout }) {
       request_date: formData.request_date,
       signature: formData.signature,
       leave_type:
-        formData.leave_type === "others"
+        formData.leave_type === "Others"
           ? `Others - ${formData.leave_other_text.trim()}`
           : formData.leave_type,
       leave_start: formData.leave_start,
@@ -323,7 +329,7 @@ function LeaveApplication({ onLogout }) {
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/forms/hr-leave-application/submitted");
+      navigate("/forms/submitted-hr-leave-application");
       return;
     }
 
@@ -559,7 +565,7 @@ function LeaveApplication({ onLogout }) {
               </label>
             ))}
           </div>
-          {formData.leave_type === "others" && (
+          {formData.leave_type === "Others" && (
             <div className="pr-field">
               <label className="pr-label" htmlFor="leave_other_text">
                 Specify leave type
@@ -587,6 +593,7 @@ function LeaveApplication({ onLogout }) {
                 onChange={handleFieldChange}
                 className="pr-input"
                 disabled={isReadOnly}
+                max={formData.leave_end}
               />
             </div>
             <div className="pr-field">

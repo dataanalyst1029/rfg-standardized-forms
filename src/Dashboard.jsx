@@ -27,6 +27,7 @@ import ReportsCAReceipt from "./reports/ReportsCAReceipt.jsx";
 import ReportsMaintenanceRepair from "./reports/ReportsMaintenanceRepair.jsx";
 import ReportsCreditCard from "./reports/ReportsCreditCard.jsx"
 import ReportsInterbranchTransferSlip from "./reports/ReportsInterbranchTransferSlip.jsx";
+import ReportsLeaveApplication from "./reports/ReportsLeaveApplication.jsx";
 const STORAGE_KEY = "rfg-dashboard-active-view";
 
 const NAVIGATION = [
@@ -480,6 +481,13 @@ function renderActiveView(view, extraProps = {}) {
       return (
         <div className="dashboard-content dashboard-content--flush">
           <ReportsInterbranchTransferSlip/>
+        </div>
+      );
+
+    case "reports-leave-application":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ReportsLeaveApplication/>
         </div>
       );
 
@@ -1034,9 +1042,9 @@ function Dashboard({ role, name, onLogout }) {
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
-                                    activeView === "reports-audit" ? " underline-active" : ""
+                                    activeView === "reports-leave-application" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => handleMenuClick("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-leave-application")}
                                 >
                                   HR Leave Application
                                 </button>

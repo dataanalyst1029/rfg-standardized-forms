@@ -1,21 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import "../styles/RequestPayment.css";
-import "../styles/AdminView.css"; // Added for modal consistency
+import "../styles/AdminView.css";
+import "../styles/RequestPurchase.css";
+import "../styles/ReportsAudit.css";
+import "../styles/RequestRevolvingFund.css";
 import { API_BASE_URL } from "../config/api.js";
 
+// Pagination options for the table
 const PAGE_SIZES = [5, 10, 20];
 
-// ✅ FIXED Date Parser
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
-
-  // Handle YYYY-MM-DD (ISO format from date inputs)
-  // This MUST come first to avoid UTC conversion issues
-  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoMatch) {
-    const [, year, month, day] = isoMatch.map(Number);
-    return new Date(year, month - 1, day);
-  }
 
   // Handle MM/DD/YYYY (U.S. format)
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
@@ -24,20 +18,20 @@ const parseLocalDate = (dateStr) => {
     return new Date(year, month - 1, day);
   }
 
-  // Fallback – for full timestamps (e.g., from the database)
-  // Extract just the date part if it's a full ISO timestamp
-  const timestampMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})[T\s]/);
-  if (timestampMatch) {
-    const [, year, month, day] = timestampMatch.map(Number);
+  // Handle YYYY-MM-DD (ISO format)
+  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Last resort fallback
+  // Fallback — native parse attempt
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
 
-function ReportsMaintenanceRepair() {
+function ReportsLeaveApplication() {
+  // ---------------------- STATE DEFINITIONS ----------------------
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
@@ -45,18 +39,22 @@ function ReportsMaintenanceRepair() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalRequest, setModalRequest] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [modalRequest, setModalRequest] = useState(null);
+  const storedId = sessionStorage.getItem("id");
+  const [userData, setUserData] = useState({ name: "", signature: "" });
+  const [isClosing, setIsClosing] = useState(false);
 
+  // ---------------------- DATA FETCHING ----------------------
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/maintenance_requests`);
-      if (!response.ok)
-        throw new Error("Failed to fetch maintenance requests");
+      const response = await fetch(`${API_BASE_URL}/api/leave_requests`);
+      if (!response.ok) throw new Error("Failed to fetch leave applications");
       const data = await response.json();
 
+      // Sort newest first
       const sortedData = data.sort((a, b) =>
         b.form_code.localeCompare(a.form_code)
       );
@@ -70,15 +68,9 @@ function ReportsMaintenanceRepair() {
     }
   };
 
-  const storedId = sessionStorage.getItem("id");
-  const [userData, setUserData] = useState({ name: "", signature: "" });
-
-  const [showLoadingModal, setShowLoadingModal] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-
+  // ---------------------- SIDE EFFECTS ----------------------
   useEffect(() => {
     if (!storedId) return;
-
     fetch(`${API_BASE_URL}/users/${storedId}`)
       .then((res) => res.json())
       .then((data) => setUserData(data))
@@ -107,28 +99,22 @@ function ReportsMaintenanceRepair() {
 
     // ✅ Start date filter (inclusive)
     if (startDate) {
-      // Use parseLocalDate to ensure YYYY-MM-DD is treated as LOCAL
-      const start = parseLocalDate(startDate);
-      if (start) {
-        start.setHours(0, 0, 0, 0);
-        categorizedRequests = categorizedRequests.filter((req) => {
-          const reqDate = parseLocalDate(req.request_date);
-          return reqDate && reqDate >= start;
-        });
-      }
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      categorizedRequests = categorizedRequests.filter((req) => {
+        const reqDate = parseLocalDate(req.received_by_date);
+        return reqDate && reqDate >= start;
+      });
     }
 
     // ✅ End date filter (inclusive)
     if (endDate) {
-      // Use parseLocalDate to ensure YYYY-MM-DD is treated as LOCAL
-      const end = parseLocalDate(endDate);
-      if (end) {
-        end.setHours(23, 59, 59, 999);
-        categorizedRequests = categorizedRequests.filter((req) => {
-          const reqDate = parseLocalDate(req.request_date);
-          return reqDate && reqDate <= end;
-        });
-      }
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      categorizedRequests = categorizedRequests.filter((req) => {
+        const reqDate = parseLocalDate(req.received_by_date);
+        return reqDate && reqDate <= end;
+      });
     }
 
     const checkDate = (dateStr) => {
@@ -140,29 +126,29 @@ function ReportsMaintenanceRepair() {
       return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
     }
 
+    // ✅ Text search
     if (term) {
-      categorizedRequests = categorizedRequests.filter((req) =>
-      {
-        const topLevelMatch =
+      const normalizedTerm = term.replace(/[^0-9.]/g, "");
+      categorizedRequests = categorizedRequests.filter((req) => {
+        const topLevelMatch = 
         [
           "form_code",
-          "request_date",
+          "received_by_date",
+          "cal_no",
           "employee_id",
-          "requester_name",
+          "name",
           "branch",
           "department",
-          "date_needed",
           "status",
-          "work_description",
-          "asset_tag",
-        ].some((key) => req[key]?.toString().toLowerCase().includes(term));
+        ].some((key) => req[key]?.toString().toLowerCase().includes(term))||
+        (req.total_rb_amount && 
+          req.total_rb_amount.toString().replace(/[^0-9.]/g, "") === normalizedTerm
+        )
 
         if (topLevelMatch) return true;
 
         const dateMatch = [
           req.request_date,
-          req.date_needed,
-          req.date_completed,
         ].some(checkDate);
 
         if (dateMatch) return true;
@@ -174,6 +160,7 @@ function ReportsMaintenanceRepair() {
     return categorizedRequests;
   }, [requests, search, startDate, endDate]);
 
+  // ---------------------- PAGINATION ----------------------
   const totalPages = Math.max(
     1,
     Math.ceil(filteredRequests.length / rowsPerPage) || 1
@@ -184,6 +171,7 @@ function ReportsMaintenanceRepair() {
     return filteredRequests.slice(start, start + rowsPerPage);
   }, [filteredRequests, page, rowsPerPage]);
 
+  // ---------------------- MODAL HANDLERS ----------------------
   const openModal = (request) => {
     setModalRequest(request);
     setModalOpen(true);
@@ -195,16 +183,17 @@ function ReportsMaintenanceRepair() {
       setIsClosing(false);
       setModalOpen(false);
       setModalRequest(null);
-      setShowLoadingModal(false);
     }, 300);
   };
 
+  // ---------------------- RENDER ----------------------
   return (
     <div className="admin-view">
+      {/* ---------- Toolbar and Filters ---------- */}
       <div className="admin-toolbar">
         <div className="admin-toolbar-title">
-          <h2>Maintenance/Repair Requests</h2>
-          <p>View and manage all maintenance requests in the system.</p>
+          <h2>HR Leave Application Request</h2>
+          <p>View all leave application requests in the system.</p>
         </div>
 
         <div className="admin-toolbar-actions">
@@ -222,7 +211,7 @@ function ReportsMaintenanceRepair() {
             className="audit-date-filter"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-             min={startDate}
+            min={startDate}
           />
 
           <input
@@ -232,6 +221,7 @@ function ReportsMaintenanceRepair() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search requests"
             style={{ marginLeft: "20px" }}
+            
           />
         </div>
       </div>
@@ -250,6 +240,7 @@ function ReportsMaintenanceRepair() {
         </div>
       )}
 
+      {/* ---------- Data Table ---------- */}
       <div className="admin-table-wrapper">
         <table className="admin-table purchase-table">
           <thead>
@@ -257,10 +248,9 @@ function ReportsMaintenanceRepair() {
               <th style={{ textAlign: "center" }}>Ref. No.</th>
               <th style={{ textAlign: "center" }}>Date Request</th>
               <th style={{ textAlign: "center" }}>Employee ID</th>
-              <th style={{ textAlign: "left" }}>Name</th>
-              <th style={{ textAlign: "left" }}>Branch</th>
-              <th style={{ textAlign: "left" }}>Department</th>
-              <th style={{ textAlign: "center" }}>Date Needed</th>
+              <th style={{ textAlign: "center" }}>Cardholder Name</th>
+              <th style={{ textAlign: "center" }}>Department</th>
+              <th style={{ textAlign: "center" }}>Leave Type</th>
               <th style={{ textAlign: "center" }}>Status</th>
               <th style={{ textAlign: "center" }}>Action</th>
             </tr>
@@ -269,7 +259,7 @@ function ReportsMaintenanceRepair() {
             {loading ? (
               <tr>
                 <td colSpan={8} className="admin-empty-state">
-                  Loading maintenance/repair requests...
+                  Loading leave application requests...
                 </td>
               </tr>
             ) : visibleRequests.length === 0 ? (
@@ -277,7 +267,7 @@ function ReportsMaintenanceRepair() {
                 <td colSpan={8} className="admin-empty-state">
                   {search || startDate || endDate
                     ? "No requests match your search/filter."
-                    : "No maintenance/repair requests found."}
+                    : "No leave application requests found."}
                 </td>
               </tr>
             ) : (
@@ -285,18 +275,13 @@ function ReportsMaintenanceRepair() {
                 <tr key={req.id}>
                   <td style={{ textAlign: "center" }}>{req.form_code}</td>
                   <td style={{ textAlign: "center" }}>
-                    {parseLocalDate(req.request_date)?.toLocaleDateString() ||
-                      "—"}
+                    {new Date(req.request_date).toLocaleDateString()}
                   </td>
                   <td style={{ textAlign: "center" }}>{req.employee_id}</td>
                   <td style={{ textAlign: "left" }}>{req.requester_name}</td>
-                  <td style={{ textAlign: "left" }}>{req.branch}</td>
-                  <td style={{ textAlign: "left" }}>{req.department}</td>
-                  <td style={{ textAlign: "center" }}>
-                    {parseLocalDate(req.date_needed)?.toLocaleDateString() ||
-                      "—"}
-                  </td>
-                  <td style={{ textAlign: "center" }}>{req.status}</td>
+                  <td style={{ textAlign: "center" }}>{req.department}</td>
+                  <td style={{ textAlign: "left" }}>{req.leave_type}</td>
+                  <td style={{ textAlign: "Center" }}>{req.status}</td>
                   <td style={{ textAlign: "center" }}>
                     <button
                       className="admin-primary-btn"
@@ -313,6 +298,7 @@ function ReportsMaintenanceRepair() {
         </table>
       </div>
 
+      {/* ---------- Pagination Controls ---------- */}
       <div className="admin-pagination">
         <span className="admin-pagination-info">
           Showing {visibleRequests.length} of {filteredRequests.length} requests
@@ -357,15 +343,11 @@ function ReportsMaintenanceRepair() {
         </label>
       </div>
 
-      {/* ---------- ✅ UPDATED MODAL ---------- */}
+      {/* ---------- Modal for Viewing Request Details (UPDATED) ---------- */}
       {modalOpen && modalRequest && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
-          <div
-            className="admin-modal-backdrop"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="admin-modal-panel request-modal">
+          <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+            <div className="admin-modal-panel request-modals">
               <button
                 className="admin-close-btn"
                 onClick={handleCloseModal}
@@ -384,15 +366,14 @@ function ReportsMaintenanceRepair() {
                 </em>
               </p>
 
-              {/* ----- 1. Employee Info Block ----- */}
+              {/* ----- 1. Employee Info Block (Styled like Cash Advance) ----- */}
               <div className="employee-info">
-                <p>
-                  <strong>Requester:</strong>{" "}
-                  <em>{modalRequest.requester_name}</em>
-                </p>
                 <p>
                   <strong>Employee ID:</strong>{" "}
                   <em>{modalRequest.employee_id}</em>
+                </p>
+                <p>
+                  <strong>Name:</strong> <em>{modalRequest.requester_name}</em>
                 </p>
                 <p>
                   <strong>Branch:</strong> <em>{modalRequest.branch}</em>
@@ -400,9 +381,19 @@ function ReportsMaintenanceRepair() {
                 <p>
                   <strong>Department:</strong> <em>{modalRequest.department}</em>
                 </p>
+                <p>
+                  <strong>Position:</strong> <em>{modalRequest.position}</em>
+                </p>
+                <p>
+                  <strong>Date Filed:</strong>
+                  <em>
+                    {parseLocalDate(modalRequest.request_date)
+                      ?.toLocaleDateString() || "—"}
+                  </em>
+                </p>
               </div>
-
-              {/* ----- 2. Work Details Block (UPDATED TO TABLE) ----- */}
+              
+              {/* ----- 2. Leave Details Block (UPDATED TO TABLE) ----- */}
               <div className="pr-items-card" style={{ marginTop: '1.5rem', border: '1px solid #ddd' }}>
                 <h2 
                   className="pr-section-title" 
@@ -414,80 +405,51 @@ function ReportsMaintenanceRepair() {
                     fontWeight: 600
                   }}
                 >
-                  Work Request Details
+                  Leave Details
                 </h2>
                 <table className="request-items-table" style={{ border: 'none', width: '100%' }}>
                   <tbody style={{ border: 'none' }}>
                     <tr style={{ borderBottom: '1px solid #eee' }}>
-                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Asset Tag</th>
-                      <td style={{ width: '30%', borderRight: '1px solid #eee' }}>{modalRequest.asset_tag || 'N/A'}</td>
-                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Date Needed</th>
+                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Leave Type</th>
+                      <td colSpan="3">{modalRequest.leave_type}</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid #eee' }}>
+                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Leave Dates</th>
+                      <td style={{ width: '30%', borderRight: '1px solid #eee' }}>
+                        {`${new Date(modalRequest.leave_start)?.toLocaleDateString()} - ${new Date(modalRequest.leave_end)?.toLocaleDateString()}`}
+                      </td>
+                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Date Received</th>
                       <td style={{ width: '30%' }}>
-                        {parseLocalDate(modalRequest.date_needed)?.toLocaleDateString() || "—"}
+                        {modalRequest.received_at ? new Date(modalRequest.received_at).toLocaleDateString() : "--:--:--"}
                       </td>
                     </tr>
                     <tr>
-                      <th style={{ borderRight: '1px solid #eee', verticalAlign: 'top', paddingTop: '0.75rem' }}>
-                        Work Description
-                      </th>
-                      <td colSpan="3" style={{ padding: '0.75rem', minHeight: '80px', verticalAlign: 'top' }}>
-                        {modalRequest.work_description}
+                      <th style={{ borderRight: '1px solid #eee', verticalAlign: 'top', paddingTop: '0.75rem' }}>Available Days</th>
+                      <td colSpan="3" style={{ padding: '0.75rem' }}>
+                        {/* Cleaner display for available days */}
+                        <p style={{ margin: '0 0 4px 0' }}>
+                          <strong>Vacation:</strong> {modalRequest.available_vacation || 'N/A'}
+                        </p>
+                        <p style={{ margin: '0 0 4px 0' }}>
+                          <strong>Sick:</strong> {modalRequest.available_sick || 'N/A'}
+                        </p>
+                        <p style={{ margin: 0 }}>
+                          <strong>Emergency:</strong> {modalRequest.available_emergency || 'N/A'}
+                        </p>
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              
-              {/* ----- 3. Completion Details (UPDATED TO TABLE) ----- */}
-              {(modalRequest.performed_by ||
-                modalRequest.date_completed ||
-                modalRequest.completion_remarks) && (
-                <div className="pr-items-card" style={{ marginTop: '1.5rem', border: '1px solid #ddd' }}>
-                  <h2 
-                    className="pr-section-title" 
-                    style={{ 
-                      padding: '0.5rem 0.75rem', 
-                      borderBottom: '1px solid #ddd',
-                      margin: 0,
-                      fontSize: '1rem',
-                      fontWeight: 600
-                    }}
-                  >
-                    Completion Details
-                  </h2>
-                  <table className="request-items-table" style={{ border: 'none', width: '100%' }}>
-                    <tbody style={{ border: 'none' }}>
-                      <tr style={{ borderBottom: '1px solid #eee' }}>
-                        <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Performed by</th>
-                        <td style={{ width: '30%', borderRight: '1px solid #eee' }}>
-                          {modalRequest.performed_by}
-                        </td>
-                        <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Date Completed</th>
-                        <td style={{ width: '30%' }}>
-                          {parseLocalDate(modalRequest.date_completed)?.toLocaleDateString() || "—"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <th style={{ borderRight: '1px solid #eee', verticalAlign: 'top', paddingTop: '0.75rem' }}>
-                          Remarks
-                        </th>
-                        <td colSpan="3" style={{ padding: '0.75rem', minHeight: '60px', verticalAlign: 'top' }}>
-                          {modalRequest.completion_remarks}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
 
-              {/* ----- 4. "Requested by" Signature Block ----- */}
+
+              {/* ----- 3. "Submitted by" Signature Block ----- */}
               <div className="submit-content">
                 <div className="submit-by-content">
                   <div>
                     <span>{modalRequest.requester_name}</span>
-                    <p>Requested by</p>
+                    <p>Submitted by</p>
                   </div>
-
                   <div className="signature-content">
                     <input
                       className="submit-sign"
@@ -495,17 +457,60 @@ function ReportsMaintenanceRepair() {
                       value={modalRequest.signature}
                       readOnly
                     />
-                    {modalRequest.signature && (
+                    {modalRequest.signature ? (
                       <img
                         src={`${API_BASE_URL}/uploads/signatures/${modalRequest.signature}`}
                         alt="Signature"
                         className="cal-signature-image" // Standardized class
                       />
+                    ) : (
+                      <div className="img-sign empty-sign"></div>
                     )}
                     <p>Signature</p>
                   </div>
                 </div>
               </div>
+
+
+              {/* ----- 4. "Endorsed by" Signature Block (Styled like Approver) ----- */}
+              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
+                <div className="submit-content">
+                  <div className="submit-by-content-approve"> {/* Changed class */}
+                    <div>
+                      <span>
+                        <input
+                          type="text"
+                          name="endorsed_by"
+                          value={modalRequest.endorsed_by || ""}
+                          className="approver-name" // Added class
+                          readOnly
+                        />
+                      </span>
+                      <p>Endorsed by</p>
+                    </div>
+                    <div className="signature-content">
+                      <label>
+                        <input
+                          className="submit-sign"
+                          type="text"
+                          value={modalRequest.endorsed_signature}
+                          readOnly
+                        />
+                        {modalRequest.endorsed_signature ? (
+                          <img
+                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.endorsed_signature}`}
+                            alt="Signature"
+                            className="cal-signature-image" // Standardized class
+                          />
+                        ) : (
+                          <div className="img-sign empty-sign"></div>
+                        )}
+                        <p>Signature</p>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </form>
 
               {/* ----- 5. "Approved by" Signature Block (Styled like Approver) ----- */}
               <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
@@ -523,7 +528,6 @@ function ReportsMaintenanceRepair() {
                       </span>
                       <p>Approved by</p>
                     </div>
-
                     <div className="signature-content">
                       <label>
                         <input
@@ -532,12 +536,14 @@ function ReportsMaintenanceRepair() {
                           value={modalRequest.approved_signature}
                           readOnly
                         />
-                        {modalRequest.approved_signature && (
+                        {modalRequest.approved_signature ? (
                           <img
                             src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
                             alt="Signature"
                             className="cal-signature-image" // Standardized class
                           />
+                        ) : (
+                          <div className="img-sign empty-sign"></div>
                         )}
                         <p>Signature</p>
                       </label>
@@ -545,46 +551,6 @@ function ReportsMaintenanceRepair() {
                   </div>
                 </div>
               </form>
-              
-              {/* ----- 6. "Accomplished by" Signature Block (Styled like Approver) ----- */}
-              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                <div className="submit-content">
-                  <div className="submit-by-content-approve"> {/* Changed class */}
-                    <div>
-                      <span>
-                        <input
-                          type="text"
-                          name="accomplished_by"
-                          value={modalRequest.accomplished_by || ""}
-                          className="approver-name" // Added class
-                          readOnly
-                        />
-                      </span>
-                      <p>Accomplished by</p>
-                    </div>
-
-                    <div className="signature-content">
-                      <label>
-                        <input
-                          className="submit-sign"
-                          type="text"
-                          value={modalRequest.accomplished_signature}
-                          readOnly
-                        />
-                        {modalRequest.accomplished_signature && (
-                          <img
-                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.accomplished_signature}`}
-                            alt="Signature"
-                            className="cal-signature-image" // Standardized class
-                          />
-                        )}
-                        <p>Signature</p>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </form>
-              
             </div>
           </div>
         </div>
@@ -592,4 +558,5 @@ function ReportsMaintenanceRepair() {
     </div>
   );
 }
-export default ReportsMaintenanceRepair;
+
+export default ReportsLeaveApplication;
