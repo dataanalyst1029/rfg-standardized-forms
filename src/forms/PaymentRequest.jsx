@@ -37,7 +37,7 @@ const NAV_SECTIONS = [
   { id: "submitted", label: "Payment Request Reports" },
 ];
 
-function PurchaseRequest({ onLogout }) {
+function PaymentRequest({ onLogout }) {
   const [formData, setFormData] = useState(initialFormData);
   const [items, setItems] = useState([emptyItem]);
   const [loading, setLoading] = useState(true);
@@ -732,4 +732,4 @@ function PurchaseRequest({ onLogout }) {
   );
 }
 
-export default PurchaseRequest;
+export default PaymentRequest;

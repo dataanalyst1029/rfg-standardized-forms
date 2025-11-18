@@ -1,314 +1,165 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "./styles/MaintenanceRepair.css";
+import "./styles/Reimbursement.css";
+// import "./styles/CashAdvanceRequest.css";
 import { API_BASE_URL } from "../config/api.js";
+import { useNavigate } from "react-router-dom";
 
-const createInitialFormState = (storedUser) => ({
-  requester_name: storedUser.name || "",
-  branch: storedUser.branch || "",
-  department: storedUser.department || "",
-  employee_id: storedUser.employee_id || "",
+const initialFormData = {
+  mrr_request_code: "",
   request_date: new Date().toISOString().split("T")[0],
-  signature: storedUser.signature || null,
-  date_needed: "",
+  user_id: "",
+  employee_id: "",
+  name: "",
+  branch: "",
+  department: "",
+  date_needed: new Date().toISOString().split("T")[0],
   work_description: "",
   asset_tag: "",
-  performed_by: "",
-  date_completed: "",
-  completion_remarks: "",
-});
+  requested_by: "",
+  request_signature: "",
+};
+
+const NAV_SECTIONS = [
+  { id: "mrr-main", label: "New Maintenance / Repair Request" },
+  { id: "submitted", label: "Maintenance / Repair Reports" },
+];
 
 function MaintenanceRepair({ onLogout }) {
-  const storedUser = JSON.parse(sessionStorage.getItem("user") || "{}");
+  const [formData, setFormData] = useState(initialFormData);
+  // const [cashAdvanceRequests, setCashAdvanceRequests] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState({});
+  const [message, setMessage] = useState(null);
   const navigate = useNavigate();
 
-  const [request, setRequest] = useState(null);
-  const [userData, setUserData] = useState(null);
-  const [formData, setFormData] = useState(createInitialFormState(storedUser));
-  const [loading, setLoading] = useState(true);
-  const [branches, setBranches] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [message, setMessage] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [nextReferenceCode, setNextReferenceCode] = useState(null);
-  const [activeSection, setActiveSection] = useState("details");
-  const role = (storedUser.role || "").toLowerCase();
-  const isUserAccount = role === "user" || role === "staff";
+  // useEffect(() => {
+  //   const fetchCashAdvanceRequests = async () => {
+  //     try {
+  //       const calRes = await fetch(`${API_BASE_URL}/api/cash_advance_liquidation`);
+  //       const calData = await calRes.json();
+
+  //       const rbRes = await fetch(`${API_BASE_URL}/api/reimbursement`);
+  //       const rbData = await rbRes.json();
+
+  //       const availableCALs = calData.filter((cal) => {
+  //         const matchingRb = rbData.find(
+  //           (rb) => rb.cal_no === cal.cal_request_code
+  //         );
+  //         return !matchingRb || !matchingRb.status;
+  //       });
+
+  //       setCashAdvanceRequests(availableCALs);
+  //     } catch (err) {
+  //       console.error("Error fetching reimbursement data:", err);
+  //     }
+  //   };
+
+  //   fetchCashAdvanceRequests();
+  // }, []);
+
 
   useEffect(() => {
     const storedId = sessionStorage.getItem("id");
-    const storedName = sessionStorage.getItem("name");
-
-    if (storedId) {
-      fetch(`${API_BASE_URL}/users/${storedId}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to fetch user data");
-          return res.json();
-        })
-        .then((data) => {
-          setUserData(data);
-          setFormData((prev) => ({
-            ...prev,
-            requester_name: data.name || storedName || "",
-            user_id: storedId,
-            signature: data.signature || null,
-          }));
-        })
-        .catch((err) => {
-          console.error("Error fetching user data: ", err);
-        });
-    }
-  }, [storedUser.id]); // This dependency array is correct
-
-  const availableDepartments = formData.branch
-    ? departments.filter((dept) => {
-        if (dept.branch_id === null || dept.branch_id === undefined) {
-          return true;
-        }
-        const selected = branches.find(
-          (branch) => branch.branch_name === formData.branch,
-        );
-        return selected
-          ? Number(dept.branch_id) === Number(selected.id)
-          : true;
+    if (!storedId) return;
+    fetch(`${API_BASE_URL}/users/${storedId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setUserData(data);
+        setFormData((prev) => ({
+          ...prev,
+          user_id: storedId,
+          requested_by: data.name || "",
+          request_signature: data.signature || "",
+          employee_id: data.employee_id || "",
+          name: data.name || "",
+          branch: data.branch || "",
+          department: data.department || "",
+        }));
       })
-    : departments;
+      .catch((err) => console.error("Error fetching user data:", err));
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-    if (request) {
-      setNextReferenceCode(null);
-      return () => {
-        isMounted = false;
-      };
-    }
-
     const fetchNextCode = async () => {
       try {
-        const res = await fetch(
-          `${API_BASE_URL}/api/maintenance_requests/next-code`,
-        );
-        if (!res.ok) {
-          throw new Error("Failed to load next reference code");
-        }
+        const res = await fetch(`${API_BASE_URL}/api/maintenance_repair_request/next-code`);
         const data = await res.json();
-        if (isMounted) {
-          setNextReferenceCode(data.nextCode || null);
-        }
+        if (data.nextCode)
+          setFormData((prev) => ({ ...prev, mrr_request_code: data.nextCode }));
       } catch (error) {
-        console.error("Error fetching next maintenance code:", error);
+        console.error("Error getting next MRR code:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchNextCode();
+  }, []);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [request]);
-
-  useEffect(() => {
-    const loadLookups = async () => {
-      try {
-        const [branchRes, deptRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/branches`),
-          fetch(`${API_BASE_URL}/api/departments`),
-        ]);
-
-        const branchData = branchRes.ok ? await branchRes.json() : [];
-        const deptData = deptRes.ok ? await deptRes.json() : [];
-
-        setBranches(branchData);
-        setDepartments(deptData);
-
-        if (branchData.length) {
-          const matchedBranch = branchData.find(
-            (branch) =>
-              (branch.branch_name || "").toLowerCase() ===
-              (storedUser.branch || "").toLowerCase(),
-          );
-          if (matchedBranch) {
-            setFormData((prev) => ({
-              ...prev,
-              branch: matchedBranch.branch_name,
-            }));
-          }
-        }
-
-        if (deptData.length && storedUser.department) {
-          const matchedDept = deptData.find(
-            (dept) =>
-              (dept.department_name || "").toLowerCase() ===
-              storedUser.department.toLowerCase(),
-          );
-          if (matchedDept) {
-            setFormData((prev) => ({
-              ...prev,
-              department: matchedDept.department_name,
-            }));
-          }
-        }
-      } catch (error) {
-        console.error("Error loading maintenance lookups:", error);
-      }
-    };
-
-    loadLookups();
-  }, [storedUser.branch, storedUser.department]);
-
-  useEffect(() => {
-    if (!formData.branch) {
-      return;
-    }
-
-    if (
-      formData.department &&
-      availableDepartments.some(
-        (dept) => dept.department_name === formData.department,
-      )
-    ) {
-      return;
-    }
-
-    const firstDepartment = availableDepartments[0]?.department_name || "";
-    setFormData((prev) => ({ ...prev, department: firstDepartment }));
-  }, [formData.branch, formData.department, availableDepartments]);
-
-  const handleBackToForms = () => {
-    navigate("/forms-list");
-  };
-
-  const showMessage = (type, text) => {
-    setMessage({ type, text });
-    if (type !== "error") {
-      setTimeout(() => setMessage(null), 2500);
-    }
-  };
-
-  const handleFieldChange = (event) => {
+  const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleBranchChange = (event) => {
-    const value = event.target.value;
-    const branchRecord = branches.find((branch) => branch.branch_name === value);
-    const branchDepartments = branchRecord
-      ? departments.filter((dept) => {
-          if (dept.branch_id === null || dept.branch_id === undefined) {
-            return true;
-          }
-          return Number(dept.branch_id) === Number(branchRecord.id);
-        })
-      : [];
-    setFormData((prev) => ({
-      ...prev,
-      branch: value,
-      department: branchDepartments[0]?.department_name || "",
-    }));
-  };
 
-  const submitRequest = async () => {
-    if (!isUserAccount) {
-      return;
-    }
-    if (!formData.requester_name.trim()) {
-      showMessage("error", "Requester name is required.");
-      return;
-    }
-    if (!formData.branch) {
-      showMessage("error", "Select a branch.");
-      return;
-    }
-    if (!formData.department) {
-      showMessage("error", "Select a department.");
-      return;
-    }
-    if (!formData.date_needed) {
-      showMessage("error", "Specify when the maintenance is needed.");
-      return;
-    }
-    if (!formData.work_description.trim()) {
-      showMessage("error", "Describe the work required.");
-      return;
-    }
+  // const handleCashAdvanceSelect = async (e) => {
+  //   const value = e.target.value;
+  //   setFormData((prev) => ({ ...prev, cal_no: value }));
+  //   if (!value) return;
 
-    setIsSaving(true);
+  //   try {
+  //     const res = await fetch(`${API_BASE_URL}/api/cash_advance_liquidation/${value}`);
+  //     if (!res.ok) throw new Error("Failed to fetch reimbursement data");
+  //     const data = await res.json();
 
-    const payload = {
-      form_code: nextReferenceCode,
-      requester_name: formData.requester_name,
-      branch: formData.branch,
-      department: formData.department,
-      employee_id: formData.employee_id,
-      request_date: formData.request_date,
-      signature: formData.signature,
-      date_needed: formData.date_needed,
-      work_description: formData.work_description,
-      asset_tag: formData.asset_tag,
-      performed_by: formData.performed_by,
-      date_completed: formData.date_completed,
-      completion_remarks: formData.completion_remarks,
-      submitted_by: storedUser.id || null,
-    };
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       ca_no: data.cash_advance_no || "",
+  //       employee_id: data.employee_id || "",
+  //       name: data.name || "",
+  //       branch: data.branch || "",
+  //       department: data.department || "",
+  //       total_rb_amount: data.rb_amount || "",
+  //     }));
+  //   } catch (error) {
+  //     console.error("Error fetching reimbursement:", error);
+  //   }
+  // };
 
-    console.log("Submitting payload:", payload);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/maintenance_requests`, {
+      const res = await fetch(`${API_BASE_URL}/api/maintenance_repair_request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
       });
+
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to submit maintenance request.");
-      }
-      setRequest(data);
-      showMessage(
-        "success",
-        "Maintenance/Repair Request submitted for approval.",
-      );
+      if (!res.ok) throw new Error(data.message || "Failed to submit request");
+
+      setMessage({ type: "success", text: "Maintenance / Repair submitted successfully!" });
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
-      console.error("Error submitting maintenance request:", error);
-      showMessage(
-        "error",
-        error.message || "Unable to submit maintenance request.",
-      );
+      setMessage({ type: "error", text: error.message });
+      setTimeout(() => setMessage(null), 3000);
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
   };
-
-  const currentStatus = request?.status || "submitted";
-  const isReadOnly = Boolean(request);
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/forms/submitted-maintenance-or-repair");
-      return;
-    }
-
-    setActiveSection(sectionId);
-
-    const mainContainer = document.getElementById("mr-main");
-    const target = document.getElementById(sectionId);
-
-    const header = mainContainer?.querySelector(".pr-topbar");
-
-    if (mainContainer && target) {
-      const headerHeight = header ? header.offsetHeight : 0;
-
-      const targetTop = target.offsetTop;
-
-      const scrollToPosition = targetTop - headerHeight;
-
-      mainContainer.scrollTo({
-        top: scrollToPosition < 0 ? 0 : scrollToPosition,
-        behavior: "smooth",
-      });
+      navigate("/submitted-maintenance-or-repair"); 
+    } else {
+      setActiveSection(sectionId);
+      const element = document.getElementById(sectionId);
+      if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -316,72 +167,71 @@ function MaintenanceRepair({ onLogout }) {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
-        <span>Loading Maintenance/Repair Form</span>
+        <span>Loading Maintenance / Repair Request...</span>
       </div>
     );
 
   return (
     <div className="pr-layout">
+      {message && (
+        <div className="message-modal-overlay">
+          <div className={`message-modal-content ${message.type}`}>
+            {message.text}
+          </div>
+        </div>
+      )}
+
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2
-            onClick={handleBackToForms}
+          <h2 
+            onClick={() => navigate("/forms-list")} 
             style={{ cursor: "pointer", color: "#007bff" }}
             title="Back to Forms Library"
           >
-            Maintenance/Repair
+            Maintenance / Repair Request
           </h2>
           <span>Standardized form</span>
         </div>
+
         <nav className="pr-sidebar-nav">
-          {[
-            { id: "details", label: "Request details" },
-            { id: "description", label: "Work required" },
-            { id: "completion", label: "Completion information" },
-            { id: "submitted", label: "View submitted requests" },
-          ].map((section) => (
+          {NAV_SECTIONS.map((section) => (
             <button
               key={section.id}
               type="button"
-              className={activeSection === section.id ? "is-active" : ""}
+              className={section.id === "mrr-main" ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}
             </button>
           ))}
         </nav>
+
         <div className="pr-sidebar-footer">
           <span className="pr-sidebar-meta">
-            Provide as much context as possible so facilities can respond
-            quickly.
+            Remember to review line items before submitting.
           </span>
-          {onLogout && (
-            <button
-              type="button"
-              className="pr-sidebar-logout"
-              onClick={onLogout}
-            >
-              Sign out
-            </button>
-          )}
+          <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
+            Sign out
+          </button>
         </div>
       </aside>
 
-      <main className="pr-main" id="mr-main">
+      <main className="pr-main">
         <header className="pr-topbar">
           <div>
-            <h1 className="topbar-title">Maintenance/Repair Request</h1>
+            <h1>Maintenance / Repair Request</h1>
             <p className="pr-topbar-meta">
-              Document maintenance needs and track completion through approvals.
+              Centralize maintenance concerns, repair instructions, and follow-up actions in one form.
             </p>
           </div>
-          <div className="pr-reference-card">
-            <span className="pr-reference-label">Reference code</span>
-            <span className="pr-reference-value">
-              {request?.form_code || nextReferenceCode || "Pending assignment"}
+
+          <div className="car-reference-card">
+            <span className="car-reference-label">Reference code</span>
+            <span className="car-reference-value">
+              {formData.mrr_request_code || "—"}
             </span>
-            <span className="pr-reference-label">Request date</span>
-            <span>
+            <span className="car-reference-label">Request date</span>
+            <span className="car-reference-value">
               {new Date(formData.request_date).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
@@ -391,253 +241,160 @@ function MaintenanceRepair({ onLogout }) {
           </div>
         </header>
 
-        {message && (
-          <div className={`mr-alert mr-alert--${message.type}`}>
-            {message.text}
-          </div>
-        )}
-
-        <section className="pr-form-section" id="details">
-          <h2 className="pr-section-title">Requestor details</h2>
-          <p className="pr-section-subtitle">
-            Confirm who is requesting the work and where the task will take
-            place.
-          </p>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="requester_name">
-                Name
-              </label>
-              <input
-                id="requester_name"
-                name="requester_name"
-                value={formData.requester_name}
-                onChange={handleFieldChange}
-                className="pr-input"
-                readOnly
-              />
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="employee_id">
-                Employee ID
-              </label>
-              <input
-                type="text"
-                id="employee_id"
-                name="employee_id"
-                value={formData.employee_id}
-                onChange={handleFieldChange}
-                className="pr-input"
-                readOnly
-              />
-            </div>
-          </div>
-
-          <div className="pr-grid-two">
-              <div className="pr-field">
-                <label className="pr-label" htmlFor="branch">
-                  Branch
-                </label>
-                <select
-                  id="branch"
-                  name="branch"
-                  value={formData.branch || ""}
-                  onChange={handleBranchChange}
-                  className="pr-input"
-                  disabled={isReadOnly}
-                >
-                  <option value="">Select branch</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.branch_name}>
-                      {branch.branch_name}
-                    </option>
-                  ))}
-                </select>
+        <form onSubmit={handleSubmit} className="cash-receipt-form">
+            <section className="car-form-section" id="details">
+              <h2 className="pr-items-title">Requestor Details</h2>
+              <div className="pr-grid-two">
+                  <div className="pr-field">
+                      <label className="car-reference-label">Employee ID</label>
+                      <input
+                        type="text"
+                        id="employeeId"
+                        name="employee_id"
+                        value={formData.employee_id}
+                        onChange={handleChange}
+                        className="pr-input"
+                        placeholder="Employee ID"
+                        readOnly
+                        required
+                      />
+                      <input
+                        type="hidden"
+                        id="userId"
+                        name="user_id"
+                        value={formData.user_id} 
+                        className="pr-input"
+                        placeholder="User ID"
+                        readOnly
+                      />
+                  </div>
+                  <div className="pr-field">
+                      <label className="car-reference-label">Name</label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className="pr-input"
+                        placeholder="Name"
+                        readOnly
+                        required
+                      />
+                  </div>
               </div>
-              <div className="pr-field">
-                <label className="pr-label" htmlFor="department">
-                  Department
-                </label>
-                {availableDepartments.length ? (
-                  <select
-                    id="department"
-                    name="department"
-                    value={formData.department || ""}
-                    onChange={handleFieldChange}
-                    className="pr-input"
-                    disabled={isReadOnly}
-                  >
-                    <option value="">Select department</option>
-                    {availableDepartments.map((department) => (
-                      <option
-                        key={department.id}
-                        value={department.department_name}
-                      >
-                        {department.department_name}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    id="department"
-                    name="department"
-                    value={formData.department}
-                    onChange={handleFieldChange}
-                    className="pr-input"
-                    disabled={isReadOnly}
-                    placeholder="No departments configured"
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                    <label className="car-reference-label">Branch</label>
+                    <input
+                      type="text"
+                      id="branch"
+                      name="branch"
+                      value={formData.branch}
+                      onChange={handleChange}
+                      className="pr-input"
+                      placeholder="Branch"
+                      readOnly
+                      required
+                    />
+                </div>
+                <div className="pr-field">
+                    <label className="car-reference-label">Department</label>
+                    <input
+                      type="text"
+                      id="department"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      className="pr-input"
+                      placeholder="Department"
+                      readOnly
+                      required
+                    />
+                </div>
+              </div>
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                    <label className="car-reference-label">Date Needed</label>
+                    <input
+                      type="date"
+                      id="branch"
+                      name="date_needed"
+                      value={formData.date_needed}
+                      onChange={handleChange}
+                      className="pr-input"
+                      placeholder="Employee ID"
+                      required
+                    />
+                </div>
+                <div className="pr-field">
+                </div>
+              </div>
+            </section>
+
+            <section className="car-form-section" id="details">
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                  <label className="car-reference-label">Description of Work Required</label>
+                  <textarea
+                    id="workDescription"
+                    name="work_description"
+                    value={formData.work_description}
+                    onChange={handleChange}
+                    className="car-textarea"
+                    placeholder="Work Description"
+                    rows={4}
+                    required
                   />
-                )}
+                </div>
               </div>
-            </div>
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                    <label className="car-reference-label">Asset Tag/Code (if applicable)</label>
+                    <input
+                      type="text"
+                      id="assetTag"
+                      name="asset_tag"
+                      value={formData.asset_tag}
+                      onChange={handleChange}
+                      className="pr-input"
+                      placeholder="Asset Tag / Code"
+                    />
+                </div>
+                {/* <div className="pr-field">
+                </div> */}
+              </div>
+            </section>
 
-          <div className="pr-grid-two">
-            <div className="pr-field mr-signature-field">
-              <label className="pr-label" htmlFor="signature">
-                Signature
-              </label>
-              <input
-                id="signature"
-                name="signature"
-                value={formData.signature || ""}
-                onChange={handleFieldChange}
-                className="pr-input"
-                readOnly
-                placeholder={!formData.signature ? "No signature on file" : ""}
-              />
-              {formData.signature && (
-                <img
-                  src={`${API_BASE_URL}/uploads/signatures/${formData.signature}`}
-                  alt="Signature"
-                  className="mr-signature-overlay"
-                />
-              )}
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="date_needed">
-                Date needed
-              </label>
-              <input
-                type="date"
-                id="date_needed"
-                name="date_needed"
-                value={formData.date_needed}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-          </div>
-        </section>
 
-        <section className="pr-form-section" id="description">
-          <h2 className="pr-section-title">Description of work required</h2>
-          <p className="pr-section-subtitle">
-            Outline the issue and provide any asset references so maintenance
-            can scope the work.
-          </p>
-          <div className="pr-field">
-            <textarea
-              id="work_description"
-              name="work_description"
-              value={formData.work_description}
-              onChange={handleFieldChange}
-              className="pr-textarea"
-              rows={5}
-              required
-              disabled={isReadOnly}
-            />
-          </div>
-          <div className="pr-field">
-            <label className="pr-label" htmlFor="asset_tag">
-              Asset tag / code (optional)
-            </label>
-            <input
-              id="asset_tag"
-              name="asset_tag"
-              value={formData.asset_tag}
-              onChange={handleFieldChange}
-              className="pr-input"
-              disabled={isReadOnly}
-            />
-          </div>
-        </section>
+            <section className="car-form-section" id="signature">
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                  <label className="car-reference-value">Request by:</label>
+                  <input type="text" name="requested_by" className="car-input" value={userData.name || ""} required readOnly/>
+                </div>
 
-        <section className="pr-form-section" id="completion">
-          <h2 className="pr-section-title">Completion information</h2>
-          <p className="pr-section-subtitle">
-            Capture who will perform the work and when you expect the task to
-            be completed.
-          </p>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="performed_by">
-                Performed by
-              </label>
-              <input
-                id="performed_by"
-                name="performed_by"
-                value={formData.performed_by}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="date_completed">
-                Date completed
-              </label>
-              <input
-                type="date"
-                id="date_completed"
-                name="date_completed"
-                value={formData.date_completed}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-          </div>
-          <div className="pr-field">
-            <label className="pr-label" htmlFor="completion_remarks">
-              Remarks
-            </label>
-            <textarea
-              id="completion_remarks"
-              name="completion_remarks"
-              value={formData.completion_remarks}
-              onChange={handleFieldChange}
-              className="pr-textarea"
-              rows={3}
-              disabled={isReadOnly}
-            />
-          </div>
-        </section>
+                <div className="pr-field receive-signature">
+                  <label className="car-reference-value">Signature</label>
+                  <input type="text" name="request_signature" className="car-input received-signature" value={userData.signature || ""} readOnly />
+                  {userData.signature ? (
+                    <img
+                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                          <p>No signature available</p>
+                    )}
+                </div>
+              </div>
+            </section>
 
-        <div className="pr-form-actions">
-          <button
-            type="button"
-            className="pr-submit"
-            onClick={submitRequest}
-            disabled={isSaving || isReadOnly || !isUserAccount}
-          >
-            Submit for approval
-          </button>
-          {request && (
-            <button
-              type="button"
-              className="pr-sidebar-logout"
-              onClick={() => {
-                setRequest(null);
-                setFormData(createInitialFormState(storedUser));
-                setNextReferenceCode(null);
-              }}
-              disabled={isSaving}
-            >
-              Start new request
-            </button>
-          )}
-        </div>
+            <div className="pr-form-actions">
+              <button type="submit" className="pr-submit" disabled={isSubmitting}>
+                {isSubmitting ? "Submitting..." : "Submit Maintenance / Repair Request"}
+              </button>
+            </div>
+        </form>
       </main>
     </div>
   );

@@ -59,6 +59,7 @@
 .car-input,
 .car-select,
 .car-textarea {
+  resize: vertical;
   border-radius: 0.75rem;
   border: 1px solid var(--color-border);
   background: #fff;

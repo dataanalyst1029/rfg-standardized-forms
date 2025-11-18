@@ -10,7 +10,7 @@ import Dashboard from "./Dashboard";
 import FormsList from "./FormsList";
 import PurchaseRequest from "./forms/PurchaseRequest";
 import SubmittedPurchaseRequests from "./submitted-request/SubmittedPurchaseRequests";
-import SubmittedRequests from "./submitted-request/SubmittedRequests";
+// import SubmittedRequests from "./submitted-request/SubmittedRequests";
 import SubmittedRevolvingFund from "./submitted-request/SubmittedRevolvingFund";
 import SubmittedCashAdvance from "./submitted-request/SubmittedCashAdvance";
 import SubmittedCashAdvanceLiquidation from "./submitted-request/SubmittedCashAdvanceLiquidation";
@@ -382,11 +382,16 @@ function App() {
           path="/forms/submitted-maintenance-or-repair"
           element={
             user ? (
-              <SubmittedMaintenanceRepair formSlug="maintenance-or-repair" />
+              <SubmittedMaintenanceRepair onLogout={handleLogout} currentUserId={user.id} />
             ) : (
-              <Navigate to="/forms/maintenance-or-repair" replace />
+              <Navigate to="/" replace />
             )
           }
+        />
+
+        <Route
+          path="/submitted-maintenance-or-repair"
+          element={<Navigate to="/forms/submitted-maintenance-or-repair" replace />}
         />
 
         <Route

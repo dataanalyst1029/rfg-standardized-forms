@@ -2627,6 +2627,196 @@ app.get("/api/users/:id", async (req, res) => {
 });
 
 
+
+/* ------------------------
+   MAINTENANCE / REPAIR REQUEST API
+------------------------ */
+app.get("/api/maintenance_repair_request/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const result = await pool.query(
+      `SELECT mrr_request_code
+       FROM maintenance_repair_request
+       WHERE mrr_request_code LIKE $1
+       ORDER BY mrr_request_code DESC
+       LIMIT 1`,
+      [`MRR-${year}-%`]
+    );
+
+    let nextCode;
+    if (result.rows.length > 0) {
+      const lastCode = result.rows[0].mrr_request_code;
+      const lastNum = parseInt(lastCode.split("-")[2], 10);
+      const nextNum = String(lastNum + 1).padStart(6, "0");
+      nextCode = `MRR-${year}-${nextNum}`;
+    } else {
+      nextCode = `MRR-${year}-000001`;
+    }
+
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("❌ Error generating next CA receipt code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+
+app.post("/api/maintenance_repair_request", async (req, res) => {
+  const {
+    mrr_request_code,
+    request_date,
+    employee_id,
+    name,
+    branch,
+    department,
+    date_needed,
+    work_description,
+    asset_tag,
+    requested_by,
+    request_signature,
+    user_id,
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const existing = await client.query(
+      "SELECT id FROM maintenance_repair_request WHERE mrr_request_code = $1",
+      [mrr_request_code]
+    );
+    if (existing.rows.length > 0) {
+      await client.query("ROLLBACK");
+      return res
+        .status(400)
+        .json({ message: `Maintenance / Repair Request code ${mrr_request_code} already exists.` });
+    }
+
+    await client.query(
+      `INSERT INTO maintenance_repair_request (
+        mrr_request_code, 
+        request_date, 
+        employee_id, 
+        name, 
+        branch, 
+        department, 
+        date_needed,
+        work_description,
+        asset_tag,
+        requested_by, 
+        request_signature, 
+        user_id
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      [
+        mrr_request_code,
+        request_date || new Date(),
+        employee_id,
+        name,
+        branch,
+        department,
+        date_needed,
+        work_description,
+        asset_tag,
+        requested_by,
+        request_signature,
+        user_id,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: `✅ Maintenance / Repair request ${mrr_request_code} saved successfully!`,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("❌ Error saving maintenance / repair request:", err);
+    res.status(500).json({ message: "Server error saving maintenance / repair request" });
+  } finally {
+    client.release();
+  }
+});
+
+
+/* ------------------------
+   UPDATE MAINTENANCE / REPAIR REQUEST
+------------------------ */
+app.put("/api/update_maintenance_repair_request", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      mrr_request_code,
+      approved_by,
+      approve_signature,
+      status,
+      declined_reason,
+    } = req.body;
+
+    if (!mrr_request_code) {
+      return res.status(400).json({ message: "mrr_request_code is required." });
+    }
+
+    let query = `
+      UPDATE maintenance_repair_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Approved") {
+      query += `,
+        approved_by = $${paramIndex++},
+        approve_signature = $${paramIndex++}
+      `;
+      values.push(approved_by, approve_signature);
+    }
+
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE mrr_request_code = $${paramIndex} RETURNING *`;
+    values.push(mrr_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Maintenance / Repair request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Maintenance repair request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating maintenance / repair request:", err);
+    res.status(500).json({ message: "Server error updating maintenance / repair request." });
+  }
+});
+
+app.get("/api/maintenance_repair_request", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * 
+       FROM maintenance_repair_request 
+       ORDER BY request_date DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching maintenance / repair request:", err);
+    res.status(500).json({ message: "Server error fetching maintenance / repair request" });
+  }
+});
+
+
 /* ------------------------
    BRANCHES CRUD API
 ------------------------ */
@@ -2969,123 +3159,123 @@ app.get("/api/interbranch_transfer_slip_items", async (req, res) => {
   }
 });
 
-/* ------------------------
-   MAINTENANCE REQUESTS API
------------------------- */
-app.get("/api/maintenance_requests/next-code", async (req, res) => {  // Generate next available maintenance request code
-  try {
-    const year = new Date().getFullYear();  // Get current year for code prefix
+// /* ------------------------
+//    MAINTENANCE REQUESTS API
+// ------------------------ */
+// app.get("/api/maintenance_requests/next-code", async (req, res) => {  // Generate next available maintenance request code
+//   try {
+//     const year = new Date().getFullYear();  // Get current year for code prefix
 
-    const result = await pool.query(  // Query latest code that matches current year
-      `SELECT form_code 
-       FROM maintenance_requests 
-       WHERE form_code LIKE $1 
-       ORDER BY form_code DESC 
-       LIMIT 1`,
-      [`MRF-${year}-%`]  // Pattern for current year’s codes
-    );
+//     const result = await pool.query(  // Query latest code that matches current year
+//       `SELECT form_code 
+//        FROM maintenance_requests 
+//        WHERE form_code LIKE $1 
+//        ORDER BY form_code DESC 
+//        LIMIT 1`,
+//       [`MRF-${year}-%`]  // Pattern for current year’s codes
+//     );
 
-    let nextCode;  // Variable to store generated code
-    if (result.rows.length > 0) {  // If a record exists for this year
-      const lastCode = result.rows[0].form_code;  // Get latest code
-      const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
-      const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
-      nextCode = `MRF-${year}-${nextNum}`;  // Construct next code
-    } else {
-      nextCode = `MRF-${year}-000001`;  // If none found, start from 000001
-    }
+//     let nextCode;  // Variable to store generated code
+//     if (result.rows.length > 0) {  // If a record exists for this year
+//       const lastCode = result.rows[0].form_code;  // Get latest code
+//       const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
+//       const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
+//       nextCode = `MRF-${year}-${nextNum}`;  // Construct next code
+//     } else {
+//       nextCode = `MRF-${year}-000001`;  // If none found, start from 000001
+//     }
 
-    res.json({ nextCode });  // Return next code to client
-  } catch (err) {
-    console.error("❌ Error generating next maintenance/repair form code:", err);  // Log error
-    res.status(500).json({ message: "Server error generating next code" });  // Send error response
-  }
-});
+//     res.json({ nextCode });  // Return next code to client
+//   } catch (err) {
+//     console.error("❌ Error generating next maintenance/repair form code:", err);  // Log error
+//     res.status(500).json({ message: "Server error generating next code" });  // Send error response
+//   }
+// });
 
-app.post("/api/maintenance_requests", async (req, res) => {  // Create new maintenance request
-  const {
-    form_code,
-    status,
-    requester_name,
-    branch,
-    department,
-    employee_id,
-    request_date,
-    signature,
-    date_needed,
-    work_description,
-    asset_tag,
-    performed_by,
-    date_completed,
-    completion_remarks,
-    submitted_by,
-    submitted_at,
-    approved_by,
-    approved_sig,
-    accomplished_by,
-    accomplished_sig,
+// app.post("/api/maintenance_requests", async (req, res) => {  // Create new maintenance request
+//   const {
+//     form_code,
+//     status,
+//     requester_name,
+//     branch,
+//     department,
+//     employee_id,
+//     request_date,
+//     signature,
+//     date_needed,
+//     work_description,
+//     asset_tag,
+//     performed_by,
+//     date_completed,
+//     completion_remarks,
+//     submitted_by,
+//     submitted_at,
+//     approved_by,
+//     approved_sig,
+//     accomplished_by,
+//     accomplished_sig,
 
-    items = [],  // Default to empty array if no items
-  } = req.body;
+//     items = [],  // Default to empty array if no items
+//   } = req.body;
 
-  const client = await pool.connect();  // Get DB client for transaction
-  try {
-    await client.query("BEGIN");  // Start transaction
+//   const client = await pool.connect();  // Get DB client for transaction
+//   try {
+//     await client.query("BEGIN");  // Start transaction
 
-    const result = await client.query(  // Insert main request record
-      `INSERT INTO maintenance_requests
-      (form_code, requester_name, branch, department, employee_id, request_date, signature, date_needed, work_description, asset_tag, performed_by, date_completed, completion_remarks, submitted_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, $14)
-      RETURNING id`,
-      [
-        form_code,
-        requester_name,
-        branch,
-        department,
-        employee_id,
-        request_date,
-        signature,
-        date_needed,
-        work_description,
-        asset_tag,
-        performed_by,
-        date_completed,
-        completion_remarks,
-        submitted_by
-      ]
-    );
+//     const result = await client.query(  // Insert main request record
+//       `INSERT INTO maintenance_requests
+//       (form_code, requester_name, branch, department, employee_id, request_date, signature, date_needed, work_description, asset_tag, performed_by, date_completed, completion_remarks, submitted_by)
+//       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, $14)
+//       RETURNING id`,
+//       [
+//         form_code,
+//         requester_name,
+//         branch,
+//         department,
+//         employee_id,
+//         request_date,
+//         signature,
+//         date_needed,
+//         work_description,
+//         asset_tag,
+//         performed_by,
+//         date_completed,
+//         completion_remarks,
+//         submitted_by
+//       ]
+//     );
 
-    const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
-    if (!requestId) throw new Error("Failed to get maintenance request ID");  // Validate presence of ID
+//     const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
+//     if (!requestId) throw new Error("Failed to get maintenance request ID");  // Validate presence of ID
 
-    await client.query("COMMIT");  // Commit transaction
+//     await client.query("COMMIT");  // Commit transaction
 
-    res.status(201).json({
-      success: true,
-      message: `Maintenance/Repair Form ${form_code} saved successfully!`,  // Success message
-    });
-  } catch (err) {
-    await client.query("ROLLBACK");  // Rollback on failure
-    console.error("❌ Error saving maintenance/repair form:", err);
-    res.status(500).json({ message: "Server error saving maintenance/repair form" });  // Send error response
-  } finally {
-    client.release();  // Release DB client
-  }
-});
+//     res.status(201).json({
+//       success: true,
+//       message: `Maintenance/Repair Form ${form_code} saved successfully!`,  // Success message
+//     });
+//   } catch (err) {
+//     await client.query("ROLLBACK");  // Rollback on failure
+//     console.error("❌ Error saving maintenance/repair form:", err);
+//     res.status(500).json({ message: "Server error saving maintenance/repair form" });  // Send error response
+//   } finally {
+//     client.release();  // Release DB client
+//   }
+// });
 
-app.get("/api/maintenance_requests", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT *
-      FROM maintenance_requests
-      ORDER BY created_at DESC;
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Error fetching maintenance/repair requests:", err);
-    res.status(500).json({ message: "Server error fetching maintenance/repair requests" });
-  }
-});
+// app.get("/api/maintenance_requests", async (req, res) => {
+//   try {
+//     const result = await pool.query(`
+//       SELECT *
+//       FROM maintenance_requests
+//       ORDER BY created_at DESC;
+//     `);
+//     res.json(result.rows);
+//   } catch (err) {
+//     console.error("❌ Error fetching maintenance/repair requests:", err);
+//     res.status(500).json({ message: "Server error fetching maintenance/repair requests" });
+//   }
+// });
 
 /* ------------------------
    LEAVE REQUESTS API

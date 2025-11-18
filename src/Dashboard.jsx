@@ -12,6 +12,7 @@ import RequestCashAdvance from "./RequestCashAdvance";
 import RequestCashAdvanceLiquidation from "./RequestCashAdvanceLiquidation";
 import RequestReimbursement from "./RequestReimbursement";
 import RequestPayment from "./RequestPayment";
+import RequestMaintenanceRepair from "./RequestMaintenanceRepair";
 import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
 // import { useNavigate } from "react-router-dom";
@@ -408,6 +409,13 @@ function renderActiveView(view, extraProps = {}) {
         </div>
       );
 
+    case "maintenance-repair":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <RequestMaintenanceRepair />
+        </div>
+      );
+
     case "reports-summary":
       return (
         <PlaceholderPanel
@@ -654,6 +662,7 @@ function Dashboard({ role, name, onLogout }) {
           "cash-advance-liquidation",
           "reimbursement",
           "payment-request",
+          "maintenance-repair",
           "approved-requests",
         ].includes(stored)
       ) {
@@ -729,6 +738,62 @@ function Dashboard({ role, name, onLogout }) {
                         type="button"
                         className={`sidebar-item${activeView === "overview" ? " sidebar-item-active" : ""}`}
                         onClick={() => handleMenuClick("overview")}
+                      >
+                        <span className="sidebar-item-icon">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  } 
+                  
+                  if (item.id === "manage-users") {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`sidebar-item${activeView === "manage-users" ? " sidebar-item-active" : ""}`}
+                        onClick={() => handleMenuClick("manage-users")}
+                      >
+                        <span className="sidebar-item-icon">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  } 
+
+                  if (item.id === "manage-access") {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`sidebar-item${activeView === "manage-access" ? " sidebar-item-active" : ""}`}
+                        onClick={() => handleMenuClick("manage-access")}
+                      >
+                        <span className="sidebar-item-icon">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  } 
+
+                  if (item.id === "branches") {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`sidebar-item${activeView === "branches" ? " sidebar-item-active" : ""}`}
+                        onClick={() => handleMenuClick("branches")}
+                      >
+                        <span className="sidebar-item-icon">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  } 
+
+                  if (item.id === "departments") {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`sidebar-item${activeView === "departments" ? " sidebar-item-active" : ""}`}
+                        onClick={() => handleMenuClick("departments")}
                       >
                         <span className="sidebar-item-icon">{item.icon}</span>
                         <span>{item.label}</span>
@@ -853,9 +918,9 @@ function Dashboard({ role, name, onLogout }) {
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
-                                  activeView === "purchase-request" ? " underline-active" : ""
+                                  activeView === "maintenance-repair" ? " underline-active" : ""
                                 }`}
-                                onClick={() => handleMenuClick("purchase-request")}
+                                onClick={() => handleMenuClick("maintenance-repair")}
                               >
                                 Maintenance or Repair
                               </button>

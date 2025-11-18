@@ -4,7 +4,7 @@ import { API_BASE_URL } from "./config/api.js";
 
 const PAGE_SIZES = [5, 10, 20];
 
-function ReimbursementRequest() {
+function MaintenanceRepair() {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState(null);
@@ -130,8 +130,8 @@ function ReimbursementRequest() {
         <div className="admin-view">
             <div className="admin-toolbar">
                 <div className="admin-toolbar-title">
-                <h2>Reimbursement</h2>
-                <p>View and manage all reimbursement in the system.</p>
+                <h2>Maintenance or Repair</h2>
+                <p>View and manage all maintenance/repair requests in the system.</p>
                 </div>
 
                 <div className="admin-toolbar-actions">
@@ -546,4 +546,4 @@ function ReimbursementRequest() {
         </div>
     );
 }
-export default ReimbursementRequest;
+export default MaintenanceRepair;
