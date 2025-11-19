@@ -1,0 +1,15 @@
+.confirm-modal-overlay-mrr {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(114, 114, 114, 0.5);
+  display: flex;
+  height: 74rem;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: modalFadeIn 0.3s ease forwards;
+}
+
+.confirm-modal-overlay-mrr.fade-out {
+  animation: modalFadeOut 0.3s ease forwards;
+}

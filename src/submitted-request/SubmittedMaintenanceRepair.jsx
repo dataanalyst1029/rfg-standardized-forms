@@ -21,6 +21,11 @@ function SubmittedMaintenanceRepair({ onLogout, currentUserId, showAll = false }
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [isFloatingVisible, setIsFloatingVisible] = useState(true);
+
+  useEffect(() => {
+    setIsFloatingVisible(true);
+  }, [selectedRequestCode]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -368,7 +373,7 @@ function SubmittedMaintenanceRepair({ onLogout, currentUserId, showAll = false }
                           <th><small>Performed by</small></th>
                           <td><small>{selectedRequest.performed_by}</small></td>
                           <th><small>Date Completed</small></th>
-                          <td><small>{selectedRequest.date_complete}</small></td>
+                          <td><small>{formatDate(selectedRequest.date_completed)}</small></td>
                         </tr>
                         <tr>
                           <th><small>Remarks</small></th>
@@ -386,7 +391,7 @@ function SubmittedMaintenanceRepair({ onLogout, currentUserId, showAll = false }
                           <th><small>Requested by</small></th>
                           <td><small>{selectedRequest.requested_by}</small></td>
                           <th><small>Signature</small></th>
-                          <td className="receive-signature"><small style={{color: 'transparent'}}>{selectedRequest.request_signature}</small>
+                          <td className="receive-signature" style={{borderBottom: '0px', borderLeft: '0px', borderRight: '0px'}}><small style={{color: 'transparent', borderBlockEnd: '0px'}}>{selectedRequest.request_signature}</small>
                             {selectedRequest.request_signature ? (
                             <img
                                 src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.request_signature}`}
@@ -398,12 +403,68 @@ function SubmittedMaintenanceRepair({ onLogout, currentUserId, showAll = false }
                             )}
                           </td>
                         </tr>
+                        {(selectedRequest.approved_by || selectedRequest.approved_signature) && (
+                          <tr>
+                            <th><small>Approved by</small></th>
+                            <td><small><input type="text" className="prf-input" value={selectedRequest.approved_by}/></small></td>
+                            <th><small>Signature</small></th>
+                            <td className="receive-signature" style={{borderBottom: '0px', borderLeft: '0px', borderRight: '0px'}}><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.approved_signature} readOnly required/></small>
+                              {selectedRequest.approved_signature ? (
+                              <img
+                                  src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approved_signature}`}
+                                  alt="Signature"
+                                  className="img-sign-prf"
+                              />
+                              ) : (
+                              <div className="img-sign-prf empty-sign"></div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                        {(selectedRequest.accomplished_by || selectedRequest.accomplished_signature) && (
+                          <tr>
+                            <th><small>Accomplished by</small></th>
+                            <td><small><input type="text" className="prf-input" value={selectedRequest.accomplished_by}/></small></td>
+                            <th><small>Signature</small></th>
+                            <td className="receive-signature" style={{borderBottom: '0px', borderLeft: '0px', borderRight: '0px'}}><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.accomplished_signature} readOnly required/></small>
+                              {selectedRequest.accomplished_signature ? (
+                              <img
+                                  src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.accomplished_signature}`}
+                                  alt="Signature"
+                                  className="img-sign-prf"
+                              />
+                              ) : (
+                              <div className="img-sign-prf empty-sign"></div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
                       </table>
                     </div>
 
-                    {(selectedRequest.status || selectedRequest.declined_reason) && (
+                    {(selectedRequest.status || selectedRequest.declined_reason) && isFloatingVisible && (
                       <div className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}>
-                        <div className="floating-decline-content">
+                        <button
+                            onClick={() => setIsFloatingVisible(false)}
+                            style={{
+                              position: "absolute",
+                              top: "0px",
+                              right: "3px",
+                              border: "none",
+                              background: "transparent",
+                              fontSize: "18px",
+                              fontWeight: "bold",
+                              cursor: "pointer",
+                              color: "#f57777ff"
+                            }}
+                            aria-label="Close"
+                          >
+                            ×
+                          </button>
+                        <div className="floating-decline-content" style={{ position: "relative" }}>
+                          {/* Close button */}
+                          
+
                           {selectedRequest.status && (
                             <p className="status-text">
                               <strong>Status:</strong> {selectedRequest.status}
@@ -418,16 +479,8 @@ function SubmittedMaintenanceRepair({ onLogout, currentUserId, showAll = false }
                         </div>
                       </div>
                     )}
+
                   </div>    
-                  {selectedRequest.status === "Approved" && (
-                    <button
-                      className="floating-receive-btn"
-                      onClick={() => handleReceive({ ...selectedRequest })}
-                      disabled={selectedRequest.status === "Received"}
-                    >
-                      {selectedRequest.status === "Received" ? "✅ Received" : "Receive"}
-                    </button>
-                  )}        
                 </div>
               )}
             </>

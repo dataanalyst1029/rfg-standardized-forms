@@ -374,6 +374,10 @@
   background-color: rgba(46, 120, 204, 0.95); /* Blue */
 }
 
+.floating-decline-reason.accomplished {
+  background-color: rgba(46, 120, 204, 0.95); /* Blue */
+}
+
 .floating-decline-reason.approved {
   background-color: rgba(46, 204, 113, 0.95); /* Green */
 }
@@ -386,7 +390,6 @@
   background-color: rgba(231, 76, 60, 0.95); /* Red */
 }
 
-/* Content */
 .floating-decline-content strong {
   display: block;
   margin-bottom: 0.4rem;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import "./styles/RequestCashAdvance.css";
+import "./styles/RequestMaintenanceRepair.css";
 import { API_BASE_URL } from "./config/api.js";
 
 const PAGE_SIZES = [5, 10, 20];
@@ -13,19 +13,22 @@ function MaintenanceRepair() {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalRequest, setModalRequest] = useState(null);
+    const [modalType, setModalType] = useState(null);
     const [isApproving, setIsApproving] = useState(false);
+    const [isAccomplishing, setIsAccomplishing] = useState(false);
     const [isDeclining, setIsDeclining] = useState(false);
     const [declineReason, setDeclineReason] = useState("");
+    const [isAccomplish, setIsAccomplish] = useState(false);
 
         const fetchRequests = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/reimbursement`);
-            if (!response.ok) throw new Error("Failed to fetch reimbursement");
+            const response = await fetch(`${API_BASE_URL}/api/maintenance_repair_request`);
+            if (!response.ok) throw new Error("Failed to fetch maintenance / repair request");
             const data = await response.json();
 
             const sortedData = data.sort((a, b) =>
-            b.rb_request_code.localeCompare(a.rb_request_code)
+            b.mrr_request_code.localeCompare(a.mrr_request_code)
             );
 
             setRequests(sortedData);
@@ -39,12 +42,31 @@ function MaintenanceRepair() {
 
     const storedId = sessionStorage.getItem("id");
     const [userData, setUserData] = useState({ name: "", signature: "" });
-
+    const [userAccess, setUserAccess] = useState([]);
+    const [userRole, setUserRole] = useState("staff");
     const [showLoadingModal, setShowLoadingModal] = useState(false);
     const [showConfirmDecline, setShowConfirmDecline] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
 
+    useEffect(() => {
+        const fetchAccess = async () => {
+        if (!storedId) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/user-access/${storedId}`);
+            const data = await response.json();
+            if (response.ok) {
+            setUserAccess(data.access_forms || []);
+            setUserRole(data.role || "staff");
+            } else {
+            console.error("Failed to load access:", data.error);
+            }
+        } catch (err) {
+            console.error("Error fetching access:", err);
+        }
+        };
 
+        fetchAccess();
+    }, [storedId]);
 
     useEffect(() => {
     if (!storedId) return;
@@ -79,7 +101,7 @@ function MaintenanceRepair() {
     if (term) {
         pendingRequests = pendingRequests.filter((req) =>
         [
-            "rb_request_code",
+            "mrr_request_code",
             "request_date",
             "employee_id",
             "name",
@@ -99,6 +121,13 @@ function MaintenanceRepair() {
         Math.ceil(filteredRequests.length / rowsPerPage) || 1
     );
 
+    // Separate list for accounting — show only approved requests
+    const approvedRequests = useMemo(() => {
+        return requests.filter(
+            (req) => req.status?.toLowerCase() === "approved"
+        );
+    }, [requests]);
+
     const visibleRequests = useMemo(() => {
         const start = (page - 1) * rowsPerPage;
 
@@ -111,21 +140,35 @@ function MaintenanceRepair() {
 
     const openModal = (request) => {
         setModalRequest(request);
+        setModalType("pen");
+        setModalOpen(true);
+    };
+
+    const openModalAccomplish = (request) => {
+        setModalRequest(request);
+        setModalType("app"); 
         setModalOpen(true);
     };
 
     const handleCloseModal = () => {
         setIsClosing(true);
         setTimeout(() => {
-        setIsClosing(false);
-        setModalOpen(false);
-        setModalRequest(null);
-        setShowLoadingModal(false);
-        setShowConfirmDecline(false);
+            setIsClosing(false);
+            setModalOpen(false);
+            setModalRequest(null);
+            setModalType(null);
         }, 300);
     };
 
-
+    const handleCloseModalAccomplish = () => {
+        setIsClosing(true);
+        setTimeout(() => {
+            setIsClosing(false);
+            setModalOpen(false);
+            setModalRequest(null);
+            setModalType(null);
+        }, 300);
+    };
     return (
         <div className="admin-view">
             <div className="admin-toolbar">
@@ -159,64 +202,127 @@ function MaintenanceRepair() {
                 </div>
             )}
 
-            <div className="admin-table-wrapper">
-                <table className="admin-table purchase-table">
-                <thead>
-                    <tr>
-                    <th style={{ textAlign: "center" }}>Ref. No.</th>
-                    <th style={{ textAlign: "center" }}>Date Request</th>
-                    <th style={{ textAlign: "center" }}>CA Liquidation No.</th>
-                    <th style={{ textAlign: "center" }}>Employee ID</th>
-                    <th style={{ textAlign: "center" }}>Reimbursement Amount</th>
-                    {/* <th style={{ textAlign: "center" }}>Status</th> */}
-                    <th style={{ textAlign: "center" }}>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {loading ? (
-                    <tr>
-                        <td colSpan={8} className="admin-empty-state">
-                        Loading reimbursement requests...
-                        </td>
-                    </tr>
-                    ) : visibleRequests.length === 0 ? (
-                    <tr>
-                        <td colSpan={8} className="admin-empty-state">
-                        {search
-                            ? "No requests match your search."
-                            : "No reimbursement requests found."}
-                        </td>
-                    </tr>
-                    ) : (
-                    visibleRequests.map((req) => (
-                        <tr key={req.id}>
-                        <td style={{ textAlign: "center" }}>
-                            {req.rb_request_code}
-                        </td>
-                        <td style={{ textAlign: "center" }}>
-                            {new Date(req.request_date).toLocaleDateString()}
-                        </td>
-                        <td style={{ textAlign: "center" }}>{req.cal_no}</td>
-                        <td style={{ textAlign: "center" }}>{req.employee_id}</td>
-                        <td style={{ textAlign: "center" }}>{req.total_rb_amount}</td>
-                        {/* <td style={{ textAlign: "center" }}>
-                            {req.status.toUpperCase()}
-                        </td> */}
-                        <td style={{ textAlign: "center" }}>
-                            <button
-                            className="admin-primary-btn"
-                            onClick={() => openModal(req)}
-                            title="View Details"
-                            >
-                            🔍
-                            </button>
-                        </td>
+            {userRole.toLowerCase() === "approve" && (
+                <div className="admin-table-wrapper">
+                    <table className="admin-table purchase-table">
+                    <thead>
+                        <tr>
+                        <th style={{ textAlign: "center" }}>Ref. No.</th>
+                        <th style={{ textAlign: "center" }}>Date Request</th>
+                        <th style={{ textAlign: "center" }}>Employee ID</th>
+                        <th style={{ textAlign: "center" }}>Name</th>
+                        <th style={{ textAlign: "center" }}>Description of Work</th>
+                        {/* <th style={{ textAlign: "center" }}>Status</th> */}
+                        <th style={{ textAlign: "center" }}>Action</th>
                         </tr>
-                    ))
-                    )}
-                </tbody>
-                </table>
-            </div>
+                    </thead>
+                    <tbody>
+                        {loading ? (
+                        <tr>
+                            <td colSpan={8} className="admin-empty-state">
+                            Loading maintenance / repair requests...
+                            </td>
+                        </tr>
+                        ) : visibleRequests.length === 0 ? (
+                        <tr>
+                            <td colSpan={8} className="admin-empty-state">
+                            {search
+                                ? "No requests match your search."
+                                : "No reimbursement requests found."}
+                            </td>
+                        </tr>
+                        ) : (
+                        visibleRequests.map((req) => (
+                            <tr key={req.id}>
+                            <td style={{ textAlign: "center" }}>
+                                {req.mrr_request_code}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                                {new Date(req.request_date).toLocaleDateString()}
+                            </td>
+                            <td style={{ textAlign: "center" }}>{req.employee_id}</td>
+                            <td style={{ textAlign: "center" }}>{req.name}</td>
+                            <td style={{ textAlign: "center" }}>{req.work_description}</td>
+                            {/* <td style={{ textAlign: "center" }}>
+                                {req.status.toUpperCase()}
+                            </td> */}
+                            <td style={{ textAlign: "center" }}>
+                                <button
+                                className="admin-primary-btn"
+                                onClick={() => openModal(req)}
+                                title="View Details"
+                                >
+                                🔍
+                                </button>
+                            </td>
+                            </tr>
+                        ))
+                        )}
+                    </tbody>
+                    </table>
+                </div>
+            )}
+
+            {userRole.toLowerCase() === "accomplish" && (
+                <div className="admin-table-wrapper">
+                    <table className="admin-table purchase-table">
+                    <thead>
+                        <tr>
+                        <th style={{ textAlign: "center" }}>Ref. No.</th>
+                        <th style={{ textAlign: "center" }}>Date Request</th>
+                        <th style={{ textAlign: "center" }}>Employee ID</th>
+                        <th style={{ textAlign: "center" }}>Name</th>
+                        <th style={{ textAlign: "center" }}>Description of Work</th>
+                        {/* <th style={{ textAlign: "center" }}>Status</th> */}
+                        <th style={{ textAlign: "center" }}>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                         {loading ? (
+                        <tr>
+                            <td colSpan={8} className="admin-empty-state">
+                            Loading maintenance / repair requests...
+                            </td>
+                        </tr>
+                        ) : approvedRequests.length === 0 ? (
+                        <tr>
+                            <td colSpan={8} className="admin-empty-state">
+                            {search
+                                ? "No approved requests match your search."
+                                : "No approved cash advance budget requests found."}
+                            </td>
+                        </tr>
+                        ) : (
+                        approvedRequests.map((req) => (
+                            <tr key={req.id}>
+                            <td style={{ textAlign: "center" }}>
+                                {req.mrr_request_code}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                                {new Date(req.request_date).toLocaleDateString()}
+                            </td>
+                            <td style={{ textAlign: "center" }}>{req.employee_id}</td>
+                            <td style={{ textAlign: "center" }}>{req.name}</td>
+                            <td style={{ textAlign: "center" }}>{req.work_description}</td>
+                            {/* <td style={{ textAlign: "center" }}>
+                                {req.status.toUpperCase()}
+                            </td> */}
+                            <td style={{ textAlign: "center" }}>
+                                <button
+                                className="admin-primary-btn"
+                                onClick={() => openModalAccomplish(req)}
+                                title="View Details"
+                                >
+                                🔍
+                                </button>
+                            </td>
+                            </tr>
+                        ))
+                        )}
+                    </tbody>
+                    </table>
+                </div>
+            )}
 
             <div className="admin-pagination">
                 <span className="admin-pagination-info">
@@ -262,7 +368,7 @@ function MaintenanceRepair() {
                 </label>
             </div>
 
-            {modalOpen && modalRequest && (
+            {modalOpen && modalRequest && modalType === "pen" && (
                 <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
                     <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
                         <div className="admin-modal-panel request-modals">
@@ -274,40 +380,43 @@ function MaintenanceRepair() {
                                 ×
                             </button>
 
-                            <h2>{modalRequest.rb_request_code}</h2>
-                            <p>
-                                <strong>Date:</strong>{" "}
-                                <em>{new Date(modalRequest.request_date).toLocaleDateString()}</em>
-                            </p>
+                            <h2>{modalRequest.mrr_request_code}</h2>
                             <section className="pr-form-section" id="details">
                                 <div className="pr-grid-two">
                                     <div className="pr-field">
-                                        <label>Cash Advance Liquidation No</label>
-                                        <input type="text" className="pr-input" value={modalRequest.cal_no} readOnly />
+                                        <small style={{background: '#000', padding: '.5rem', color: '#fff'}}>Requestor Details</small>
                                     </div>
                                     <div className="pr-field">
-                                        <label>Cash Advance No</label>
-                                        <input type="text" className="pr-input" value={modalRequest.ca_no} readOnly />
+                                        <label><strong>Date</strong></label>
+                                        <input type="text" className="pr-input" value={new Date(modalRequest.request_date).toLocaleDateString()} readOnly />
                                     </div>
                                 </div>
                                 <div className="pr-grid-two">
                                     <div className="pr-field">
-                                        <label>Employee ID</label>
+                                        <label><strong>Employee ID</strong></label>
                                         <input type="text" className="pr-input" value={modalRequest.employee_id} readOnly />
                                     </div>
                                     <div className="pr-field">
-                                        <label>Name</label>
+                                        <label><strong>Name</strong></label>
                                         <input type="text" className="pr-input" value={modalRequest.name} readOnly />
                                     </div>
                                 </div>
                                 <div className="pr-grid-two">
                                     <div className="pr-field">
-                                        <label>Branch</label>
+                                        <label><strong>Branch</strong></label>
                                         <input type="text" className="pr-input" value={modalRequest.branch} readOnly />
                                     </div>
                                     <div className="pr-field">
-                                        <label>Department</label>
+                                        <label><strong>Department</strong></label>
                                         <input type="text" className="pr-input" value={modalRequest.department} readOnly />
+                                    </div>
+                                </div>
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label><strong>Date Needed</strong></label>
+                                        <input type="text" className="pr-input" value={new Date(modalRequest.date_needed).toLocaleDateString()} readOnly />
+                                    </div>
+                                    <div className="pr-field">
                                     </div>
                                 </div>
                             </section>
@@ -315,229 +424,507 @@ function MaintenanceRepair() {
                             <section className="pr-form-section" id="details">
                                 <div className="pr-grid-two">
                                     <div className="pr-field">
-                                        <label>BPI Account No.</label>
-                                        <input type="text" className="pr-input" value={modalRequest.bpi_acc_no} readOnly />
+                                        <label><strong>Description of Work Required</strong></label>
+                                        <textarea
+                                            value={modalRequest.work_description}
+                                            className="car-textarea pr-input"
+                                            rows={4}
+                                            readOnly
+                                        />
                                     </div>
+                                </div>
+
+                                 <div className="pr-grid-two">
                                     <div className="pr-field">
-                                        <label>Total Reimbursable Amount</label>
-                                        <input type="text" className="pr-input" value={modalRequest.total_rb_amount} readOnly />
+                                        <label><strong>Asset Tag / Code (if Applicable)</strong></label>
+                                        <input type="text" className="pr-input" value={modalRequest.asset_tag} readOnly />
                                     </div>
                                 </div>
                             </section>
 
-                            <div className="submit-content">
-                              <div className="submit-by-content">
-                                <div>
-                                  <span>{modalRequest.requested_by}</span>
-                                  <p>Requested by</p>
+                            <section className="pr-form-section" id="details">
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label><strong>Requested by</strong></label>
+                                        <input type="text" name="requested_by" className="car-input" value={modalRequest.requested_by} required readOnly/>
+                                    </div>
+
+                                    <div className="pr-field receive-signature">
+                                        <label><strong>Signature</strong></label>
+                                        <input type="text" name="request_signature" className="car-input received-signature" value={modalRequest.request_signature}  readOnly />
+                                        {modalRequest.request_signature ? (
+                                            <img
+                                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
+                                            alt="Signature"
+                                            className="img-sign"/>
+                                            ) : (
+                                            <p></p>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <div className="signature-content">
-                                  <input className="submit-sign" type="text" value={modalRequest.request_signature} readOnly />
-                                  {modalRequest.request_signature ? (
-                                    <>
-                                      <img
-                                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
-                                        alt="Signature"
-                                        className="ca-signature-image"
-                                      />
-                                    </>
-                                  ) : (
-                                    <div className="img-sign empty-sign"></div>
-                                  )}
-                                  <p>Signature</p>
-                                </div>
-                              </div>
-                            </div>
-
-                            <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                              <div className="submit-content">
-                                <div className="submit-by-content">
-                                    <div>
-                                        <label>
-                                            <span>
-                                              <input
+                                <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label><strong>Approved by</strong></label>
+                                            <input
                                                 type="text"
                                                 name="approved_by"
                                                 value={userData.name || ""}
+                                                className="car-input"
                                                 readOnly
-                                              />
-                                            </span>
-                                            <p>Approved by</p>
-                                        </label>
-                                    </div>
+                                                />
+                                        </div>
 
-                                    <div className="approver-signature">
-                                        <label>
-                                          <input
-                                            type="text"
-                                            name="approve_signature"
-                                            value={userData.signature || ""}
-                                            className="submit-sign"
-                                            required
-                                            readOnly
-                                          />
-                                          {userData.signature ? (
-                                          <img
-                                          src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                                          alt="Signature"
-                                          className="signature-img"/>
-                                          ) : (
-                                              <div className="img-sign empty-sign"></div>
-                                          )}
-                                          <p>Signature</p>
-                                        </label>
+                                        <div className="pr-field receive-signature">
+                                            <label><strong>Signature</strong></label>
+                                            <input
+                                                type="text"
+                                                name="approved_signature"
+                                                value={userData.signature || ""}
+                                                className="car-input received-signature"
+                                                required
+                                                readOnly
+                                            />
+                                                {userData.signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                                                alt="Signature"
+                                                className="img-sign"/>
+                                                ) : (
+                                                <p>No signature available</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="footer-modal">
+                                        <button
+                                            type="button"
+                                            className="admin-success-btn"
+                                            disabled={isApproving}
+                                            onClick={async () => {
+                                            setIsApproving(true);
+                                            const form = document.querySelector(".request-footer-form");
+                                            const formData = new FormData(form);
+
+                                            formData.append("mrr_request_code", modalRequest.mrr_request_code);
+                                            formData.append("status", "Approved");
+
+                                            setShowLoadingModal(true);
+
+                                            try {
+                                                const response = await fetch(`${API_BASE_URL}/api/update_maintenance_repair_request`, {
+                                                method: "PUT",
+                                                body: formData,
+                                                });
+
+                                                if (!response.ok) throw new Error("Failed to approve request");
+
+                                                setStatus({
+                                                type: "info",
+                                                message: "Maintenance / Repair Request Approved Successfully.",
+                                                });
+                                                handleCloseModal();
+                                                fetchRequests();
+                                            } catch (err) {
+                                                console.error(err);
+                                                setStatus({ type: "error", message: err.message });
+                                            } finally {
+                                                setIsApproving(false);
+                                                setShowLoadingModal(false);
+                                            }
+                                            }}
+                                        >
+                                            {isApproving ? "Approving..." : "✅ Approve"}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="admin-reject-btn"
+                                            onClick={() => setShowConfirmDecline(true)}
+                                        >
+                                            ❌ Decline
+                                        </button>
+                                    </div>
+                                    {showConfirmDecline && (
+                                        <div className={`confirm-modal-overlay-mrr ${isClosing ? "fade-out" : ""}`}>
+                                            <div className="admin-modal-backdrop">
+                                                <div
+                                                    className="admin-modal-panel"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <h3>Confirm Decline</h3>
+                                                    <p>Please provide a reason for declining this purchase request:</p>
+
+                                                    <textarea
+                                                    className="decline-reason-textarea"
+                                                    placeholder="Enter reason for decline..."
+                                                    name="declined_reason"
+                                                    value={declineReason}
+                                                    onChange={(e) => setDeclineReason(e.target.value)}
+                                                    required
+                                                    style={{
+                                                        width: "100%",
+                                                        minHeight: "80px",
+                                                        borderRadius: "6px",
+                                                        padding: "8px",
+                                                        marginTop: "8px",
+                                                        marginBottom: "16px",
+                                                        border: "1px solid #ccc",
+                                                        resize: "vertical",
+                                                    }}
+                                                    />
+
+                                                    <div
+                                                    style={{
+                                                        display: "flex",
+                                                        gap: "12px",
+                                                        justifyContent: "center",
+                                                    }}
+                                                    >
+                                                        <button
+                                                            className="admin-reject-btn"
+                                                            disabled={!declineReason.trim() || isDeclining} 
+                                                            onClick={async () => {
+                                                                setIsDeclining(true);
+                                                                const formData = new FormData();
+                                                                formData.append(
+                                                                "mrr_request_code",
+                                                                modalRequest.mrr_request_code
+                                                                );
+                                                                formData.append("status", "Declined");
+                                                                formData.append("declined_reason", declineReason.trim());
+
+                                                                setShowLoadingModal(true);
+
+                                                                try {
+                                                                const response = await fetch(
+                                                                    `${API_BASE_URL}/api/update_maintenance_repair_request`,
+                                                                    {
+                                                                    method: "PUT",
+                                                                    body: formData,
+                                                                    }
+                                                                );
+
+                                                                if (!response.ok)
+                                                                    throw new Error("Failed to decline request");
+
+                                                                setStatus({
+                                                                    type: "info",
+                                                                    message: "Maintenance / Repair Request Declined Successfully.",
+                                                                });
+                                                                handleCloseModal();
+                                                                fetchRequests();
+                                                                } catch (err) {
+                                                                console.error(err);
+                                                                setStatus({ type: "error", message: err.message });
+                                                                } finally {
+                                                                setIsDeclining(false);
+                                                                setShowConfirmDecline(false);
+                                                                setShowLoadingModal(false);
+                                                                setDeclineReason("");
+                                                                }
+                                                            }}
+                                                            >
+                                                            {isDeclining ? "Declining..." : "Decline"}
+                                                            </button>
+
+
+                                                        <button
+                                                            className="admin-cancel-btn"
+                                                            onClick={() => {
+                                                            setShowConfirmDecline(false);
+                                                            setDeclineReason("");
+                                                            }}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </form>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {modalOpen && modalRequest && modalType === "app" && (
+                <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
+                    <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+                        <div className="admin-modal-panel request-modals">
+                            <button
+                                className="admin-close-btn"
+                                onClick={handleCloseModal}
+                                aria-label="Close"
+                                >
+                                ×
+                            </button>
+
+                            <h2>{modalRequest.mrr_request_code}</h2>
+                            <section className="pr-form-section" id="details">
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <small style={{background: '#000', padding: '.5rem', color: '#fff'}}>Requestor Details</small>
+                                    </div>
+                                    <div className="pr-field">
+                                        <label><strong>Date</strong></label>
+                                        <input type="text" className="pr-input" value={new Date(modalRequest.request_date).toLocaleDateString()} readOnly />
                                     </div>
                                 </div>
-                              </div>
-                              <div className="footer-modal">
-                                  <button
-                                      type="button"
-                                      className="admin-success-btn"
-                                      disabled={isApproving}
-                                      onClick={async () => {
-                                      setIsApproving(true);
-                                      const form = document.querySelector(".request-footer-form");
-                                      const formData = new FormData(form);
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label><strong>Employee ID</strong></label>
+                                        <input type="text" className="pr-input" value={modalRequest.employee_id} readOnly />
+                                    </div>
+                                    <div className="pr-field">
+                                        <label><strong>Name</strong></label>
+                                        <input type="text" className="pr-input" value={modalRequest.name} readOnly />
+                                    </div>
+                                </div>
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label><strong>Branch</strong></label>
+                                        <input type="text" className="pr-input" value={modalRequest.branch} readOnly />
+                                    </div>
+                                    <div className="pr-field">
+                                        <label><strong>Department</strong></label>
+                                        <input type="text" className="pr-input" value={modalRequest.department} readOnly />
+                                    </div>
+                                </div>
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label><strong>Date Needed</strong></label>
+                                        <input type="text" className="pr-input" value={new Date(modalRequest.date_needed).toLocaleDateString()} readOnly />
+                                    </div>
+                                    <div className="pr-field">
+                                    </div>
+                                </div>
+                            </section>
 
-                                      formData.append("rb_request_code", modalRequest.rb_request_code);
-                                      formData.append("status", "Approved");
+                            <section className="pr-form-section" id="details">
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label><strong>Description of Work Required</strong></label>
+                                        <textarea
+                                            value={modalRequest.work_description}
+                                            className="car-textarea pr-input"
+                                            rows={4}
+                                            readOnly
+                                        />
+                                    </div>
+                                </div>
 
-                                      setShowLoadingModal(true);
+                                 <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label><strong>Asset Tag / Code (if Applicable)</strong></label>
+                                        <input type="text" className="pr-input" value={modalRequest.asset_tag} readOnly />
+                                    </div>
+                                </div>
+                            </section>
+                            <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
+                                <section className="pr-form-section" id="details">
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <small style={{background: '#000', padding: '.5rem', color: '#fff'}}>Completion Information</small>
+                                        </div>
+                                        <div className="pr-field">
+                                        </div>
+                                    </div>
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label><strong>Performed By</strong></label>
+                                            <input
+                                                type="text"
+                                                name="performed_by"
+                                                className="pr-input"
+                                                value={modalRequest.performed_by || ""}
+                                                onChange={(e) =>
+                                                    setModalRequest({ ...modalRequest, performed_by: e.target.value })
+                                                }
+                                                required={isAccomplish}
+                                            />
+                                        </div>
+                                        <div className="pr-field">
+                                            <label><strong>Date Completed</strong></label>
+                                            <input
+                                                type="date"
+                                                name="date_completed"
+                                                className="pr-input"
+                                                value={
+                                                    modalRequest.date_completed
+                                                    ? new Date(modalRequest.date_completed).toISOString().split("T")[0]
+                                                    : new Date().toISOString().split("T")[0]
+                                                }
+                                                onChange={(e) =>
+                                                    setModalRequest({ ...modalRequest, date_completed: e.target.value })
+                                                }
+                                                required={isAccomplish}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label><strong>Remarks</strong></label>
+                                            <textarea
+                                                name="remarks"
+                                                className="car-textarea pr-input"
+                                                rows={4}
+                                                value={modalRequest.remarks || ""}
+                                                onChange={(e) =>
+                                                    setModalRequest({ ...modalRequest, remarks: e.target.value })
+                                                }
+                                                required={isAccomplish}
+                                            />
+                                        </div>
+                                    </div>
+                                </section>
 
-                                      try {
-                                          const response = await fetch(`${API_BASE_URL}/api/update_reimbursement`, {
-                                          method: "PUT",
-                                          body: formData,
-                                          });
+                                <section className="pr-form-section" id="details">
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label><strong>Requested by</strong></label>
+                                            <input type="text" className="car-input" value={modalRequest.requested_by} required readOnly/>
+                                        </div>
 
-                                          if (!response.ok) throw new Error("Failed to approve request");
+                                        <div className="pr-field receive-signature">
+                                            <label><strong>Signature</strong></label>
+                                            <input type="text" className="car-input received-signature" value={modalRequest.request_signature}  readOnly />
+                                            {modalRequest.request_signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
+                                                alt="Signature"
+                                                className="img-sign"/>
+                                                ) : (
+                                                <p></p>
+                                            )}
+                                        </div>
+                                    </div>
 
-                                          setStatus({
-                                          type: "info",
-                                          message: "Reimbursement approved successfully.",
-                                          });
-                                          handleCloseModal();
-                                          fetchRequests();
-                                      } catch (err) {
-                                          console.error(err);
-                                          setStatus({ type: "error", message: err.message });
-                                      } finally {
-                                          setIsApproving(false);
-                                          setShowLoadingModal(false);
-                                      }
-                                      }}
-                                  >
-                                      {isApproving ? "Approving..." : "✅ Approve"}
-                                  </button>
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label><strong>Approved by</strong></label>
+                                            <input type="text" className="car-input" value={modalRequest.approved_by} required readOnly/>
+                                        </div>
 
-                                  <button
-                                      type="button"
-                                      className="admin-reject-btn"
-                                      onClick={() => setShowConfirmDecline(true)}
-                                  >
-                                      ❌ Decline
-                                  </button>
-                              </div>
+                                        <div className="pr-field receive-signature">
+                                            <label><strong>Signature</strong></label>
+                                            <input type="text" className="car-input received-signature" value={modalRequest.approved_signature}  readOnly />
+                                            {modalRequest.approved_signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
+                                                alt="Signature"
+                                                className="img-sign"/>
+                                                ) : (
+                                                <p></p>
+                                            )}
+                                        </div>
+                                    </div>
 
-                              {showConfirmDecline && (
-                                  <div className={`confirm-modal-overlay ${isClosing ? "fade-out" : ""}`}>
-                                      <div className="admin-modal-backdrop">
-                                          <div
-                                              className="admin-modal-panel"
-                                              onClick={(e) => e.stopPropagation()}
-                                          >
-                                              <h3>Confirm Decline</h3>
-                                              <p>Please provide a reason for declining this purchase request:</p>
+                                    
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label><strong>Accomplished by</strong></label>
+                                            <input
+                                                type="text"
+                                                name="accomplished_by"
+                                                value={userData.name || ""}
+                                                className="car-input"
+                                                readOnly
+                                            />
+                                        </div>
 
-                                              <textarea
-                                              className="decline-reason-textarea"
-                                              placeholder="Enter reason for decline..."
-                                              name="declined_reason"
-                                              value={declineReason}
-                                              onChange={(e) => setDeclineReason(e.target.value)}
-                                              required
-                                              style={{
-                                                  width: "100%",
-                                                  minHeight: "80px",
-                                                  borderRadius: "6px",
-                                                  padding: "8px",
-                                                  marginTop: "8px",
-                                                  marginBottom: "16px",
-                                                  border: "1px solid #ccc",
-                                                  resize: "vertical",
-                                              }}
-                                              />
+                                        <div className="pr-field receive-signature">
+                                            <label><strong>Signature</strong></label>
+                                            <input
+                                                type="text"
+                                                name="accomplished_signature"
+                                                value={userData.signature || ""}
+                                                className="car-input received-signature"
+                                                required
+                                                readOnly
+                                            />
+                                                {userData.signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                                                alt="Signature"
+                                                className="img-sign"/>
+                                                ) : (
+                                                <p>No signature available</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="footer-modal">
+                                        <button
+                                            type="button"
+                                            className="admin-success-btn"
+                                            disabled={isAccomplishing}
+                                            onClick={async () => {
 
-                                              <div
-                                              style={{
-                                                  display: "flex",
-                                                  gap: "12px",
-                                                  justifyContent: "center",
-                                              }}
-                                              >
-                                                  <button
-                                                      className="admin-reject-btn"
-                                                      disabled={!declineReason.trim() || isDeclining} 
-                                                      onClick={async () => {
-                                                          setIsDeclining(true);
-                                                          const formData = new FormData();
-                                                          formData.append(
-                                                          "rb_request_code",
-                                                          modalRequest.rb_request_code
-                                                          );
-                                                          formData.append("status", "Declined");
-                                                          formData.append("declined_reason", declineReason.trim());
+                                                setIsAccomplish(true);
 
-                                                          setShowLoadingModal(true);
+                                                if (!modalRequest.performed_by?.trim()) {
+                                                    alert("Performed By is required.");
+                                                    return;
+                                                }
 
-                                                          try {
-                                                          const response = await fetch(
-                                                              `${API_BASE_URL}/api/update_reimbursement`,
-                                                              {
-                                                              method: "PUT",
-                                                              body: formData,
-                                                              }
-                                                          );
+                                                if (!modalRequest.remarks?.trim()) {
+                                                    alert("Remarks is required.");
+                                                    return;
+                                                }
 
-                                                          if (!response.ok)
-                                                              throw new Error("Failed to decline request");
+                                                const form = document.querySelector(".request-footer-form");
+                                                if (!form.checkValidity()) {
+                                                    form.reportValidity();
+                                                    return;
+                                                }
 
-                                                          setStatus({
-                                                              type: "info",
-                                                              message: "Reimbursement declined successfully.",
-                                                          });
-                                                          handleCloseModal();
-                                                          fetchRequests();
-                                                          } catch (err) {
-                                                          console.error(err);
-                                                          setStatus({ type: "error", message: err.message });
-                                                          } finally {
-                                                          setIsDeclining(false);
-                                                          setShowConfirmDecline(false);
-                                                          setShowLoadingModal(false);
-                                                          setDeclineReason("");
-                                                          }
-                                                      }}
-                                                      >
-                                                      {isDeclining ? "Declining..." : "Decline"}
-                                                      </button>
+                                                setIsApproving(true);
 
+                                                const formData = new FormData(form);
+                                                formData.append("mrr_request_code", modalRequest.mrr_request_code);
+                                                // formData.append("performed_by", modalRequest.performed_by);
+                                                // formData.append("date_completed", modalRequest.date_completed);
+                                                // formData.append("remarks", modalRequest.remarks);
+                                                // formData.append("accomplished_by", userData.name);
+                                                // formData.append("accomplished_signature", userData.signature);
+                                                formData.append("status", "Accomplished");
 
-                                                  <button
-                                                      className="admin-cancel-btn"
-                                                      onClick={() => {
-                                                      setShowConfirmDecline(false);
-                                                      setDeclineReason("");
-                                                      }}
-                                                  >
-                                                      Cancel
-                                                  </button>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  </div>
-                                )}
+                                                setShowLoadingModal(true);
+
+                                                try {
+                                                    const response = await fetch(
+                                                        `${API_BASE_URL}/api/update_maintenance_repair_request_accomplish`,
+                                                        {
+                                                            method: "PUT",
+                                                            body: formData,
+                                                        }
+                                                    );
+
+                                                    if (!response.ok) throw new Error("Failed to accomplished request");
+
+                                                    setStatus({
+                                                        type: "info",
+                                                        message: "Maintenance / Repair Request Accomplished Successfully.",
+                                                    });
+
+                                                    handleCloseModal();
+                                                    fetchRequests();
+                                                } catch (err) {
+                                                    console.error(err);
+                                                    setStatus({ type: "error", message: err.message });
+                                                } finally {
+                                                    setIsApproving(false);
+                                                    setShowLoadingModal(false);
+                                                }
+
+                                            }}
+                                        >
+                                            {isApproving ? "Accomplishing..." : "✅ Accomplish"}
+                                        </button>
+                                    </div>
+                                </section>
                             </form>
                         </div>
                     </div>
