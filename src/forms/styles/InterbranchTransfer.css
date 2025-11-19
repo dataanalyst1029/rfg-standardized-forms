@@ -1,322 +1,103 @@
-/* --- Fieldset Container --- */
-/* This styles the <fieldset> that wraps all the radio buttons. */
-.pr-fieldset {
-  border: none;             /* Removes the default <fieldset> border */
-  /* padding: 0; */         /* Removed default padding */
-  margin: 0;                /* Removes default margin */
-  display: flex;            /* Use flexbox for layout */
-  flex-direction: column; /* <-- Stacks the radio buttons vertically */
-  gap: 1.3rem;             /* <-- Sets the vertical space BETWEEN each button */
-  
-  /* --- ADDED --- */
-  /* This padding pushes the button group down to align with the */
-  /* input fields in the right column. Adjust the value as needed. */
+.its-fieldset {
+  border: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
   padding-top: 1.5rem;
 }
 
-/* --- Radio Button Wrapper --- */
-/* This styles the <div> wrapper around each individual radio button. */
-.pr-radio-option {
-  display: flex;  /* Use flexbox to align label and input (for 'Other') */
-  flex-grow: 0;   /* Prevents the buttons from stretching vertically */
+.its-radio-option {
+  display: flex;
+  flex-grow: 0;
 }
 
-/* --- Hidden Radio Input --- */
-/* This visually hides the actual radio button circle. */
-.pr-radio-input {
-  opacity: 0;       /* Makes it invisible */
-  position: absolute; /* Takes it out of the document flow */
-  width: 0;         /* No width */
-  height: 0;        /* No height */
+.its-radio-input {
+  opacity: 0;
+  position: absolute;
+  width: 0;
+  height: 0;
 }
 
-/* --- Custom Radio Button Label --- */
-/* This styles the <label> to look like the button. */
-.pr-radio-label {
-  display: inline-flex;  /* Aligns the custom circle and text */
-  align-items: center; /* Vertically centers the custom circle and text */
-  width: 100%;         /* <-- Makes all buttons a uniform, full width */
-  padding: 0.75rem 1rem; /* Inner spacing (top/bottom | left/right) */
-  border: 1px solid #d1d5db; /* Light gray border */
-  border-radius: 0.5rem;   /* Rounded corners */
+.its-radio-label {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
   background-color: #ffffff;
   cursor: pointer;
-  transition: all 0.2s ease; /* Smooth animation for hover/click */
+  transition: all 0.2s ease;
   font-weight: 500;
-  color: #374151;       /* Dark gray text */
+  color: #374151;
 }
 
-/* --- Custom Radio Circle --- */
-/* This styles the <span className="pr-radio-control"> */
-.pr-radio-control {
+.its-radio-control {
   display: inline-block;
-  width: 1.25em;        /* 20px */
-  height: 1.25em;       /* 20px */
-  margin-right: 0.5rem; /* Space between the circle and the text */
-  border: 2px solid #888; /* Gray circle border */
-  border-radius: 50%;   /* Makes it a perfect circle */
+  width: 1.25em;
+  height: 1.25em;
+  margin-right: 0.5rem;
+  border: 2px solid #888;
+  border-radius: 50%;
   transition: all 0.2s ease;
   background-color: #fff;
 }
 
 /* --- "Other" Row Specifics --- */
-/* This styles the <div> wrapper for the "Other" option */
-.pr-radio-option--other {
-  display: flex;        /* Ensures the <label> and <input> are side-by-side */
-  align-items: center;  /* Vertically aligns the button and the text field */
+.its-radio-option--other {
+  display: flex;
+  align-items: center;
 }
 
-/* Overrides the 'width: 100%' for the "Other" label */
-.pr-radio-option--other .pr-radio-label {
-  width: auto;      /* Label is only as wide as its content */
-  flex-shrink: 0; /* Prevents the label from shrinking */
+/* FIXED: Changed .pr-radio-label to .its-radio-label */
+.its-radio-option--other .its-radio-label {
+  width: auto;
+  flex-shrink: 0;
 }
 
-/* Styles the text input field for "Other" */
-.pr-radio-option--other .pr-input {
-  flex-grow: 1; /* Allows the text field to fill all remaining space */
+.its-radio-option--other .pr-input {
+  flex-grow: 1;
 }
 
-/* --- CHECKED STATE --- */
-/* This block controls how the button looks when it IS selected */
+/* --- CHECKED STATE (FIXED) --- */
 
-/* Selects the <label> when its hidden radio button is :checked */
-.pr-radio-input:checked + .pr-radio-label {
-  border-color: #007bff;     /* Blue border */
-  background-color: #f0f7ff; /* Light blue background */
+/* FIXED: Changed .pr-radio-label to .its-radio-label */
+.its-radio-input:checked + .its-radio-label {
+  border-color: #007bff;
+  background-color: #f0f7ff;
   color: #0056b3;
 }
 
-/* Selects the custom circle when its hidden radio button is :checked */
-.pr-radio-input:checked + .pr-radio-label .pr-radio-control {
-  border-color: #007bff;   /* Blue border */
-  background-color: #007bff; /* Blue fill */
-  box-shadow: inset 0 0 0 3px #fff; /* Creates the inner white dot */
+/* FIXED: Changed .pr-radio-label and .pr-radio-control to .its- */
+.its-radio-input:checked + .its-radio-label .its-radio-control {
+  border-color: #007bff;
+  background-color: #007bff;
+  box-shadow: inset 0 0 0 3px #fff;
 }
 
-/* --- DISABLED STATE --- */
-/* This block controls how the button looks when it IS disabled */
+/* --- DISABLED STATE (FIXED) --- */
 
-.pr-radio-input:disabled + .pr-radio-label {
-  background-color: #f9fafb; /* Light gray background */
-  color: #9ca3af;           /* Muted text color */
+/* FIXED: Changed .pr-radio-label to .its-radio-label */
+.its-radio-input:disabled + .its-radio-label {
+  background-color: #f9fafb;
+  color: #9ca3af;
   cursor: not-allowed;
   border-color: #e5e7eb;
 }
 
-.pr-radio-input:disabled + .pr-radio-label .pr-radio-control {
+/* FIXED: Changed .pr-radio-label and .pr-radio-control to .its- */
+.its-radio-input:disabled + .its-radio-label .its-radio-control {
   border-color: #e5e7eb;
   background-color: #e5e7eb;
 }
 
-.its-numeric-input {
-  width: 15vh;
+.its-date-input{
+    margin-bottom: 1.5rem;
+    width: 12rem;
 }
 
-.its-field {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.its-input-margin{
+  margin-bottom: 1rem;
 }
 
-.its-input-col {
-  display: flex;
-  flex-direction: column;
-  gap: 16px; /* <-- This creates the gap. Adjust 16px to whatever you like! */
-}
-
-/* --- Interbranch Transfer Slip Styles --- */
-
-.its-grid-two {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem; /* Use rem for screen */
-  width: 100%;
-  margin-top: 1.5rem;
-}
-
-.its-col-left, .its-col-right {
-  display: flex;
-  flex-direction: column;
-}
-
-.its-info-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid #000;
-}
-
-.its-info-table th, 
-.its-info-table td {
-  border: 1px solid #000;
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  vertical-align: top;
-  height: 2.5rem; /* Set a consistent height */
-}
-
-.its-info-table th {
-  width: 40%;
-  font-weight: bold;
-  background: #f4f4f4;
-}
-
-.its-items-table {
-  width: 100%;
-  border-collapse: collapse;
-  /* margin-top: 1.5rem; <-- Removed, now controlled by header */
-  border: 1px solid #000;
-  border-top: none; /* Header provides top border */
-}
-
-.its-items-table th, 
-.its-items-table td {
-  border: 1px solid #000;
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-}
-
-.its-items-table th {
-  background: #f4f4f4;
-  font-weight: bold;
-}
-
-.its-items-table .text-center { 
-  text-align: center; 
-}
-
-.its-items-table tr td {
-  height: 2.5rem; /* Ensure rows have height */
-}
-
-.its-footnote {
-  font-size: 0.8rem;
-  font-style: italic;
-  margin-top: 5px;
-}
-
-.its-transport-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid #000;
-}
-
-.its-transport-table th, 
-.its-transport-table td {
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  border: 1px solid #000;
-  height: 2.5rem; /* Set a consistent height */
-}
-
-.its-transport-table th {
-  width: 40%;
-  font-weight: bold;
-  background: #f4f4f4;
-}
-
-.its-transport-header {
-  font-size: 1.1rem;
-  font-weight: bold;
-  text-align: center;
-  padding: 0.5rem;
-  background: #000;
-  color: #fff;
-  border: 1px solid #000;
-  margin-top: 1.5rem;
-  grid-column: 1 / -1; /* Span full width in grid */
-}
-
-.its-sig-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1.5rem;
-  border: 1px solid #000;
-}
-
-.its-sig-table th, 
-.its-sig-table td {
-  border: 1px solid #000;
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  vertical-align: top;
-}
-
-.its-sig-table th {
-  width: 20%;
-  font-weight: bold;
-  background: #f4f4f4;
-}
-
-.its-sig-table td:nth-of-type(1) { width: 30%; } /* Name */
-.its-sig-table td:nth-of-type(2) { width: 30%; } /* Signature */
-.its-sig-table td:nth-of-type(3) { width: 20%; } /* Date */
-
-.its-sig-table .sig-box {
-  height: 3.5rem;
-  vertical-align: bottom;
-}
-
-.its-received-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1.5rem;
-  border: 1px solid #000;
-}
-
-.its-received-table th, 
-.its-received-table td {
-  border: 1px solid #000;
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-}
-
-.its-received-table th {
-  width: 20%;
-  font-weight: bold;
-  background: #f4f4f4;
-}
-
-.its-received-table .sig-box {
-  height: 3.5rem;
-  vertical-align: bottom;
-}
-
-.its-receiving-section {
-  margin-top: 1.5rem;
-  border: 1px solid #000;
-}
-
-.its-receiving-header {
-  font-size: 1.1rem;
-  font-weight: bold;
-  text-align: center;
-  padding: 0.5rem;
-  background: #000;
-  color: #fff;
-  border-bottom: 1px solid #000;
-}
-
-.its-receiving-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-.its-receiving-col {
-  padding: 1rem;
-}
-
-.its-receiving-col:first-child {
-  border-right: 1px solid #000;
-}
-
-.its-receiving-col p {
-  margin: 0 0 10px 0;
-}
-
-.its-receiving-col .reason {
-  border-top: 1px solid #000;
-  padding-top: 10px;
-  margin-top: 10px;
-  min-height: 4rem;
-}

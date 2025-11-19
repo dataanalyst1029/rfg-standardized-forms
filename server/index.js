@@ -3006,7 +3006,6 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
     from_branch,
     from_address,
     from_area_ops_controller,
-    date_received,
     to_branch,
     to_address,
     to_area_ops_controller,
@@ -3016,20 +3015,8 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
     driver_contact,
     expected_date,
     prepared_by,
-    approved_by,
-    received_by,
     prepared_date,
-    approved_date,
-    dispatched_date,
-    received_date,
     prepared_signature,
-    approved_signature,
-    dispatched_signature,
-    received_signature,
-    is_shortage,
-    is_overage,
-    short_reason,
-    over_reason,
 
     items = [],  // Default to empty array if no items
   } = req.body;
@@ -3040,8 +3027,8 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
 
     const result = await client.query(  // Insert main request record
       `INSERT INTO interbranch_transfer_slip
-      (form_code, user_id, employee_id, date_transferred, from_branch, from_address, from_area_ops_controller, date_received, to_branch, to_address, to_area_ops_controller, dispatch_method, vehicle_no, driver_name, driver_contact, expected_date, prepared_by, prepared_date, prepared_signature)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18, $19)
+      (form_code, user_id, employee_id, date_transferred, from_branch, from_address, from_area_ops_controller, to_branch, to_address, to_area_ops_controller, dispatch_method, vehicle_no, driver_name, driver_contact, expected_date, prepared_by, prepared_date, prepared_signature)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       RETURNING id`,
       [
         form_code,
@@ -3051,7 +3038,6 @@ app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new 
         from_branch,
         from_address,
         from_area_ops_controller,
-        date_received,
         to_branch,
         to_address,
         to_area_ops_controller,

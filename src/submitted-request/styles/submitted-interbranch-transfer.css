@@ -266,7 +266,7 @@
     margin: 0.5in; /* Keep original page margin */
   }
 
-  .its-record-request::before {
+  .its-request-card::before {
     content: "Interbranch Transfer Slip";
     display: block;
     text-align: center;
