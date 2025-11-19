@@ -2749,7 +2749,7 @@ app.put("/api/update_maintenance_repair_request", uploadForm.none(), async (req,
     const {
       mrr_request_code,
       approved_by,
-      approve_signature,
+      approved_signature,
       status,
       declined_reason,
     } = req.body;
@@ -2770,9 +2770,9 @@ app.put("/api/update_maintenance_repair_request", uploadForm.none(), async (req,
     if (status === "Approved") {
       query += `,
         approved_by = $${paramIndex++},
-        approve_signature = $${paramIndex++}
+        approved_signature = $${paramIndex++}
       `;
-      values.push(approved_by, approve_signature);
+      values.push(approved_by, approved_signature);
     }
 
     if (status === "Declined") {
@@ -2780,6 +2780,65 @@ app.put("/api/update_maintenance_repair_request", uploadForm.none(), async (req,
         declined_reason = $${paramIndex++}
       `;
       values.push(declined_reason || "");
+    }
+
+    query += ` WHERE mrr_request_code = $${paramIndex} RETURNING *`;
+    values.push(mrr_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Maintenance / Repair request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Maintenance repair request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating maintenance / repair request:", err);
+    res.status(500).json({ message: "Server error updating maintenance / repair request." });
+  }
+});
+
+/* ------------------------
+   UPDATE MAINTENANCE / REPAIR REQUEST ACCOMPLSHER
+------------------------ */
+app.put("/api/update_maintenance_repair_request_accomplish", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      mrr_request_code,
+      performed_by,
+      date_completed,
+      remarks,
+      accomplished_by,
+      accomplished_signature,
+      status,
+    } = req.body;
+
+    if (!mrr_request_code) {
+      return res.status(400).json({ message: "mrr_request_code is required." });
+    }
+
+    let query = `
+      UPDATE maintenance_repair_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Accomplished") {
+      query += `,
+        performed_by = $${paramIndex++},
+        date_completed = $${paramIndex++},
+        remarks = $${paramIndex++},
+        accomplished_by = $${paramIndex++},
+        accomplished_signature = $${paramIndex++}
+      `;
+      values.push(performed_by, date_completed, remarks, accomplished_by, accomplished_signature);
     }
 
     query += ` WHERE mrr_request_code = $${paramIndex} RETURNING *`;
