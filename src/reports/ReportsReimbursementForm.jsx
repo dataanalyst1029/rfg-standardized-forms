@@ -358,41 +358,64 @@ function ReportsReimbursementForm() {
                 ×
               </button>
 
-              <h2>{modalRequest.rb_request_code}</h2>
-              <p>
-                <strong>Date:</strong>{" "}
-                <em>
-                  {new Date(modalRequest.request_date).toLocaleDateString()}
-                </em>
-              </p>
+              <h2>Reimbursement Form - {modalRequest.rb_request_code}</h2>
 
-              {/* ----- 1. Employee Info Block ----- */}
-              <div className="employee-info">
-                <p>
-                  <strong>CA Liquidation No:</strong>{" "}
-                  <em>{modalRequest.cal_no}</em>
-                </p>
-                <p>
-                  <strong>Cash Advance No:</strong>{" "}
-                  <em>{modalRequest.ca_no}</em>
-                </p>
-                <p>
-                  <strong>Employee ID:</strong>{" "}
-                  <em>{modalRequest.employee_id}</em>
-                </p>
-                <p>
-                  <strong>Name:</strong> <em>{modalRequest.name}</em>
-                </p>
-                <p>
-                  <strong>Branch:</strong> <em>{modalRequest.branch}</em>
-                </p>
-                <p>
-                  <strong>Department:</strong> <em>{modalRequest.department}</em>
-                </p>
-              </div>
+              <section className="pr-form-section" id="details">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Date:
+                    </label>
+                    <input
+                      value={new Date(modalRequest.request_date).toLocaleDateString()}
+                      className="pr-input"
+                    />
+                  </div>
+                </div>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Employee ID
+                    </label>
+                    <input
+                      value={modalRequest.employee_id}
+                      className="pr-input"
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Name
+                    </label>
+                    <input
+                      value={modalRequest.name}
+                      className="pr-input"
+                    />
+                  </div>
+                </div>
+                 <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Branch
+                    </label>
+                    <input
+                      value={modalRequest.branch}
+                      className="pr-input"
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Department
+                    </label>
+                    <input
+                      value={modalRequest.department}
+                      className="pr-input"
+                    />
+                  </div>
+                </div>
+              </section>
 
               {/* ----- 2. Reimbursement Details (UPDATED TO TABLE) ----- */}
-              <div className="pr-items-card" style={{ marginTop: '1.5rem', border: '1px solid #ddd' }}>
+              <section className="pr-form-section" id="details">
                 <h2 
                   className="pr-section-title" 
                   style={{ 
@@ -407,13 +430,24 @@ function ReportsReimbursementForm() {
                 </h2>
                 <table className="request-items-table" style={{ border: 'none', width: '100%' }}>
                   <tbody style={{ border: 'none' }}>
+                    {/* Row 1: 4 Columns (25% each ensures 50/50 split between the two pairs) */}
                     <tr>
-                      <th style={{ width: '30%', borderRight: '1px solid #eee' }}>BPI Account No.</th>
-                      <td style={{ width: '70%' }}>{modalRequest.bpi_acc_no}</td>
+                      <th style={{ width: '25%', borderRight: '1px solid #eee' }}>CA Liquidation No.</th>
+                      <td style={{ width: '25%', borderRight: '1px solid #eee' }}>{modalRequest.cal_no}</td>
+                      <th style={{ width: '25%', borderRight: '1px solid #eee' }}>Cash Advance No.</th>
+                      <td style={{ width: '25%' }}>{modalRequest.ca_no}</td>
                     </tr>
+
+                    {/* Row 2: 2 Columns. The value cell spans 3 columns (25% + 25% + 25% = 75%) */}
+                    <tr>
+                      <th style={{ borderRight: '1px solid #eee' }}>BPI Account No.</th>
+                      <td colSpan="3">{modalRequest.bpi_acc_no}</td>
+                    </tr>
+
+                    {/* Row 3: 2 Columns. The value cell spans 3 columns */}
                     <tr style={{ borderTop: '1px solid #eee' }}>
                       <th style={{ borderRight: '1px solid #eee' }}>Total Reimbursable Amount</th>
-                      <td>
+                      <td colSpan="3">
                         {Number(modalRequest.total_rb_amount).toLocaleString("en-PH", {
                           style: "currency",
                           currency: "PHP",
@@ -422,7 +456,7 @@ function ReportsReimbursementForm() {
                     </tr>
                   </tbody>
                 </table>
-              </div>
+              </section>
 
               {/* ----- 3. "Requested by" Signature Block ----- */}
               <div className="submit-content">
@@ -443,7 +477,7 @@ function ReportsReimbursementForm() {
                       <img
                         src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
                         alt="Signature"
-                        className="cal-signature-image" // Standardized class
+                        className="ca-signature-image" // Standardized class
                       />
                     ) : (
                       <div className="img-sign empty-sign"></div>
@@ -456,15 +490,15 @@ function ReportsReimbursementForm() {
               {/* ----- 4. "Approved by" Signature Block ----- */}
               <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
                 <div className="submit-content">
-                  <div className="submit-by-content-approve"> {/* Changed class */}
+                  <div className="submit-by-content"> {/* Changed class */}
                     <div>
                       <label>
                         <span>
                           <input
                             type="text"
                             name="approved_by"
-                            value={userData.name || ""} // Using logged-in user's name
-                            className="approver-name" // Added class
+                            value={modalRequest.approved_by || ""} // Using logged-in user's name
+                            className="approver" // Added class
                             readOnly
                           />
                         </span>
@@ -472,20 +506,22 @@ function ReportsReimbursementForm() {
                       </label>
                     </div>
 
-                    <div className="signature-content"> {/* Changed class */}
+                    <div className="approver-signature"> {/* Changed class */}
                       <label>
-                        <input
-                          type="text"
-                          name="approve_signature"
-                          value={userData.signature || ""} // Using logged-in user's signature
-                          className="submit-sign"
-                          readOnly
-                        />
-                        {userData.signature ? (
+                        <span>
+                           <input
+                            type="text"
+                            name="approve_signature"
+                            value={modalRequest.approve_signature || ""} // Using logged-in user's signature
+                            className="submit-sign approver"
+                            readOnly
+                          />
+                        </span>
+                        {modalRequest.approve_signature ? (
                           <img
-                            src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approve_signature}`}
                             alt="Signature"
-                            className="cal-signature-image" // Standardized class
+                            className="ca-signature-image" // Standardized class
                           />
                         ) : (
                           <div className="img-sign empty-sign"></div>

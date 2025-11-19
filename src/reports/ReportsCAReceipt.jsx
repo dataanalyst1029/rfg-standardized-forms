@@ -358,7 +358,7 @@ function ReportsCAReceipt() {
                 ×
               </button>
 
-              <h2>{modalRequest.car_request_code}</h2>
+              <h2>Cash Advance Receipt Form - {modalRequest.car_request_code}</h2>
               <p>
                 <strong>Date:</strong>{" "}
                 <em>
@@ -368,40 +368,79 @@ function ReportsCAReceipt() {
                 </em>
               </p>
 
-              <div className="employee-info">
-                <p>
-                  <strong>Employee ID:</strong>{" "}
-                  <em>{modalRequest.employee_id}</em>
-                </p>
-                <p>
-                  <strong>Name:</strong> <em>{modalRequest.name}</em>
-                </p>
-              </div>
+              <section className="pr-form-section" id="details">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Date:
+                    </label>
+                    <input
+                      value={new Date(modalRequest.request_date).toLocaleDateString()}
+                      className="pr-input"
+                    />
+                  </div>
+                </div>
 
-              <div className="replenish-amount">
-                <p>
-                  <strong>Cash Advance No:</strong>{" "}
-                  <em>{modalRequest.cash_advance_no}</em>
-                </p>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Employee ID
+                    </label>
+                    <input
+                      value={modalRequest.employee_id}
+                      className="pr-input"
+                    />
+                  </div>
+                   <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Name
+                    </label>
+                    <input
+                      value={modalRequest.name}
+                      className="pr-input"
+                    />
+                  </div>
+                </div>
+              </section>
 
-                <p>
-                  <strong>Received from:</strong>{" "}
-                  <em>{modalRequest.received_from}</em>
-                </p>
-              </div>
+              <section className="pr-items-card">
+                 <h2 
+                  className="pr-section-title pr-section-title--modal" 
+                >
+                  Cash Advance Receipt Details
+                </h2>
 
-              <div className="pr-items-card">
-                <label>
-                  <strong>Amount:</strong> <em>₱
-                    {Number(modalRequest.php_amount || 0).toLocaleString(
-                      "en-PH",
-                      {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      }
-                    )} / {modalRequest.php_word} Pesos  </em>
-                </label>
-              </div>
+                 <div className="pr-grid-two">
+                    <p>
+                      <strong>Cash Advance No:</strong>{" "}
+                      <em>{modalRequest.cash_advance_no}</em>
+                    </p>
+
+                    <p>
+                      <strong>Received from:</strong>{" "}
+                      <em>{modalRequest.received_from}</em>
+                    </p>
+                  </div>
+
+                  <table className="request-items-table">
+                    <tbody>
+                      <tr>
+                        <th>Amount</th>
+                        <td>
+                            ₱
+                            {Number(modalRequest.php_amount || 0).toLocaleString(
+                              "en-PH",
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )} / {modalRequest.php_word} Pesos
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+         
+              </section>
 
               <form className="request-footer-form">
                 <div className="submit-content">
@@ -414,6 +453,7 @@ function ReportsCAReceipt() {
                             name="approved_by"
                             value={modalRequest.received_by || ""}
                             readOnly
+                            className="approver"
                           />
                         </span>
                         <p>Received by</p>
@@ -422,14 +462,16 @@ function ReportsCAReceipt() {
 
                     <div className="approver-signature">
                       <label>
-                        <input
-                          type="text"
-                          name="approve_signature"
-                          value={modalRequest.received_signature || ""}
-                          className="submit-sign"
-                          required
-                          readOnly
-                        />
+                        <span>
+                          <input
+                            type="text"
+                            name="approved_signature"
+                            value={modalRequest.received_signature || ""}
+                            className="submit-sign approver"
+                            required
+                            readOnly
+                          />
+                        </span>
                         {modalRequest.received_signature ? (
                           <img
                             src={`${API_BASE_URL}/uploads/signatures/${modalRequest.received_signature}`}

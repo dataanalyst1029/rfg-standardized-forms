@@ -358,26 +358,44 @@ function ReportsInterbranchTransferSlip() {
                 ×
               </button>
 
-              <h2>{modalRequest.form_code}</h2>
-              <p>
-                <strong>Date:</strong>{" "}
-                <em>{new Date(modalRequest.prepared_date).toLocaleDateString()}</em>
-              </p>
+              <h2>Interbranch Transfer Slip - {modalRequest.form_code}</h2>
+              <section className="pr-form-section" id="details">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Date:
+                    </label>
+                    <input
+                      value={new Date(modalRequest.prepared_date).toLocaleDateString()}
+                      className="pr-input"
+                    />
+                  </div>
+                </div>
 
-              {/* ----- 1. Employee Info Block ----- */}
-              <div className="employee-info">
-                <p>
-                  <strong>Prepared By:</strong>{" "}
-                  <em>{modalRequest.prepared_by}</em>
-                </p>
-                <p>
-                  <strong>Employee ID:</strong>{" "}
-                  <em>{modalRequest.employee_id || "N/A"}</em> 
-                </p>
-              </div>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Employee ID
+                    </label>
+                    <input
+                      value={modalRequest.employee_id}
+                      className="pr-input"
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Employee Name
+                    </label>
+                     <input
+                      value={modalRequest.prepared_by}
+                      className="pr-input"
+                    />
+                  </div>
+                </div>
+              </section>
 
               {/* ----- 2. Transfer & Dispatch Details Card ----- */}
-              <div className="pr-items-card pr-items-card--modal">
+              <section className="pr-form-section">
                 <h2 className="pr-section-title pr-section-title--modal">
                   Transfer Details
                 </h2>
@@ -420,7 +438,7 @@ function ReportsInterbranchTransferSlip() {
                       </tr>
                    </tbody>
                 </table>
-              </div>
+              </section>
 
               {/* ----- 3. Items Table (RE-ORDERED) ----- */}
               <div className="pr-items-card pr-items-card--modal">
@@ -474,7 +492,7 @@ function ReportsInterbranchTransferSlip() {
                       <img
                         src={`${API_BASE_URL}/uploads/signatures/${modalRequest.prepared_signature}`}
                         alt="Signature"
-                        className="cal-signature-image"
+                        className="signature-img"
                       />
                     ) : (
                       <div className="img-sign empty-sign"></div>
@@ -486,35 +504,39 @@ function ReportsInterbranchTransferSlip() {
 
               <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
                 <div className="submit-content">
-                  <div className="submit-by-content-approve">
+                  <div className="submit-by-content">
                     <div>
-                      <span>
-                        <input
-                          type="text"
-                          name="approved_by"
-                          value={modalRequest.approved_by} 
-                          className="approver-name"
-                          readOnly
-                        />
-                      </span>
+                      <label>
+                        <span>
+                          <input
+                            type="text"
+                            name="approved_by"
+                            value={modalRequest.approved_by} 
+                            className="approver"
+                            readOnly
+                          />
+                        </span>
                       <p>Approved by</p>
+                      </label>
                     </div>
 
-                    <div className="signature-content">
+                    <div className="approver-signature">
                       <label>
-                        <input
-                          type="text"
-                          name="approve_signature"
-                          value={userData.signature || ""}
-                          className="submit-sign"
-                          required
-                          readOnly
-                        />
+                        <span>
+                          <input
+                            type="text"
+                            name="approve_signature"
+                            value={userData.signature || ""}
+                            className="submit-sign approver"
+                            required
+                            readOnly
+                          />
+                        </span>
                         {userData.signature ? (
                           <img
                             src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
                             alt="Signature"
-                            className="cal-signature-image"
+                            className="signature-img"
                           />
                         ) : (
                           <div className="img-sign empty-sign"></div>

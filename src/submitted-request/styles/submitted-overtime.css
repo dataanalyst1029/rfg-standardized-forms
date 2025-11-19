@@ -126,7 +126,7 @@
 .oar-received-table th {
   font-weight: 600;
   width: 20%;
-  background: #f7f7f7;
+  background: #fff !important;
 }
 
 .oar-transport-table th {

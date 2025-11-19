@@ -356,84 +356,107 @@ function ReportsLeaveApplication() {
                 ×
               </button>
 
-              <h2>{modalRequest.form_code}</h2>
-              <p>
-                <strong>Date:</strong>{" "}
-                <em>
-                  {parseLocalDate(
-                    modalRequest.request_date
-                  )?.toLocaleDateString() || "—"}
-                </em>
-              </p>
+              <h2>Leave Application Form - {modalRequest.form_code}</h2>
 
-              {/* ----- 1. Employee Info Block (Styled like Cash Advance) ----- */}
-              <div className="employee-info">
-                <p>
-                  <strong>Employee ID:</strong>{" "}
-                  <em>{modalRequest.employee_id}</em>
-                </p>
-                <p>
-                  <strong>Name:</strong> <em>{modalRequest.requester_name}</em>
-                </p>
-                <p>
-                  <strong>Branch:</strong> <em>{modalRequest.branch}</em>
-                </p>
-                <p>
-                  <strong>Department:</strong> <em>{modalRequest.department}</em>
-                </p>
-                <p>
-                  <strong>Position:</strong> <em>{modalRequest.position}</em>
-                </p>
-                <p>
-                  <strong>Date Filed:</strong>
-                  <em>
-                    {parseLocalDate(modalRequest.request_date)
-                      ?.toLocaleDateString() || "—"}
-                  </em>
-                </p>
-              </div>
+              <section className="pr-form-section" id="details">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Date:
+                    </label>
+                    <input
+                      value={new Date(modalRequest.request_date).toLocaleDateString()}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Employee ID
+                    </label>
+                    <input
+                      value={modalRequest.employee_id}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Name
+                    </label>
+                    <input
+                      value={modalRequest.requester_name}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+
+                 <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Branch
+                    </label>
+                    <input
+                      value={modalRequest.branch}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Department - Position
+                    </label>
+                    <input
+                      value={`${modalRequest.department} - ${modalRequest.position}`}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+              </section>
               
               {/* ----- 2. Leave Details Block (UPDATED TO TABLE) ----- */}
-              <div className="pr-items-card" style={{ marginTop: '1.5rem', border: '1px solid #ddd' }}>
+              <div className="pr-items-card">
                 <h2 
-                  className="pr-section-title" 
-                  style={{ 
-                    padding: '0.5rem 0.75rem', 
-                    borderBottom: '1px solid #ddd',
-                    margin: 0,
-                    fontSize: '1rem',
-                    fontWeight: 600
-                  }}
+                  className="pr-section-title pr-section-title--modal" 
                 >
                   Leave Details
                 </h2>
                 <table className="request-items-table" style={{ border: 'none', width: '100%' }}>
-                  <tbody style={{ border: 'none' }}>
-                    <tr style={{ borderBottom: '1px solid #eee' }}>
-                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Leave Type</th>
-                      <td colSpan="3">{modalRequest.leave_type}</td>
+                  <tbody>
+                    <tr>
+                      <th>Leave Type</th>
+                      <td>{modalRequest.leave_type}</td>
+                      <th>Date Filed</th>
+                      <td>
+                        {modalRequest.request_date ? new Date(modalRequest.request_date).toLocaleDateString() : "--:--:--"}
+                      </td>
                     </tr>
-                    <tr style={{ borderBottom: '1px solid #eee' }}>
-                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Leave Dates</th>
-                      <td style={{ width: '30%', borderRight: '1px solid #eee' }}>
+                    <tr>
+                      <th>Leave Dates</th>
+                      <td>
                         {`${new Date(modalRequest.leave_start)?.toLocaleDateString()} - ${new Date(modalRequest.leave_end)?.toLocaleDateString()}`}
                       </td>
-                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Date Received</th>
-                      <td style={{ width: '30%' }}>
+                      <th>Date Received</th>
+                      <td>
                         {modalRequest.received_at ? new Date(modalRequest.received_at).toLocaleDateString() : "--:--:--"}
                       </td>
                     </tr>
                     <tr>
-                      <th style={{ borderRight: '1px solid #eee', verticalAlign: 'top', paddingTop: '0.75rem' }}>Available Days</th>
-                      <td colSpan="3" style={{ padding: '0.75rem' }}>
+                      <th>Available Days</th>
+                      <td colSpan="3">
                         {/* Cleaner display for available days */}
-                        <p style={{ margin: '0 0 4px 0' }}>
+                        <p>
                           <strong>Vacation:</strong> {modalRequest.available_vacation || 'N/A'}
                         </p>
-                        <p style={{ margin: '0 0 4px 0' }}>
+                        <p>
                           <strong>Sick:</strong> {modalRequest.available_sick || 'N/A'}
                         </p>
-                        <p style={{ margin: 0 }}>
+                        <p>
                           <strong>Emergency:</strong> {modalRequest.available_emergency || 'N/A'}
                         </p>
                       </td>
@@ -450,6 +473,7 @@ function ReportsLeaveApplication() {
                     <span>{modalRequest.requester_name}</span>
                     <p>Submitted by</p>
                   </div>
+
                   <div className="signature-content">
                     <input
                       className="submit-sign"
@@ -461,7 +485,7 @@ function ReportsLeaveApplication() {
                       <img
                         src={`${API_BASE_URL}/uploads/signatures/${modalRequest.signature}`}
                         alt="Signature"
-                        className="cal-signature-image" // Standardized class
+                        className="ca-signature-image"
                       />
                     ) : (
                       <div className="img-sign empty-sign"></div>
@@ -475,32 +499,37 @@ function ReportsLeaveApplication() {
               {/* ----- 4. "Endorsed by" Signature Block (Styled like Approver) ----- */}
               <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
                 <div className="submit-content">
-                  <div className="submit-by-content-approve"> {/* Changed class */}
+                  <div className="submit-by-content"> 
                     <div>
-                      <span>
-                        <input
-                          type="text"
-                          name="endorsed_by"
-                          value={modalRequest.endorsed_by || ""}
-                          className="approver-name" // Added class
-                          readOnly
-                        />
-                      </span>
-                      <p>Endorsed by</p>
-                    </div>
-                    <div className="signature-content">
                       <label>
-                        <input
-                          className="submit-sign"
-                          type="text"
-                          value={modalRequest.endorsed_signature}
-                          readOnly
-                        />
+                        <span>
+                          <input
+                            type="text"
+                            name="endorsed_by"
+                            value={modalRequest.endorsed_by || ""}
+                            className="approver" // Added class
+                            readOnly
+                          />
+                        </span>
+                        <p>Endorsed by</p>
+                      </label>
+                    </div>
+                    
+                    <div className="approver-signature">
+                      <label>
+                        <span>
+                          <input
+                            className="submit-sign approver"
+                            type="text"
+                            value={modalRequest.endorsed_signature || ""}
+                            readOnly
+                          />
+                        </span>
                         {modalRequest.endorsed_signature ? (
                           <img
                             src={`${API_BASE_URL}/uploads/signatures/${modalRequest.endorsed_signature}`}
                             alt="Signature"
-                            className="cal-signature-image" // Standardized class
+                            className="signature-image" // Standardized class
                           />
                         ) : (
                           <div className="img-sign empty-sign"></div>
@@ -515,32 +544,37 @@ function ReportsLeaveApplication() {
               {/* ----- 5. "Approved by" Signature Block (Styled like Approver) ----- */}
               <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
                 <div className="submit-content">
-                  <div className="submit-by-content-approve"> {/* Changed class */}
+                  <div className="submit-by-content"> 
                     <div>
-                      <span>
-                        <input
-                          type="text"
-                          name="approved_by"
-                          value={modalRequest.approved_by || ""}
-                          className="approver-name" // Added class
-                          readOnly
-                        />
-                      </span>
-                      <p>Approved by</p>
-                    </div>
-                    <div className="signature-content">
                       <label>
-                        <input
-                          className="submit-sign"
-                          type="text"
-                          value={modalRequest.approved_signature}
-                          readOnly
-                        />
+                        <span>
+                          <input
+                            type="text"
+                            name="approved_by"
+                            value={modalRequest.approved_by || ""}
+                            className="approver" 
+                            readOnly
+                          />
+                        </span>
+                        <p>Approved by(HR)</p>
+                      </label>
+                    </div>
+                    
+                    <div className="approver-signature">
+                      <label>
+                        <span>
+                          <input
+                            className="submit-sign approver"
+                            type="text"
+                            value={modalRequest.approved_signature || ""}
+                            readOnly
+                          />
+                        </span>
                         {modalRequest.approved_signature ? (
                           <img
                             src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
                             alt="Signature"
-                            className="cal-signature-image" // Standardized class
+                            className="signature-image" // Standardized class
                           />
                         ) : (
                           <div className="img-sign empty-sign"></div>

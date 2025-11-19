@@ -357,35 +357,67 @@ function ReportsCreditCard() {
                 ×
               </button>
 
-              <h2>{modalRequest.form_code}</h2>
-              <p>
-                <strong>Date:</strong>{" "}
-                <em>
-                  {new Date(modalRequest.received_by_date).toLocaleDateString()}
-                </em>
-              </p>
+              <h2>Credit Card Acknowledgement Receipt - {modalRequest.form_code}</h2>
 
               {/* ----- 1. Employee Info Block (Styled like Cash Advance) ----- */}
-              <div className="employee-info">
-                <p>
-                  <strong>Employee ID:</strong>{" "}
-                  <em>{modalRequest.employee_id}</em>
-                </p>
-                <p>
-                  <strong>Name:</strong>{" "}
-                  <em>{modalRequest.cardholder_name}</em>
-                </p>
-                <p>
-                  <strong>Department:</strong>{" "}
-                  <em>{modalRequest.department}</em>
-                </p>
-                <p>
-                  <strong>Position:</strong> <em>{modalRequest.position}</em>
-                </p>
-              </div>
+              <section className="pr-form-section" id="details">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Date:
+                    </label>
+                    <input 
+                      value={new Date(modalRequest.received_by_date).toLocaleDateString()}
+                      className="pr-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Employee ID
+                    </label>
+                    <input
+                      value={modalRequest.employee_id}
+                      className="pr-input"
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Name
+                    </label>
+                    <input
+                      value={modalRequest.cardholder_name}
+                      className="pr-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Department
+                    </label>
+                    <input
+                      value={modalRequest.department}
+                      className="pr-input"
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Position
+                    </label>
+                    <input
+                      value={modalRequest.position}
+                      className="pr-input"
+                    />
+                  </div>
+                </div>
+              </section>
 
               {/* ----- 2. Card Details Block (UPDATED TO TABLE) ----- */}
-              <div className="pr-items-card" style={{ marginTop: '1.5rem', border: '1px solid #ddd' }}>
+              <section className="pr-form-section">
               
                 <strong>Card Details</strong>
                 
@@ -405,7 +437,7 @@ function ReportsCreditCard() {
                     </tr>
                   </tbody>
                 </table>
-              </div>
+              </section>
 
               {/* ----- 3. "Received by" Signature Block (Already good) ----- */}
               <div className="submit-content">
@@ -439,34 +471,36 @@ function ReportsCreditCard() {
               {/* ----- 4. "Issued by" Signature Block (Styled like Cash Advance "Approved by") ----- */}
               <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
                 <div className="submit-content">
-                  <div className="submit-by-content-approve"> {/* Changed class */}
+                  <div className="submit-by-content"> {/* Changed class */}
                     <div>
                       <span>
                         <input
                           type="text"
                           name="issued_by"
                           value={modalRequest.issued_by_name || ""}
-                          className="approver-name" // Added class
+                          className="approver" 
                           readOnly
                         />
                       </span>
                       <p>Issued by</p>
                     </div>
 
-                    <div className="signature-content"> {/* Changed class */}
+                    <div className="approver-signature"> {/* Changed class */}
                       <label>
-                        <input
+                        <span>
+                          <input
                           type="text"
-                          name="issued_by_signature"
+                          name="approved_signature"
                           value={modalRequest.issued_by_signature || ""}
-                          className="submit-sign"
+                          className="submit-sign approver"
                           readOnly
                         />
+                        </span>
                         {modalRequest.issued_by_signature ? (
                           <img
                             src={`${API_BASE_URL}/uploads/signatures/${modalRequest.issued_by_signature}`}
                             alt="Signature"
-                            className="cal-signature-image" // Using 'cal-signature-image'
+                            className="signature-image" // Using 'cal-signature-image'
                           />
                         ) : (
                           <div className="img-sign empty-sign"></div>
