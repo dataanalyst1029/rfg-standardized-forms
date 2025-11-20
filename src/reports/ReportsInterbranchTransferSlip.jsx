@@ -368,6 +368,7 @@ function ReportsInterbranchTransferSlip() {
                     <input
                       value={new Date(modalRequest.prepared_date).toLocaleDateString()}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                 </div>
@@ -380,6 +381,7 @@ function ReportsInterbranchTransferSlip() {
                     <input
                       value={modalRequest.employee_id}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                   <div className="pr-field">
@@ -389,6 +391,7 @@ function ReportsInterbranchTransferSlip() {
                      <input
                       value={modalRequest.prepared_by}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                 </div>

@@ -356,93 +356,134 @@ function ReportsCashAdvance() {
                 ×
               </button>
 
-              <h2>{modalRequest.ca_request_code}</h2>
-              <p>
-                <strong>Date:</strong>{" "}
-                <em>
-                  {parseLocalDate(modalRequest.request_date)?.toLocaleDateString() || "—"}
-                </em>
-              </p>
+              <h2>Cash Advance Request - {modalRequest.ca_request_code}</h2>
 
-              <div className="employee-info">
-                <p>
-                  <strong>Employee ID:</strong>{" "}
-                  <em>{modalRequest.employee_id}</em>
-                </p>
-                <p>
-                  <strong>Name:</strong> <em>{modalRequest.name}</em>
-                </p>
-                <p>
-                  <strong>Branch:</strong> <em>{modalRequest.branch}</em>
-                </p>
-                <p>
-                  <strong>Department:</strong> <em>{modalRequest.department}</em>
-                </p>
-              </div>
+              <section className="pr-form-section" id="details">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Date:
+                    </label>
+                    <input
+                      value={parseLocalDate(modalRequest.request_date)?.toLocaleDateString() || "—"}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
 
-              <div className="replenish-amount">
-                <p>
-                  <strong>Nature of Activity:</strong>{" "}
-                  <em>{modalRequest.nature_activity}</em>
-                </p>
-                <p>
-                  <strong>Inclusive date(s):</strong>{" "}
-                  <em>
-                    {parseLocalDate(modalRequest.inclusive_date_from)?.toLocaleDateString() || "—"}{" "}
-                    -{" "}
-                    {parseLocalDate(modalRequest.inclusive_date_to)?.toLocaleDateString() || "—"}
-                  </em>
-                </p>
-              </div>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Employee ID
+                    </label>
+                    <input
+                      value={modalRequest.employee_id}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Name:
+                    </label>
+                    <input
+                      value={modalRequest.name}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
 
-              {modalRequest.items && modalRequest.items.length > 0 ? (
-                <table className="request-items-table">
-                  <thead>
-                    <tr>
-                      <th className="text-center">DESCRIPTION</th>
-                      <th className="text-center">AMOUNT</th>
-                      <th className="text-center">EXPENSE CATEGORY</th>
-                      <th className="text-center">STORE / BRANCH</th>
-                      <th>REMARKS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {modalRequest.items.map((item) => (
-                      <tr key={item.id}>
-                        <td className="text-center">{item.description}</td>
-                        <td className="text-center">{item.amount}</td>
-                        <td className="text-center">{item.exp_cat}</td>
-                        <td className="text-center">{item.store_branch}</td>
-                        <td>{item.remarks}</td>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Branch
+                    </label>
+                    <input
+                      value={modalRequest.branch}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Department
+                    </label>
+                    <input
+                      value={modalRequest.department}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="pr-form-section" id="details">
+                <div className="replenish-amount">
+                  <p>
+                    <strong>Nature of Activity:</strong>{" "}
+                    <em>{modalRequest.nature_activity}</em>
+                  </p>
+                  <p>
+                    <strong>Inclusive date(s):</strong>{" "}
+                    <em>
+                      {parseLocalDate(modalRequest.inclusive_date_from)?.toLocaleDateString() || "—"}{" "}
+                      -{" "}
+                      {parseLocalDate(modalRequest.inclusive_date_to)?.toLocaleDateString() || "—"}
+                    </em>
+                  </p>
+                </div>
+
+                {modalRequest.items && modalRequest.items.length > 0 ? (
+                  <table className="request-items-table">
+                    <thead>
+                      <tr>
+                        <th className="text-center">DESCRIPTION</th>
+                        <th className="text-center">AMOUNT</th>
+                        <th className="text-center">EXPENSE CATEGORY</th>
+                        <th className="text-center">STORE / BRANCH</th>
+                        <th>REMARKS</th>
                       </tr>
-                    ))}
-                    <tr>
-                      <td className="text-center">Grand Total</td>
-                      <td className="text-center">
-                        {modalRequest.total_amount
-                          ? Number(modalRequest.total_amount).toLocaleString(
-                              "en-PH",
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              }
-                            )
-                          : "0.00"}
-                      </td>
-                      <td colSpan={3}></td>
-                    </tr>
-                  </tbody>
-                </table>
-              ) : (
-                <p>—</p>
-              )}
+                    </thead>
+                    <tbody>
+                      {modalRequest.items.map((item) => (
+                        <tr key={item.id}>
+                          <td className="text-center">{item.description}</td>
+                          <td className="text-center">{item.amount}</td>
+                          <td className="text-center">{item.exp_cat}</td>
+                          <td className="text-center">{item.store_branch}</td>
+                          <td>{item.remarks}</td>
+                        </tr>
+                      ))}
+                      <tr>
+                        <td className="text-center">Grand Total</td>
+                        <td className="text-center">
+                          {modalRequest.total_amount
+                            ? Number(modalRequest.total_amount).toLocaleString(
+                                "en-PH",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )
+                            : "0.00"}
+                        </td>
+                        <td colSpan={3}></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                ) : (
+                  <p>—</p>
+                )}
 
-              <div className="pr-items-card">
-                <label htmlFor="purpose">
-                  <strong>Purpose:</strong>{" "}
-                  <em>{modalRequest.purpose}</em>
-                </label>
-              </div>
+                <div className="pr-items-card">
+                  <label htmlFor="purpose">
+                    <strong>Purpose:</strong>{" "}
+                    <em>{modalRequest.purpose}</em>
+                  </label>
+                </div>
+              </section>
 
               <div className="submit-content">
                 <div className="submit-by-content">
@@ -482,6 +523,7 @@ function ReportsCashAdvance() {
                             type="text"
                             name="approved_by"
                             value={userData.name || ""}
+                            className="approver"
                             readOnly
                           />
                         </span>
@@ -491,14 +533,16 @@ function ReportsCashAdvance() {
 
                     <div className="approver-signature">
                       <label>
-                        <input
-                          type="text"
-                          name="approve_signature"
-                          value={userData.signature || ""}
-                          className="submit-sign"
-                          required
-                          readOnly
-                        />
+                        <span>
+                          <input
+                            type="text"
+                            name="approve_signature"
+                            value={userData.signature || ""}
+                            className="submit-sign approver"
+                            required
+                            readOnly
+                          />
+                        </span>
                         {userData.signature ? (
                           <img
                             src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}

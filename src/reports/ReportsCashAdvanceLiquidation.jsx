@@ -404,30 +404,71 @@ function ReportsCashAdvanceLiquidation() {
                                 ×
                             </button>
 
-                            <h2>{modalRequest.cal_request_code}</h2>
-                            <p>
-                                <strong>Date:</strong>{" "}
-                                <em>{new Date(modalRequest.request_date).toLocaleDateString()}</em>
-                            </p>
-                            <div className="employee-info">
-                              <p>
-                                <strong>Employee ID:</strong>{" "}
-                                <em>{modalRequest.employee_id}</em>
-                              </p>
-                              <p>
-                                <strong>Name:</strong>{" "}
-                                <em>{modalRequest.name}</em>
-                              </p>
-                              <p>
-                                <strong>Branch:</strong>{" "}
-                                <em>{modalRequest.branch}</em>
-                              </p>
-                              <p>
-                                <strong>Department:</strong>{" "}
-                                <em>{modalRequest.department}</em>
-                              </p>
-                            </div>
+                            <h2>Cash Advance Liquidation - {modalRequest.cal_request_code}</h2>
 
+                            <section className="pr-form-section" id="details">
+                              <div className="pr-grid-two">
+                                <div className="pr-field">
+                                  <label className="pr-label" htmlFor="employeeID">
+                                    Date:
+                                  </label>
+                                  <input
+                                    value={new Date(modalRequest.request_date).toLocaleDateString()}
+                                    className="pr-input"
+                                    readOnly
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="pr-grid-two">
+                                <div className="pr-field">
+                                  <label className="pr-label" htmlFor="employeeID">
+                                    Employee ID
+                                  </label>
+                                  <input
+                                    value={modalRequest.employee_id}
+                                    className="pr-input"
+                                    readOnly
+                                  />
+                                </div>
+                                 <div className="pr-field">
+                                  <label className="pr-label" htmlFor="employeeID">
+                                    Name
+                                  </label>
+                                  <input
+                                    value={modalRequest.name}
+                                    className="pr-input"
+                                    readOnly
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="pr-grid-two">
+                                <div className="pr-field">
+                                  <label className="pr-label" htmlFor="employeeID">
+                                    Branch
+                                  </label>
+                                  <input
+                                    value={modalRequest.branch}
+                                    className="pr-input"
+                                    readOnly
+                                  />
+                                </div>
+                                 <div className="pr-field">
+                                  <label className="pr-label" htmlFor="employeeID">
+                                    Department
+                                  </label>
+                                  <input
+                                    value={modalRequest.department}
+                                    className="pr-input"
+                                    readOnly
+                                  />
+                                </div>
+                              </div>
+                            </section>
+
+
+                          <section className="pr-form-section">
                             <div class="replenish-amount">
                                 <p>
                                     <strong>Nature of Activity:</strong>{" "}
@@ -484,10 +525,12 @@ function ReportsCashAdvanceLiquidation() {
                                 </tbody>
                             </table>
                             ) : (
-                            <p>—</p>
+                            <p>—</p> 
                             )}
+                          </section>
+                            
 
-                            <div className="pr-items-card">
+                            <section className="pr-form-section">
                                 <div>
                                     <table className="request-items-table">
                                         <tr>
@@ -522,7 +565,7 @@ function ReportsCashAdvanceLiquidation() {
                                         </tr>
                                     </table>
                                 </div>
-                            </div>
+                            </section>
 
                             <div className="pr-items-card">
                                 <div className="pr-flex-container">
@@ -577,8 +620,7 @@ function ReportsCashAdvanceLiquidation() {
                                 </div>
 
                                 <div className="signature-content">
-                                    <label htmlFor="">
-                                        <input className="submit-sign" type="text" value={modalRequest.prepared_signature} readOnly />
+                                      <input className="submit-sign" type="text" value={modalRequest.prepared_signature} readOnly />
                                         {modalRequest.prepared_signature ? (
                                             <>
                                             <img
@@ -590,7 +632,6 @@ function ReportsCashAdvanceLiquidation() {
                                         ) : (
                                             <div className="img-sign empty-sign"></div>
                                         )}
-                                    </label>
                                   <p>Signature</p>
                                 </div>
                               </div>
@@ -598,35 +639,39 @@ function ReportsCashAdvanceLiquidation() {
 
                             <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
                               <div className="submit-content">
-                                <div className="submit-by-content-approve">
+                                <div className="submit-by-content">
                                     <div>
+                                      <label>
                                         <span>
                                             <input
                                             type="text"
                                             name="approved_by"
-                                            value={userData.name || ""}
-                                            className="approver-name"
+                                            value={modalRequest.approved_by || ""}
+                                            className="approver"
                                             readOnly
                                             />
                                         </span>
                                         <p>Approved by</p>
+                                      </label>
                                     </div>
 
-                                    <div className="signature-content">
+                                    <div className="approver-signature">
                                         <label>
-                                          <input
+                                          <span>
+                                            <input
                                             type="text"
                                             name="approve_signature"
-                                            value={userData.signature || ""}
-                                            className="submit-sign"
+                                            value={modalRequest.approve_signature || ""}
+                                            className="submit-sign approver"
                                             required
                                             readOnly
                                           />
-                                          {userData.signature ? (
+                                          </span>
+                                          {modalRequest.approve_signature ? (
                                           <img
-                                          src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                                          src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approve_signature}`}
                                           alt="Signature"
-                                          className="cal-signature-image"/>
+                                          className="signature-img"/>
                                           ) : (
                                               <div className="img-sign empty-sign"></div>
                                           )}

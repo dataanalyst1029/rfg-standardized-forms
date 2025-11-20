@@ -359,14 +359,6 @@ function ReportsCAReceipt() {
               </button>
 
               <h2>Cash Advance Receipt Form - {modalRequest.car_request_code}</h2>
-              <p>
-                <strong>Date:</strong>{" "}
-                <em>
-                  {parseLocalDate(
-                    modalRequest.request_date
-                  )?.toLocaleDateString() || "—"}
-                </em>
-              </p>
 
               <section className="pr-form-section" id="details">
                 <div className="pr-grid-two">
@@ -389,6 +381,7 @@ function ReportsCAReceipt() {
                     <input
                       value={modalRequest.employee_id}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                    <div className="pr-field">
@@ -398,6 +391,7 @@ function ReportsCAReceipt() {
                     <input
                       value={modalRequest.name}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                 </div>

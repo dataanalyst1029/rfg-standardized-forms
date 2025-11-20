@@ -369,6 +369,7 @@ function ReportsCreditCard() {
                     <input 
                       value={new Date(modalRequest.received_by_date).toLocaleDateString()}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                 </div>
@@ -381,6 +382,7 @@ function ReportsCreditCard() {
                     <input
                       value={modalRequest.employee_id}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                   <div className="pr-field">
@@ -390,6 +392,7 @@ function ReportsCreditCard() {
                     <input
                       value={modalRequest.cardholder_name}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                 </div>
@@ -402,6 +405,7 @@ function ReportsCreditCard() {
                     <input
                       value={modalRequest.department}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                   <div className="pr-field">
@@ -411,6 +415,7 @@ function ReportsCreditCard() {
                     <input
                       value={modalRequest.position}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                 </div>

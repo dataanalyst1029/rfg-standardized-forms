@@ -369,6 +369,7 @@ function ReportsReimbursementForm() {
                     <input
                       value={new Date(modalRequest.request_date).toLocaleDateString()}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                 </div>
@@ -380,6 +381,7 @@ function ReportsReimbursementForm() {
                     <input
                       value={modalRequest.employee_id}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                   <div className="pr-field">
@@ -389,6 +391,7 @@ function ReportsReimbursementForm() {
                     <input
                       value={modalRequest.name}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                 </div>
@@ -400,6 +403,7 @@ function ReportsReimbursementForm() {
                     <input
                       value={modalRequest.branch}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                   <div className="pr-field">
@@ -409,6 +413,7 @@ function ReportsReimbursementForm() {
                     <input
                       value={modalRequest.department}
                       className="pr-input"
+                      readOnly
                     />
                   </div>
                 </div>

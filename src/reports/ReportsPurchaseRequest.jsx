@@ -138,8 +138,7 @@ function ReportsRequestPurchase() {
     // ✅ Text search
     if (term) {
       categorizedRequests = categorizedRequests.filter((req) => {
-        const topLevelMatch =
-        [
+        const topLevelMatch = [
           "purchase_request_code",
           "request_by",
           "branch",
@@ -148,16 +147,15 @@ function ReportsRequestPurchase() {
           "status",
         ].some((key) => req[key]?.toString().toLowerCase().includes(term));
 
-        if(topLevelMatch) return true;
+        if (topLevelMatch) return true;
 
         const dateMatch = [
           req.request_date,
         ].some(checkDate);
 
         if (dateMatch) return true;
-        
-        return false;
 
+        return false;
       });
     }
     return categorizedRequests;
@@ -365,96 +363,174 @@ function ReportsRequestPurchase() {
                 ×
               </button>
 
-              <h2>{modalRequest.purchase_request_code}</h2>
-              <p>
-                <strong>Requested by:</strong>{" "}
-                <em>{modalRequest.request_by}</em>
-              </p>
-              <p>
-                <strong>Date:</strong>{" "}
-                <em>
-                  {parseLocalDate(modalRequest.request_date)?.toLocaleDateString() ||
-                    "Invalid date"}
-                </em>
-              </p>
-              <p>
-                <strong>Branch:</strong> <em>{modalRequest.branch}</em>
-              </p>
-              <p>
-                <strong>Department:</strong>{" "}
-                <em>{modalRequest.department}</em>
-              </p>
-              <p>
-                <strong>Purpose:</strong> <em>{modalRequest.purpose}</em>
-              </p>
+              <h2>Purchase Request Form - {modalRequest.purchase_request_code}</h2>
 
-              <h3>Requested Items</h3>
-              {Array.isArray(modalRequest.items) &&
-              modalRequest.items.length > 0 ? (
-                <table className="request-items-table">
-                  <thead>
-                    <tr>
-                      <th>Item Name</th>
-                      <th style={{ textAlign: "center" }}>Quantity</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {modalRequest.items.map(
-                      (item) =>
-                        item && (
-                          <tr key={item.id}>
-                            <td>{item.purchase_item}</td>
-                            <td style={{ textAlign: "center" }}>
-                              {item.quantity}
-                            </td>
-                          </tr>
-                        )
-                    )}
-                  </tbody>
-                </table>
-              ) : (
-                <p style={{ color: "#888", fontStyle: "italic" }}>
-                  No items listed.
-                </p>
-              )}
-
-              <form
-                className="request-footer-form"
-                onSubmit={(e) => e.preventDefault()}
-              >
-                <div className="approver-content">
-                  <div>
-                    <label>
-                      <input
-                        type="text"
-                        name="approved_by"
-                        value={userData.name || ""}
-                        readOnly
-                      />
-                      <span>Approved by:</span>
+              <section className="pr-form-section">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Date:
                     </label>
+                    <input
+                      value={parseLocalDate(modalRequest.request_date)?.toLocaleDateString() ||
+                        "Invalid date"}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Requested by
+                    </label>
+                    <input
+                      value={modalRequest.request_by}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Branch
+                    </label>
+                    <input
+                      value={modalRequest.branch}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Department
+                    </label>
+                    <input
+                      value={modalRequest.department}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Purpose
+                    </label>
+                    <input
+                      value={modalRequest.purpose}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="pr-form-section">
+                <h3>Requested Items</h3>
+                {Array.isArray(modalRequest.items) &&
+                  modalRequest.items.length > 0 ? (
+                  <table className="request-items-table">
+                    <thead>
+                      <tr>
+                        <th>Item Name</th>
+                        <th style={{ textAlign: "center" }}>Quantity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {modalRequest.items.map(
+                        (item) =>
+                          item && (
+                            <tr key={item.id}>
+                              <td>{item.purchase_item}</td>
+                              <td style={{ textAlign: "center" }}>
+                                {item.quantity}
+                              </td>
+                            </tr>
+                          )
+                      )}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p style={{ color: "#888", fontStyle: "italic" }}>
+                    No items listed.
+                  </p>
+                )}
+              </section>
+
+              <div className="submit-content">
+                <div className="submit-by-content">
+                  <div>
+                    <span>{modalRequest.request_by}</span>
+                    <p>Requested by</p>
                   </div>
 
-                  <div className="approver-signature">
-                    <label>
-                      {userData.signature ? (
+                  <div className="signature-content">
+                    <input
+                      className="submit-sign"
+                      type="text"
+                      value={modalRequest.request_signature}
+                      readOnly
+                    />
+                    {modalRequest.request_signature ? (
+                      <>
                         <img
-                          src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                          src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
                           alt="Signature"
-                          className="signature-img"
+                          className="ca-signature-image"
                         />
-                      ) : (
-                        <p>No signature available</p>
-                      )}
-                      <input
-                        type="text"
-                        name="approved_signature"
-                        value={userData.signature || ""}
-                        required
-                        readOnly
-                      />
-                      <span>Signature:</span>
-                    </label>
+                      </>
+                    ) : (
+                      <div className="img-sign empty-sign"></div>
+                    )}
+                    <p>Signature</p>
+                  </div>
+                </div>
+              </div>
+
+              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
+                <div className="submit-content">
+                  <div className="submit-by-content">
+                    <div>
+                      <label>
+                        <span>
+                          <input
+                            type="text"
+                            name="approved_by"
+                            value={modalRequest.approved_by || ""}
+                            className="approver"
+                            readOnly
+                          />
+                        </span>
+                        <p>Approved by</p>
+                      </label>
+                    </div>
+
+                    <div className="approver-signature">
+                      <label>
+                        <span>
+                          <input
+                            type="text"
+                            name="approved_signature"
+                            value={modalRequest.approved_signature || ""}
+                            className="submit-sign approver"
+                            required
+                            readOnly
+                          />
+                        </span>
+                        {modalRequest.approved_signature ? (
+                          <img
+                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
+                            alt="Signature"
+                            className="signature-img"
+                          />
+                        ) : (
+                          <div className="img-sign empty-sign"></div>
+                        )}
+                        <p>Signature</p>
+                      </label>
+                    </div>
                   </div>
                 </div>
               </form>

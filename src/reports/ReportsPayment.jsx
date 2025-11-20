@@ -377,6 +377,7 @@ function ReportsPayment() {
                                         <input
                                         value={new Date(modalRequest.request_date).toLocaleDateString()}
                                         className="pr-input"
+                                        readOnly
                                         />
                                     </div>
                                     
@@ -390,6 +391,7 @@ function ReportsPayment() {
                                         <input
                                         value={modalRequest.employee_id}
                                         className="pr-input"
+                                        readOnly
                                         />
                                     </div>
                                     <div className="pr-field">
@@ -400,6 +402,7 @@ function ReportsPayment() {
                                             <input
                                             value={modalRequest.name}
                                             className="pr-input"
+                                            readOnly
                                             />
                                         </div>
                                     </div>
@@ -413,6 +416,7 @@ function ReportsPayment() {
                                         <input
                                         value={modalRequest.branch}
                                         className="pr-input"
+                                        readOnly
                                         />
                                     </div>
                                     <div className="pr-field">
@@ -423,6 +427,7 @@ function ReportsPayment() {
                                             <input
                                             value={modalRequest.department}
                                             className="pr-input"
+                                            readOnly
                                             />
                                         </div>
                                     </div>
@@ -437,6 +442,7 @@ function ReportsPayment() {
                                         </label>
                                         <input value={modalRequest.vendor_supplier}
                                         className="pr-input"
+                                        readOnly
                                         />
                                     </div>
                                     <div className="pr-field">
@@ -445,6 +451,7 @@ function ReportsPayment() {
                                         </label>
                                         <input value={modalRequest.pr_number}
                                         className="pr-input"
+                                        readOnly
                                         />
                                     </div>
                                 </div>
@@ -457,6 +464,7 @@ function ReportsPayment() {
                                         <input
                                         value={new Date(modalRequest.date_needed).toLocaleDateString()}
                                         className="pr-input"
+                                        readOnly
                                         />
                                     </div>
                                     <div className="pr-field">
