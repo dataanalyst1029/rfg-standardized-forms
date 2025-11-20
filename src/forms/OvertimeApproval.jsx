@@ -11,6 +11,11 @@ const emptyEntry = () => ({
   hours: 0,
 });
 
+const NAV_SECTIONS = [
+  { id: "pr-main", label: "New Overtime Request" },
+  { id: "submitted", label: "Overtime Approval Request Reports" },
+];
+
 const parseTimeToMinutes = (value) => {
   if (!value) {
     return null;
@@ -366,19 +371,21 @@ function OvertimeApproval({ onLogout }) {
     <div className="pr-layout">
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2>Overtime Request</h2>
-          <span>{currentStatus.toUpperCase()}</span>
+           <h2 
+            onClick={() => navigate("/forms-list")} 
+            style={{ cursor: "pointer", color: "#007bff" }}
+            title="Back to Forms Library"
+          >
+            Overtime Approval Request
+          </h2>
+          <span>Standardized form</span>
         </div>
         <nav className="pr-sidebar-nav">
-          {[
-            { id: "details", label: "Request details" },
-            { id: "entries", label: "Overtime entries" },
-            { id: "submitted", label: "View submitted requests" },
-          ].map((section) => (
+          {NAV_SECTIONS.map((section) => (
             <button
               key={section.id}
               type="button"
-              className={activeSection === section.id ? "is-active" : ""}
+              className={section.id === "pr-main" ? "is-active" : ""}
               onClick={() => handleNavigate(section.id)}
             >
               {section.label}
@@ -397,12 +404,9 @@ function OvertimeApproval({ onLogout }) {
         </div>
       </aside>
       <main className="pr-main" id="oa-main">
-        <button type="button" className="form-back-button" onClick={handleBackToForms}>
-          ← <span>Back to forms library</span>
-        </button>
         <header className="pr-topbar">
           <div>
-            <h1 className="topbar-title">Overtime Approval Request</h1>
+            <h1 className="topbar-title">New Overtime Request</h1>
             <p className="pr-topbar-meta">
               Record rendered overtime, compute total hours, and route for approval.
             </p>

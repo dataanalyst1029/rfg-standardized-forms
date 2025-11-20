@@ -1,38 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import "../styles/RequestPayment.css";
-import "../styles/AdminView.css"; // Added for modal consistency
+import "../styles/AdminView.css";
 import { API_BASE_URL } from "../config/api.js";
 
 const PAGE_SIZES = [5, 10, 20];
 
-// ✅ FIXED Date Parser
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // Handle YYYY-MM-DD (ISO format from date inputs)
-  // This MUST come first to avoid UTC conversion issues
   const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Handle MM/DD/YYYY (U.S. format)
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const [, month, day, year] = usMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Fallback – for full timestamps (e.g., from the database)
-  // Extract just the date part if it's a full ISO timestamp
   const timestampMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})[T\s]/);
   if (timestampMatch) {
     const [, year, month, day] = timestampMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Last resort fallback
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
@@ -52,13 +45,13 @@ function ReportsMaintenanceRepair() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/maintenance_requests`);
+      const response = await fetch(`${API_BASE_URL}/api/maintenance_repair_request`);
       if (!response.ok)
-        throw new Error("Failed to fetch maintenance requests");
+        throw new Error("Failed to fetch maintenance / repair requests");
       const data = await response.json();
 
       const sortedData = data.sort((a, b) =>
-        b.form_code.localeCompare(a.form_code)
+        b.mrr_request_code.localeCompare(a.mrr_request_code)
       );
 
       setRequests(sortedData);
@@ -99,15 +92,12 @@ function ReportsMaintenanceRepair() {
     setPage(1);
   }, [search, rowsPerPage, startDate, endDate]);
 
-  // ---------------------- FILTERING LOGIC ----------------------
   const filteredRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
 
     let categorizedRequests = requests;
 
-    // ✅ Start date filter (inclusive)
     if (startDate) {
-      // Use parseLocalDate to ensure YYYY-MM-DD is treated as LOCAL
       const start = parseLocalDate(startDate);
       if (start) {
         start.setHours(0, 0, 0, 0);
@@ -118,9 +108,7 @@ function ReportsMaintenanceRepair() {
       }
     }
 
-    // ✅ End date filter (inclusive)
     if (endDate) {
-      // Use parseLocalDate to ensure YYYY-MM-DD is treated as LOCAL
       const end = parseLocalDate(endDate);
       if (end) {
         end.setHours(23, 59, 59, 999);
@@ -145,10 +133,10 @@ function ReportsMaintenanceRepair() {
       {
         const topLevelMatch =
         [
-          "form_code",
+          "mrr_request_code",
           "request_date",
           "employee_id",
-          "requester_name",
+          "name",
           "branch",
           "department",
           "date_needed",
@@ -283,13 +271,13 @@ function ReportsMaintenanceRepair() {
             ) : (
               visibleRequests.map((req) => (
                 <tr key={req.id}>
-                  <td style={{ textAlign: "center" }}>{req.form_code}</td>
+                  <td style={{ textAlign: "center" }}>{req.mrr_request_code}</td>
                   <td style={{ textAlign: "center" }}>
                     {parseLocalDate(req.request_date)?.toLocaleDateString() ||
                       "—"}
                   </td>
                   <td style={{ textAlign: "center" }}>{req.employee_id}</td>
-                  <td style={{ textAlign: "left" }}>{req.requester_name}</td>
+                  <td style={{ textAlign: "left" }}>{req.name}</td>
                   <td style={{ textAlign: "left" }}>{req.branch}</td>
                   <td style={{ textAlign: "left" }}>{req.department}</td>
                   <td style={{ textAlign: "center" }}>
@@ -374,7 +362,7 @@ function ReportsMaintenanceRepair() {
                 ×
               </button>
 
-              <h2>{modalRequest.form_code}</h2>
+              <h2>{modalRequest.mrr_request_code}</h2>
               <p>
                 <strong>Date:</strong>{" "}
                 <em>
@@ -388,7 +376,7 @@ function ReportsMaintenanceRepair() {
               <div className="employee-info">
                 <p>
                   <strong>Requester:</strong>{" "}
-                  <em>{modalRequest.requester_name}</em>
+                  <em>{modalRequest.name}</em>
                 </p>
                 <p>
                   <strong>Employee ID:</strong>{" "}
@@ -484,7 +472,7 @@ function ReportsMaintenanceRepair() {
               <div className="submit-content">
                 <div className="submit-by-content">
                   <div>
-                    <span>{modalRequest.requester_name}</span>
+                    <span>{modalRequest.name}</span>
                     <p>Requested by</p>
                   </div>
 

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../config/api.js";
 import { useNavigate } from "react-router-dom";
-import "./styles/submitted-payment-request.css";
+import "./styles/submitted-maintenance-repair.css";
+// import "./styles/submitted-payment-request.css";
 // import "./styles/submitted-request.css";
 // import "./styles/submitted-cash-advance.css";
 import rfgLogo from "../assets/rfg_logo.png";
@@ -303,7 +304,7 @@ function SubmittedMaintenanceRepair({ onLogout, currentUserId, showAll = false }
 
               {selectedRequest && (
                 <div
-                  className="submitted-prf-request-card"
+                  className="submitted-mrr-request-card"
                   ref={cardRef}
                   style={{ marginTop: "1rem" }} >
 
@@ -379,7 +380,7 @@ function SubmittedMaintenanceRepair({ onLogout, currentUserId, showAll = false }
                           <th><small>Remarks</small></th>
                         </tr>
                         <tr>
-                          <td colSpan={4} style={{height: '3rem', verticalAlign: 'top', paddingLeft: '1rem'}}>{selectedRequest.remarks || '-'}</td>
+                          <td colSpan={4} style={{height: '3rem', verticalAlign: 'top', paddingLeft: '1rem'}}><small>{selectedRequest.remarks || '-'}</small></td>
                         </tr>
                         <tr>
                           <th style={{color: '#fff', border: '#fff'}}>-</th>
@@ -406,9 +407,9 @@ function SubmittedMaintenanceRepair({ onLogout, currentUserId, showAll = false }
                         {(selectedRequest.approved_by || selectedRequest.approved_signature) && (
                           <tr>
                             <th><small>Approved by</small></th>
-                            <td><small><input type="text" className="prf-input" value={selectedRequest.approved_by}/></small></td>
+                            <td><small>{selectedRequest.approved_by}</small></td>
                             <th><small>Signature</small></th>
-                            <td className="receive-signature" style={{borderBottom: '0px', borderLeft: '0px', borderRight: '0px'}}><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.approved_signature} readOnly required/></small>
+                            <td className="receive-signature" style={{borderBottom: '0px', borderLeft: '0px', borderRight: '0px'}}><small style={{color: 'transparent', borderBlockEnd: '0px'}}>{selectedRequest.approved_signature}</small>
                               {selectedRequest.approved_signature ? (
                               <img
                                   src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approved_signature}`}
@@ -424,9 +425,9 @@ function SubmittedMaintenanceRepair({ onLogout, currentUserId, showAll = false }
                         {(selectedRequest.accomplished_by || selectedRequest.accomplished_signature) && (
                           <tr>
                             <th><small>Accomplished by</small></th>
-                            <td><small><input type="text" className="prf-input" value={selectedRequest.accomplished_by}/></small></td>
+                            <td><small>{selectedRequest.accomplished_by}</small></td>
                             <th><small>Signature</small></th>
-                            <td className="receive-signature" style={{borderBottom: '0px', borderLeft: '0px', borderRight: '0px'}}><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.accomplished_signature} readOnly required/></small>
+                            <td className="receive-signature" style={{borderBottom: '0px', borderLeft: '0px', borderRight: '0px'}}><small style={{color: 'transparent', borderBlockEnd: '0px'}}>{selectedRequest.accomplished_signature}</small>
                               {selectedRequest.accomplished_signature ? (
                               <img
                                   src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.accomplished_signature}`}
