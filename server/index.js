@@ -2261,8 +2261,6 @@ app.get("/api/reimbursement", async (req, res) => {
   }
 });
 
-
-
 /* ------------------------
    PAYMENT REQUEST API
 ------------------------ */
@@ -2872,6 +2870,363 @@ app.get("/api/maintenance_repair_request", async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching maintenance / repair request:", err);
     res.status(500).json({ message: "Server error fetching maintenance / repair request" });
+  }
+});
+
+/* ------------------------
+   OVERTIME APPROVAL REQUEST API
+------------------------ */
+
+app.get("/api/overtime_approval_request/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const result = await pool.query(
+      `SELECT overtime_request_code 
+       FROM overtime_approval_request 
+       WHERE overtime_request_code LIKE $1 
+       ORDER BY overtime_request_code DESC 
+       LIMIT 1`,
+      [`OAR-${year}-%`]
+    );
+
+    let nextCode;
+    if (result.rows.length > 0) {
+      const lastCode = result.rows[0].overtime_request_code;
+      const lastNum = parseInt(lastCode.split("-")[2]);
+      const nextNum = String(lastNum + 1).padStart(6, "0");
+      nextCode = `OAR-${year}-${nextNum}`;
+    } else {
+      nextCode = `OAR-${year}-000001`;
+    }
+
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("❌ Error generating next payment request code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+app.post("/api/overtime_approval_request", async (req, res) => {
+  const {
+    overtime_request_code,
+    request_date,
+    employee_id,
+    name,
+    branch,
+    department,
+    cut_off_from,
+    cut_off_to,
+    total_hours,
+    requested_by,
+    requested_signature,
+    user_id,
+    items = [],
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const safeTotalHours =
+      total_hours === "" || total_hours === undefined || total_hours === null
+        ? null
+        : Number(total_hours);
+
+    const result = await client.query(
+      `INSERT INTO overtime_approval_request
+      (overtime_request_code, request_date, employee_id, name, branch, department, cut_off_from, cut_off_to, total_hours, requested_by, requested_signature, user_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      RETURNING id`,
+      [
+        overtime_request_code,
+        request_date || new Date(),
+        employee_id,
+        name,
+        branch,
+        department,
+        cut_off_from,
+        cut_off_to,
+        safeTotalHours,
+        requested_by,
+        requested_signature,
+        user_id,
+      ]
+    );
+
+    const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);
+    if (!requestId) throw new Error("Failed to get payment request ID");
+
+
+    if (items.length > 0) {
+      const values = [];
+      const placeholders = [];
+
+      items.forEach((item, i) => {
+        const base = i * 6;
+        placeholders.push(
+          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`
+        );
+        values.push(
+          requestId,
+          item.ot_date || null,
+          item.time_from || null,
+          item.time_to || null,
+          item.hours || null,
+          item.purpose || null,
+        );
+      });
+
+      await client.query(
+        `INSERT INTO overtime_approval_request_item
+        (request_id, ot_date, time_from, time_to, hours, purpose)
+        VALUES ${placeholders.join(", ")}`,
+        values
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: `Overtime Request ${overtime_request_code} saved successfully!`,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("❌ Error saving overtime request:", err);
+    res.status(500).json({ message: "Server error saving overtime request" });
+  } finally {
+    client.release();
+  }
+});
+
+
+
+app.get("/api/overtime_approval_request", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT pr.*,
+        json_agg(
+          json_build_object(
+            'id', pri.id, 
+            'item', pri.item, 
+            'quantity', pri.quantity, 
+            'unit_price', pri.unit_price,
+            'amount', pri.amount, 
+            'expense_charges', pri.expense_charges, 
+            'location', pri.location
+          )
+        ) AS items
+      FROM overtime_approval_request pr
+      LEFT JOIN overtime_approval_request_item pri ON pr.id = pri.request_id
+      GROUP BY pr.id
+      ORDER BY pr.created_at DESC;
+
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching payment requests:", err);
+    res.status(500).json({ message: "Server error fetching payment requests" });
+  }
+});
+
+app.get("/api/overtime_approval_request_item", async (req, res) => {
+  const { request_id } = req.query;
+
+  try {
+    let query = `
+      SELECT id, request_id, item, quantity, unit_price, amount, expense_charges, location
+      FROM overtime_approval_request_item
+    `;
+    const params = [];
+
+    if (request_id) {
+      query += " WHERE request_id = $1";
+      params.push(request_id);
+    }
+
+    query += " ORDER BY id ASC";
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching payment request items:", err);
+    res.status(500).json({ message: "Server error fetching payment request items" });
+  }
+});
+
+
+/* ------------------------
+   UPDATE OVERTIME APPROVAL REQUEST
+------------------------ */
+app.put("/api/update_payment_request", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      overtime_request_code,
+      approved_by,
+      approved_signature,
+      status,
+      declined_reason,
+    } = req.body;
+
+    if (!overtime_request_code) {
+      return res.status(400).json({ message: "overtime_request_code is required." });
+    }
+
+    let query = `
+      UPDATE payment_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Approved") {
+      query += `,
+        approved_by = $${paramIndex++},
+        approved_signature = $${paramIndex++}
+      `;
+      values.push(approved_by, approved_signature);
+    }
+
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE overtime_request_code = $${paramIndex} RETURNING *`;
+    values.push(overtime_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Payment request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Payment request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating payment request:", err);
+    res.status(500).json({ message: "Server error updating payment request." });
+  }
+});
+
+app.use(express.json());
+
+app.put("/api/payment_request/:id", async (req, res) => {
+  const { id } = req.params;
+  const { status, received_by, received_signature } = req.body;
+
+  console.log("Received PUT /api/payment_request/:id", { id, status, received_by, received_signature });
+
+  if (!id) {
+    return res.status(400).json({ error: "Missing request ID" });
+  }
+
+  try {
+    const updateResult = await pool.query(
+      `UPDATE payment_request
+       SET status = $1,
+           received_by = $2,
+           received_signature = $3
+       WHERE id = $4
+       RETURNING *;`,
+      [status, received_by, received_signature, id]
+    );
+
+    if (updateResult.rowCount === 0) {
+      return res.status(404).json({ error: "Payment request not found" });
+    }
+
+    console.log("Payment request updated successfully:", updateResult.rows[0]);
+    res.json({
+      message: "Payment request updated successfully",
+      updated: updateResult.rows[0],
+    });
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: err.message || "Database error" });
+  }
+});
+
+app.put("/api/update_payment_request_accounting", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      overtime_request_code,
+      gl_code,
+      or_no,
+      gl_amount,
+      check_number,
+      status,
+    } = req.body;
+
+    if (!overtime_request_code) {
+      return res.status(400).json({ message: "overtime_request_code is required." });
+    }
+
+    let query = `
+      UPDATE payment_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Completed") {
+      query += `,
+        gl_code = $${paramIndex++},
+        or_no = $${paramIndex++},
+        gl_amount = $${paramIndex++},
+        check_number = $${paramIndex++}
+      `;
+      values.push(gl_code, or_no, gl_amount, check_number);
+    }
+
+    query += ` WHERE overtime_request_code = $${paramIndex} RETURNING *`;
+    values.push(overtime_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Payment request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Payment request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating payment request:", err);
+    res.status(500).json({ message: "Server error updating payment request." });
+  }
+});
+
+// ✅ Fetch single user by ID
+app.get("/api/users/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT id, name, signature FROM users WHERE id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    res.status(500).json({ error: "Database error fetching user" });
   }
 });
 

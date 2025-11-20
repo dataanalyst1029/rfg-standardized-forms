@@ -37,7 +37,7 @@ const NAV_SECTIONS = [
   { id: "submitted", label: "Cash Advance Budget Request Reports" },
 ];
 
-function PurchaseRequest({ onLogout }) {
+function CashAdvanceRequest({ onLogout }) {
   const [formData, setFormData] = useState(initialFormData);
   const [items, setItems] = useState([emptyItem]);
   const [loading, setLoading] = useState(true);
@@ -759,4 +759,4 @@ function PurchaseRequest({ onLogout }) {
   );
 }
 
-export default PurchaseRequest;
+export default CashAdvanceRequest;

@@ -398,11 +398,16 @@ function App() {
           path="/forms/submitted-hr-overtime-approval"
           element={
             user ? (
-              <SubmittedOvertimeApproval onLogout={handleLogout} currentUserId={user.id}/>
+              <SubmittedOvertimeApproval onLogout={handleLogout} currentUserId={user.id} />
             ) : (
-              <Navigate to="/hr-overtime-approval" replace />
+              <Navigate to="/" replace />
             )
           }
+        />
+
+        <Route
+          path="/submitted-hr-overtime-approval"
+          element={<Navigate to="/forms/submitted-hr-overtime-approval" replace />}
         />
 
         <Route

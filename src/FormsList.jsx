@@ -297,7 +297,7 @@ function FormsList({ onLogout }) {
             <button
               type="button"
               className="forms-button forms-button--muted"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/overview")}
             >
               Dashboard
             </button>
