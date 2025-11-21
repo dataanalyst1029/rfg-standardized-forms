@@ -107,10 +107,9 @@ function OvertimeApproval({ onLogout }) {
             ...prev,
             name: data.name || storedName || "",
             user_id: storedId,
-            contact_no: data.contact_no || "",
             employee_id: data.employee_id || "",
             requested_by: data.name || "",
-            request_signature: data.signature || "",
+            requested_signature: data.signature || "",
             branch: data.branch || "",
             department: data.department || "",
 

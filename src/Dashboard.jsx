@@ -13,6 +13,7 @@ import RequestCashAdvanceLiquidation from "./RequestCashAdvanceLiquidation";
 import RequestReimbursement from "./RequestReimbursement";
 import RequestPayment from "./RequestPayment";
 import RequestMaintenanceRepair from "./RequestMaintenanceRepair";
+import RequestOvertimeApproval from "./RequestOvertimeApproval";
 import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
 // import { useNavigate } from "react-router-dom";
@@ -155,12 +156,15 @@ const getInitialView = () => {
   if (stored) {
     const validIds = [
       ...navigationItems.map((item) => item.id),
+      // "overview",
       "purchase-request",
       "revolving-fund-request",
       "cash-advance-budget-request",
       "cash-advance-liquidation",
       "reimbursement",
       "payment-request",
+      "maintenance-repair",
+      "overtime-approval-request",
       "approved-requests",
       "profile"
     ];
@@ -416,6 +420,13 @@ function renderActiveView(view, extraProps = {}) {
         </div>
       );
 
+    case "overtime-approval-request":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <RequestOvertimeApproval />
+        </div>
+      );
+
     case "reports-summary":
       return (
         <PlaceholderPanel
@@ -663,6 +674,7 @@ function Dashboard({ role, name, onLogout }) {
           "reimbursement",
           "payment-request",
           "maintenance-repair",
+          "overtime-approval-request",
           "approved-requests",
         ].includes(stored)
       ) {
@@ -925,13 +937,13 @@ function Dashboard({ role, name, onLogout }) {
                                 Maintenance or Repair
                               </button>
                             )}
-                            {userAccess.includes("HR Overtime Approval") && (
+                            {userAccess.includes("c/o HR Overtime Approval") && (
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
-                                  activeView === "purchase-request" ? " underline-active" : ""
+                                  activeView === "overtime-approval-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => handleMenuClick("purchase-request")}
+                                onClick={() => handleMenuClick("overtime-approval-request")}
                               >
                                 HR Overtime Approval
                               </button>

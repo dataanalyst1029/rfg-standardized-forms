@@ -208,9 +208,6 @@ function SubmittedPaymentRequests({ onLogout, currentUserId, showAll = false }) 
     }
   };
 
-
-
-
   return (
     <div className="pr-layout">
       {isMobileView && (

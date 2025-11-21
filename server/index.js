@@ -3323,6 +3323,223 @@ app.delete("/api/departments/:id", async (req, res) => {
 });
 
 /* ------------------------
+   TRANSMITTAL FORM API
+------------------------ */
+
+app.get("/api/transmittals/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+    const prefix = `TRN-${year}-`;
+    const { rows } = await pool.query(
+      `SELECT form_code
+         FROM transmittal_requests
+        WHERE form_code LIKE $1
+        ORDER BY form_code DESC
+        LIMIT 1`,
+      [`${prefix}%`],
+    );
+
+    if (!rows.length) {
+      return res.json({ nextCode: `${prefix}000001` });
+    }
+
+    const lastSeq = parseInt(rows[0].form_code.split("-")[2], 10) || 0;
+    const nextCode = `${prefix}${String(lastSeq + 1).padStart(6, "0")}`;
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("Error generating next transmittal code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+app.post("/api/transmittals", async (req, res) => {
+  const {
+    form_code,
+    user_id,
+    employee_id,
+    transmittal_date,
+    purpose,
+    origin_branch,
+    origin_department,
+    destination_branch,
+    destination_department,
+    sender_name,
+    sender_employee_id,
+    sender_contact,
+    sender_signature,
+    recipient_name,
+    recipient_contact,
+    recipient_signature,
+    delivery_mode,
+    tracking_no,
+    release_time,
+    condition_status,
+    status = "Pending",
+    received_by,
+    received_signature,
+    received_date,
+    notes,
+    items = [],
+  } = req.body;
+
+  const normalize = (value) => (value === "" || value === undefined ? null : value);
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const insert = await client.query(
+      `INSERT INTO transmittal_requests
+        (form_code, user_id, employee_id, transmittal_date, purpose, origin_branch, origin_department,
+         destination_branch, destination_department, sender_name, sender_employee_id, sender_contact,
+         sender_signature, recipient_name, recipient_contact, recipient_signature,
+         delivery_mode, tracking_no, release_time, condition_status, status, received_by,
+         received_signature, received_date, notes)
+       VALUES
+        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
+       RETURNING id`,
+      [
+        normalize(form_code),
+        normalize(user_id),
+        normalize(employee_id),
+        normalize(transmittal_date),
+        normalize(purpose),
+        normalize(origin_branch),
+        normalize(origin_department),
+        normalize(destination_branch),
+        normalize(destination_department),
+        normalize(sender_name),
+        normalize(sender_employee_id),
+        normalize(sender_contact),
+        normalize(sender_signature),
+        normalize(recipient_name),
+        normalize(recipient_contact),
+        normalize(recipient_signature),
+        normalize(delivery_mode),
+        normalize(tracking_no),
+        normalize(release_time),
+        normalize(condition_status),
+        normalize(status),
+        normalize(received_by),
+        normalize(received_signature),
+        normalize(received_date),
+        normalize(notes),
+      ],
+    );
+
+    const requestId = insert.rows[0]?.id;
+    if (!requestId) {
+      throw new Error("Unable to determine transmittal ID");
+    }
+
+    const preparedItems = (Array.isArray(items) ? items : []).filter((item) => {
+      const hasQuantity =
+        item.quantity !== undefined && item.quantity !== null && item.quantity !== "";
+      return item.reference_no || item.description || hasQuantity || item.remarks;
+    });
+
+    if (preparedItems.length) {
+      const placeholders = [];
+      const values = [];
+
+      preparedItems.forEach((item, index) => {
+        const base = index * 5;
+        placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`);
+        values.push(
+          requestId,
+          normalize(item.reference_no),
+          normalize(item.description),
+          item.quantity === null || item.quantity === undefined || item.quantity === ""
+            ? null
+            : Number(item.quantity),
+          normalize(item.remarks),
+        );
+      });
+
+      await client.query(
+        `INSERT INTO transmittal_request_items
+          (request_id, reference_no, description, quantity, remarks)
+         VALUES ${placeholders.join(",")}`,
+        values,
+      );
+    }
+
+    await client.query("COMMIT");
+    res.status(201).json({
+      success: true,
+      message: `Transmittal ${form_code} saved successfully!`,
+      form_code,
+      id: requestId,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Error saving transmittal:", err);
+    res.status(500).json({ message: "Server error saving transmittal" });
+  } finally {
+    client.release();
+  }
+});
+
+app.get("/api/transmittals", async (req, res) => {
+  const { userId } = req.query;
+  const values = [];
+  let whereClause = "";
+
+  if (userId) {
+    values.push(userId);
+    whereClause = `WHERE tr.user_id = $${values.length}`;
+  }
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT tr.*,
+        json_agg(
+          json_build_object(
+            'id', tri.id,
+            'reference_no', tri.reference_no,
+            'description', tri.description,
+            'quantity', tri.quantity,
+            'remarks', tri.remarks
+          )
+        ) FILTER (WHERE tri.id IS NOT NULL) AS items
+      FROM transmittal_requests tr
+      LEFT JOIN transmittal_request_items tri ON tr.id = tri.request_id
+      ${whereClause}
+      GROUP BY tr.id
+      ORDER BY tr.created_at DESC;
+    `,
+      values,
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching transmittals:", err);
+    res.status(500).json({ message: "Server error fetching transmittals" });
+  }
+});
+
+app.get("/api/transmittals/items", async (req, res) => {
+  const { request_id } = req.query;
+
+  if (!request_id) {
+    return res.status(400).json({ message: "request_id is required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT *
+         FROM transmittal_request_items
+        WHERE request_id = $1
+        ORDER BY id ASC`,
+      [request_id],
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching transmittal items:", err);
+    res.status(500).json({ message: "Server error fetching transmittal items" });
+  }
+});
+
+/* ------------------------
    INTERBRANCH TRANSFER SLIP API
 ------------------------ */
 

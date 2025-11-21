@@ -447,6 +447,7 @@ function ManageUsersAccess() {
                   <option value="c/o HR Overtime Approval">c/o HR Overtime Approval</option>
                   <option value="c/o HR Leave Application">c/o HR Leave Application</option>
                   <option value="Interbranch Transfer Slip">Interbranch Transfer Slip</option>
+                  <option value="Transmittal Form">Transmittal Form</option>
                   <option value="Credit Card Acknowledgement Receipt">Credit Card Acknowledgement Receipt</option>
                 </select>
               {/* <textarea

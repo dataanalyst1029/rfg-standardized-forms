@@ -456,16 +456,13 @@ function SubmittedMaintenanceRepair({ onLogout, currentUserId, showAll = false }
                               fontSize: "18px",
                               fontWeight: "bold",
                               cursor: "pointer",
-                              color: "#f57777ff"
+                              color: "#6d6d6dff"
                             }}
                             aria-label="Close"
                           >
                             ×
                           </button>
                         <div className="floating-decline-content" style={{ position: "relative" }}>
-                          {/* Close button */}
-                          
-
                           {selectedRequest.status && (
                             <p className="status-text">
                               <strong>Status:</strong> {selectedRequest.status}
@@ -480,7 +477,6 @@ function SubmittedMaintenanceRepair({ onLogout, currentUserId, showAll = false }
                         </div>
                       </div>
                     )}
-
                   </div>    
                 </div>
               )}
