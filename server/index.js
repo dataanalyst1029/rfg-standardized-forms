@@ -3005,28 +3005,27 @@ app.post("/api/overtime_approval_request", async (req, res) => {
 app.get("/api/overtime_approval_request", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT pr.*,
+      SELECT oar.*,
         json_agg(
           json_build_object(
-            'id', pri.id, 
-            'item', pri.item, 
-            'quantity', pri.quantity, 
-            'unit_price', pri.unit_price,
-            'amount', pri.amount, 
-            'expense_charges', pri.expense_charges, 
-            'location', pri.location
+            'id', oari.id, 
+            'ot_date', oari.ot_date, 
+            'time_from', oari.time_from, 
+            'time_to', oari.time_to,
+            'hours', oari.hours, 
+            'purpose', oari.purpose
           )
         ) AS items
-      FROM overtime_approval_request pr
-      LEFT JOIN overtime_approval_request_item pri ON pr.id = pri.request_id
-      GROUP BY pr.id
-      ORDER BY pr.created_at DESC;
+      FROM overtime_approval_request oar
+      LEFT JOIN overtime_approval_request_item oari ON oar.id = oari.request_id
+      GROUP BY oar.id
+      ORDER BY oar.created_at DESC;
 
     `);
     res.json(result.rows);
   } catch (err) {
-    console.error("❌ Error fetching payment requests:", err);
-    res.status(500).json({ message: "Server error fetching payment requests" });
+    console.error("❌ Error fetching overtime requests:", err);
+    res.status(500).json({ message: "Server error fetching overtime requests" });
   }
 });
 
@@ -3035,7 +3034,7 @@ app.get("/api/overtime_approval_request_item", async (req, res) => {
 
   try {
     let query = `
-      SELECT id, request_id, item, quantity, unit_price, amount, expense_charges, location
+      SELECT id, request_id, ot_date, time_from, time_to, hours, purpose
       FROM overtime_approval_request_item
     `;
     const params = [];
@@ -3059,7 +3058,7 @@ app.get("/api/overtime_approval_request_item", async (req, res) => {
 /* ------------------------
    UPDATE OVERTIME APPROVAL REQUEST
 ------------------------ */
-app.put("/api/update_payment_request", uploadForm.none(), async (req, res) => {
+app.put("/api/update_overtime_approval_request", uploadForm.none(), async (req, res) => {
   try {
     const {
       overtime_request_code,
@@ -3074,7 +3073,7 @@ app.put("/api/update_payment_request", uploadForm.none(), async (req, res) => {
     }
 
     let query = `
-      UPDATE payment_request
+      UPDATE overtime_approval_request
       SET status = $1,
           updated_at = NOW()
     `;
@@ -3103,27 +3102,27 @@ app.put("/api/update_payment_request", uploadForm.none(), async (req, res) => {
     const result = await pool.query(query, values);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Payment request not found." });
+      return res.status(404).json({ message: "Overtime request not found." });
     }
 
     res.json({
       success: true,
-      message: "Payment request updated successfully.",
+      message: "Overtime request updated successfully.",
       data: result.rows[0],
     });
   } catch (err) {
-    console.error("❌ Error updating payment request:", err);
-    res.status(500).json({ message: "Server error updating payment request." });
+    console.error("❌ Error updating overtime request:", err);
+    res.status(500).json({ message: "Server error updating overtime request." });
   }
 });
 
 app.use(express.json());
 
-app.put("/api/payment_request/:id", async (req, res) => {
+app.put("/api/overtime_approval_request/:id", async (req, res) => {
   const { id } = req.params;
   const { status, received_by, received_signature } = req.body;
 
-  console.log("Received PUT /api/payment_request/:id", { id, status, received_by, received_signature });
+  console.log("Received PUT /api/overtime_approval_request/:id", { id, status, received_by, received_signature });
 
   if (!id) {
     return res.status(400).json({ error: "Missing request ID" });
@@ -3131,7 +3130,7 @@ app.put("/api/payment_request/:id", async (req, res) => {
 
   try {
     const updateResult = await pool.query(
-      `UPDATE payment_request
+      `UPDATE overtime_approval_request
        SET status = $1,
            received_by = $2,
            received_signature = $3
@@ -3141,71 +3140,17 @@ app.put("/api/payment_request/:id", async (req, res) => {
     );
 
     if (updateResult.rowCount === 0) {
-      return res.status(404).json({ error: "Payment request not found" });
+      return res.status(404).json({ error: "Overtime request not found" });
     }
 
-    console.log("Payment request updated successfully:", updateResult.rows[0]);
+    console.log("Overtime request updated successfully:", updateResult.rows[0]);
     res.json({
-      message: "Payment request updated successfully",
+      message: "Overtime request updated successfully",
       updated: updateResult.rows[0],
     });
   } catch (err) {
     console.error("Database error:", err);
     res.status(500).json({ error: err.message || "Database error" });
-  }
-});
-
-app.put("/api/update_payment_request_accounting", uploadForm.none(), async (req, res) => {
-  try {
-    const {
-      overtime_request_code,
-      gl_code,
-      or_no,
-      gl_amount,
-      check_number,
-      status,
-    } = req.body;
-
-    if (!overtime_request_code) {
-      return res.status(400).json({ message: "overtime_request_code is required." });
-    }
-
-    let query = `
-      UPDATE payment_request
-      SET status = $1,
-          updated_at = NOW()
-    `;
-
-    const values = [status];
-    let paramIndex = 2;
-
-    if (status === "Completed") {
-      query += `,
-        gl_code = $${paramIndex++},
-        or_no = $${paramIndex++},
-        gl_amount = $${paramIndex++},
-        check_number = $${paramIndex++}
-      `;
-      values.push(gl_code, or_no, gl_amount, check_number);
-    }
-
-    query += ` WHERE overtime_request_code = $${paramIndex} RETURNING *`;
-    values.push(overtime_request_code);
-
-    const result = await pool.query(query, values);
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Payment request not found." });
-    }
-
-    res.json({
-      success: true,
-      message: "Payment request updated successfully.",
-      data: result.rows[0],
-    });
-  } catch (err) {
-    console.error("❌ Error updating payment request:", err);
-    res.status(500).json({ message: "Server error updating payment request." });
   }
 });
 
