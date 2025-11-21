@@ -1,0 +1,72 @@
+/* Base styles */
+.transmittal-items-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0.85rem 0.65rem;
+  table-layout: fixed;
+  border: none;
+}
+
+/* LIGHT MODE */
+body.theme-light .transmittal-items-table {
+  background: #303030;
+  color: #ffffff;
+}
+
+/* DARK MODE */
+body.theme-dark .transmittal-items-table {
+  background: #303030;
+  color: #000000;
+}
+
+
+
+.transmittal-items-table thead th {
+  border: none;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+}
+
+.transmittal-items-table tbody td {
+  padding: 0;
+  border: none;
+}
+
+.transmittal-items-table input.pr-input {
+  width: 100%;
+  border-radius: 0.85rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-app-bg);
+  padding: 0.7rem 0.95rem;
+}
+
+.transmittal-col--reference {
+  width: 18%;
+}
+
+.transmittal-col--description {
+  width: 42%;
+}
+
+.transmittal-col--quantity {
+  width: 14%;
+}
+
+.transmittal-col--remarks {
+  width: 20%;
+}
+
+.transmittal-col--actions {
+  width: 6%;
+}
+
+.transmittal-items-actions {
+  text-align: right;
+  padding-left: 0.5rem !important;
+}
+
+.transmittal-submit-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1.25rem;
+}

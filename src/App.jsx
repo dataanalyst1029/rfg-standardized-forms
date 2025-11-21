@@ -31,10 +31,12 @@ import MaintenanceRepair from "./forms/MaintenanceRepair";
 import OvertimeApproval from "./forms/OvertimeApproval";
 import LeaveApplication from "./forms/LeaveApplication";
 import InterbranchTransferSlip from "./forms/InterbranchTransferSlip";
+import TransmittalForm from "./forms/TransmittalForm.jsx";
 import CreditCardAcknowledgementReceipt from "./forms/CreditCardAcknowledgementReceipt";
 import "./styles/App.css";
 import SubmittedCAReceipt from "./submitted-request/SubmittedCAReceipt";
 import ThemeToggle from "./components/ThemeToggle.jsx";
+import SubmittedTransmittals from "./submitted-request/SubmittedTransmittals.jsx";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -252,6 +254,18 @@ function App() {
         />
 
         <Route
+          path="/forms/transmittal-form"
+          element={
+            user &&
+            (user.role === "user" || user.role === "staff" || user.role === "admin") ? (
+              <TransmittalForm onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
           path="/forms/credit-card-acknowledgement-receipt"
           element={
             user && 
@@ -428,6 +442,17 @@ function App() {
               <SubmittedInterbranchTransferSlip onLogout={handleLogout} currentUserId={user.id} />
             ) : (
               <Navigate to="/forms/interbranch-transfer-slip" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/forms/submitted-transmittals"
+          element={
+            user ? (
+              <SubmittedTransmittals onLogout={handleLogout} currentUserId={user.id} />
+            ) : (
+              <Navigate to="/forms/transmittal-form" replace />
             )
           }
         />

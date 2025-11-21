@@ -1,0 +1,189 @@
+.submitted-transmittals-layout .dropdown-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.transmittal-select {
+  min-width: 260px;
+}
+
+.transmittal-record {
+  margin-top: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-elevation);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.theme-light .transmittal-record {
+  color: #111827;
+}
+
+.transmittal-record__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--color-border);
+  position: relative;
+}
+
+.transmittal-record__branding {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.transmittal-record__branding img {
+  width: 140px;
+  height: auto;
+  object-fit: contain;
+}
+
+.transmittal-record__eyebrow {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.theme-light .transmittal-record__eyebrow {
+  color: #4b5563;
+}
+
+.transmittal-record__route {
+  margin: 0.5rem 0 0;
+  color: var(--color-text-secondary);
+}
+
+.theme-light .transmittal-record__route {
+  color: #1f2937;
+  }
+
+.transmittal-record__code {
+  font-style: italic;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.theme-light .transmittal-record__code {
+  color: #1f2937;
+}
+
+.transmittal-record__status {
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  font-weight: 600;
+  font-size: 0.9rem;
+  position: absolute;
+  right: 0;
+  top: -20px;
+  box-shadow: 0 10px 25px rgba(29, 78, 216, 0.18);
+}
+
+.transmittal-record__meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.transmittal-record__meta-grid .label {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.theme-light .transmittal-record__meta-grid .label {
+  color: #6b7280;
+}
+
+.transmittal-record__table-wrapper {
+  overflow-x: auto;
+}
+
+.transmittal-record__table {
+  width: 100%;
+  border-collapse: collapse;
+  color: inherit;
+}
+
+.transmittal-record__table th,
+.transmittal-record__table td {
+  border: 1px solid var(--color-border);
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.theme-light .transmittal-record__table th,
+.theme-light .transmittal-record__table td {
+  color: #111827;
+}
+
+.transmittal-record__notes {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.transmittal-record__notes .label {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.theme-light .transmittal-record__notes .label {
+  color: #4b5563;
+}
+
+.transmittal-record__signatures {
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 1rem;
+  position: relative;
+}
+
+.transmittal-record__signatures table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.transmittal-record__signatures th,
+.transmittal-record__signatures td {
+  border: 1px solid var(--color-border);
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  font-size: 0.92rem;
+}
+
+.transmittal-record__signatures img {
+  max-height: 90px;
+  object-fit: cover;
+}
+
+.transmittal-record__received-date {
+  margin-top: 0.75rem;
+}
+
+.transmittal-record__received-date .label {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 0.1rem;
+}

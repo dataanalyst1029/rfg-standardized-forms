@@ -57,6 +57,7 @@ function FormsList({ onLogout }) {
     "HR Overtime Approval",
     "HR Leave Application",
     "Interbranch Transfer Slip",
+    "Transmittal Form",
     "Credit Card Acknowledgement Receipt",
   ];
 
