@@ -4,7 +4,7 @@ import { API_BASE_URL } from "./config/api.js";
 
 const PAGE_SIZES = [5, 10, 20];
 
-function PaymentRequest() {
+function OvertimeApprovalRequest() {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState(null);
@@ -201,7 +201,7 @@ function PaymentRequest() {
                         {loading ? (
                         <tr>
                             <td colSpan={8} className="admin-empty-state">
-                            Loading payment requests...
+                            Loading overtime requests...
                             </td>
                         </tr>
                         ) : visibleRequests.length === 0 ? (
@@ -209,7 +209,7 @@ function PaymentRequest() {
                             <td colSpan={8} className="admin-empty-state">
                             {search
                                 ? "No requests match your search."
-                                : "No payment requests found."}
+                                : "No overtime requests found."}
                             </td>
                         </tr>
                         ) : (
@@ -700,4 +700,4 @@ function PaymentRequest() {
         </div>
     );
 }
-export default PaymentRequest;
+export default OvertimeApprovalRequest;

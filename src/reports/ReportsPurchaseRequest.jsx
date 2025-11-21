@@ -4,41 +4,34 @@ import "../styles/RequestPurchase.css";
 import "../styles/ReportsAudit.css";
 import { API_BASE_URL } from "../config/api.js";
 
-// Pagination options for the table
 const PAGE_SIZES = [5, 10, 20];
 
-// ✅ Enhanced date parser (handles MM/DD/YYYY, YYYY-MM-DD, and DD/MM/YYYY)
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // U.S. format: MM/DD/YYYY
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const [, month, day, year] = usMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // ISO format: YYYY-MM-DD
   const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // European format: DD/MM/YYYY (optional support)
   const euMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (euMatch) {
     const [, day, month, year] = euMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Fallback — native Date parse
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
 
 function ReportsRequestPurchase() {
-  // ---------------------- STATE DEFINITIONS ----------------------
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
@@ -47,15 +40,33 @@ function ReportsRequestPurchase() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRequest, setModalRequest] = useState(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const storedId = sessionStorage.getItem("id");
   const [userData, setUserData] = useState({ name: "", signature: "" });
-  const [showLoadingModal, setShowLoadingModal] = useState(false);
-  const [showConfirmDecline, setShowConfirmDecline] = useState(false);
+  // const [showLoadingModal, setShowLoadingModal] = useState(false);
+  // const [showConfirmDecline, setShowConfirmDecline] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-  // ---------------------- DATA FETCHING ----------------------
+  const formatDate = (date) => {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(date - tzOffset).toISOString().slice(0, 10);
+    return localISOTime;
+  };
+
+  const [startDate, setStartDate] = useState(formatDate(firstDayOfMonth));
+  const [endDate, setEndDate] = useState(formatDate(today));
+
+  const statusColors = {
+    Declined: 'red',
+    Pending: "orange",
+    Approved: "blue",
+    Received: "purple",
+    Completed: "green",
+    Accomplished: "teal",
+  };
+
   const fetchRequests = async () => {
     setLoading(true);
     try {
@@ -63,7 +74,6 @@ function ReportsRequestPurchase() {
       if (!response.ok) throw new Error("Failed to fetch purchase requests");
       const data = await response.json();
 
-      // Sort newest first
       const sortedData = data.sort((a, b) =>
         b.purchase_request_code.localeCompare(a.purchase_request_code)
       );
@@ -77,7 +87,6 @@ function ReportsRequestPurchase() {
     }
   };
 
-  // ---------------------- SIDE EFFECTS ----------------------
   useEffect(() => {
     if (!storedId) return;
     fetch(`${API_BASE_URL}/users/${storedId}`)
@@ -100,13 +109,11 @@ function ReportsRequestPurchase() {
     setPage(1);
   }, [search, rowsPerPage, startDate, endDate]);
 
-  // ---------------------- FILTERING LOGIC ----------------------
   const filteredRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
 
     let categorizedRequests = requests;
 
-    // ✅ Start date filter (inclusive)
     if (startDate) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
@@ -116,7 +123,6 @@ function ReportsRequestPurchase() {
       });
     }
 
-    // ✅ End date filter (inclusive)
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
@@ -135,7 +141,6 @@ function ReportsRequestPurchase() {
       return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
     }
 
-    // ✅ Text search
     if (term) {
       categorizedRequests = categorizedRequests.filter((req) => {
         const topLevelMatch = [
@@ -161,7 +166,6 @@ function ReportsRequestPurchase() {
     return categorizedRequests;
   }, [requests, search, startDate, endDate]);
 
-  // ---------------------- PAGINATION ----------------------
   const totalPages = Math.max(
     1,
     Math.ceil(filteredRequests.length / rowsPerPage) || 1
@@ -172,7 +176,6 @@ function ReportsRequestPurchase() {
     return filteredRequests.slice(start, start + rowsPerPage);
   }, [filteredRequests, page, rowsPerPage]);
 
-  // ---------------------- MODAL HANDLERS ----------------------
   const openModal = (request) => {
     setModalRequest(request);
     setModalOpen(true);
@@ -189,10 +192,8 @@ function ReportsRequestPurchase() {
     }, 300);
   };
 
-  // ---------------------- RENDER ----------------------
   return (
     <div className="admin-view">
-      {/* ---------- Toolbar and Filters ---------- */}
       <div className="admin-toolbar">
         <div className="admin-toolbar-title">
           <h2>Purchase Request Reports</h2>
@@ -242,7 +243,6 @@ function ReportsRequestPurchase() {
         </div>
       )}
 
-      {/* ---------- Data Table ---------- */}
       <div className="admin-table-wrapper">
         <table className="admin-table purchase-table">
           <thead>
@@ -254,7 +254,7 @@ function ReportsRequestPurchase() {
               <th style={{ textAlign: "left" }}>Department</th>
               <th style={{ textAlign: "left" }}>Purpose</th>
               <th style={{ textAlign: "center" }}>Status</th>
-              <th style={{ textAlign: "center" }}>Action</th>
+              {/* <th style={{ textAlign: "center" }}>Action</th> */}
             </tr>
           </thead>
           <tbody>
@@ -275,21 +275,27 @@ function ReportsRequestPurchase() {
             ) : (
               visibleRequests.map((req) => (
                 <tr key={req.id}>
-                  <td style={{ textAlign: "center" }}>
+                  <td style={{ textAlign: "center", cursor: "pointer", color: "blue" }} onClick={() => openModal(req)} title="View Details">
                     {req.purchase_request_code}
                   </td>
                   <td style={{ textAlign: "center" }}>
                     {parseLocalDate(req.request_date)?.toLocaleDateString() ||
                       "Invalid date"}
                   </td>
-                  <td style={{ textAlign: "left" }}>{req.request_by}</td>
+                  <td style={{ textAlign: "left" }} >{req.request_by}</td>
                   <td style={{ textAlign: "left" }}>{req.branch}</td>
                   <td style={{ textAlign: "left" }}>{req.department}</td>
                   <td style={{ textAlign: "left" }}>{req.purpose}</td>
-                  <td style={{ textAlign: "center" }}>
+                  <td
+                    style={{
+                      textAlign: "center",
+                      color: statusColors[req.status] || "black",
+                      fontWeight: "bold", 
+                    }}
+                  >
                     {req.status.toUpperCase()}
                   </td>
-                  <td style={{ textAlign: "center" }}>
+                  {/* <td style={{ textAlign: "center" }}>
                     <button
                       className="admin-primary-btn"
                       onClick={() => openModal(req)}
@@ -297,7 +303,7 @@ function ReportsRequestPurchase() {
                     >
                       🔍
                     </button>
-                  </td>
+                  </td> */}
                 </tr>
               ))
             )}
@@ -305,7 +311,6 @@ function ReportsRequestPurchase() {
         </table>
       </div>
 
-      {/* ---------- Pagination Controls ---------- */}
       <div className="admin-pagination">
         <span className="admin-pagination-info">
           Showing {visibleRequests.length} of {filteredRequests.length} requests
@@ -350,7 +355,6 @@ function ReportsRequestPurchase() {
         </label>
       </div>
 
-      {/* ---------- Modal for Viewing Request Details ---------- */}
       {modalOpen && modalRequest && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
           <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
@@ -363,13 +367,14 @@ function ReportsRequestPurchase() {
                 ×
               </button>
 
-              <h2>Purchase Request Form - {modalRequest.purchase_request_code}</h2>
+              <h2><small>Reference Number - </small><small style={{textDecoration: 'underline', color: '#305ab5ff'}}>{modalRequest.purchase_request_code}</small></h2>
 
               <section className="pr-form-section">
+                <h2><small>Request Details</small></h2>
                 <div className="pr-grid-two">
                   <div className="pr-field">
                     <label className="pr-label">
-                      Date:
+                      Date
                     </label>
                     <input
                       value={parseLocalDate(modalRequest.request_date)?.toLocaleDateString() ||
@@ -428,7 +433,7 @@ function ReportsRequestPurchase() {
               </section>
 
               <section className="pr-form-section">
-                <h3>Requested Items</h3>
+                <h2><small>Requested Items</small></h2>
                 {Array.isArray(modalRequest.items) &&
                   modalRequest.items.length > 0 ? (
                   <table className="request-items-table">
@@ -457,6 +462,40 @@ function ReportsRequestPurchase() {
                     No items listed.
                   </p>
                 )}
+              </section>
+
+              <section className="pr-form-section">
+                <h2><small>Signature Details</small></h2>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="car-reference-value">Approved by:</label>
+                    <input
+                      value={modalRequest.approved_by}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+
+                  <div className="pr-field receive-signature">
+                    <label className="car-reference-value">Signature</label>
+                    <input
+                        type="text"
+                        name="approved_signature"
+                        value={userData.signature || ""}
+                        className="car-input received-signature"
+                        required
+                        readOnly
+                    />
+                    {userData.signature ? (
+                      <img
+                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                        <p>No signature available</p>
+                    )}
+                  </div>
+                </div>
               </section>
 
               <div className="submit-content">

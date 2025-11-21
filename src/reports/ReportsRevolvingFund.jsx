@@ -5,43 +5,34 @@ import "../styles/ReportsAudit.css";
 import "../styles/RequestRevolvingFund.css";
 import { API_BASE_URL } from "../config/api.js";
 
-// Pagination options for the table
 const PAGE_SIZES = [5, 10, 20];
 
-// ✅ Updated Date Parser (from ReportsMaintenanceRepair.jsx)
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // Handle YYYY-MM-DD (ISO format from date inputs)
-  // This MUST come first to avoid UTC conversion issues
   const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Handle MM/DD/YYYY (U.S. format)
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const [, month, day, year] = usMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Fallback – for full timestamps (e.g., from the database)
-  // Extract just the date part if it's a full ISO timestamp
   const timestampMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})[T\s]/);
   if (timestampMatch) {
     const [, year, month, day] = timestampMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Last resort fallback
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
 
 function ReportsRevolvingFund() {
-  // ---------------------- STATE DEFINITIONS ----------------------
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
@@ -50,16 +41,36 @@ function ReportsRevolvingFund() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRequest, setModalRequest] = useState(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // const [startDate, setStartDate] = useState("");
+  // const [endDate, setEndDate] = useState("");
 
   const storedId = sessionStorage.getItem("id");
   const [userData, setUserData] = useState({ name: "", signature: "" });
-  const [showLoadingModal, setShowLoadingModal] = useState(false);
-  const [showConfirmDecline, setShowConfirmDecline] = useState(false);
+  // const [showLoadingModal, setShowLoadingModal] = useState(false);
+  // const [showConfirmDecline, setShowConfirmDecline] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-  // ---------------------- DATA FETCHING ----------------------
+  const formatDate = (date) => {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(date - tzOffset).toISOString().slice(0, 10);
+    return localISOTime;
+  };
+
+  const [startDate, setStartDate] = useState(formatDate(firstDayOfMonth));
+  const [endDate, setEndDate] = useState(formatDate(today));
+
+  const statusColors = {
+    Declined: 'red',
+    Pending: "orange",
+    Approved: "blue",
+    Received: "purple",
+    Completed: "green",
+    Accomplished: "teal",
+  };
+
   const fetchRequests = async () => {
     setLoading(true);
     try {
@@ -102,33 +113,27 @@ function ReportsRevolvingFund() {
     setPage(1);
   }, [search, rowsPerPage, startDate, endDate]);
 
-  // ---------------------- FILTERING LOGIC ----------------------
-  // ✅ Updated Filtering Logic (from ReportsMaintenanceRepair.jsx)
   const filteredRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
     let categorizedRequests = requests;
 
-    // Start date filter (inclusive)
     if (startDate) {
-      // Use parseLocalDate to ensure YYYY-MM-DD is treated as LOCAL
       const start = parseLocalDate(startDate);
       if (start) {
         start.setHours(0, 0, 0, 0);
         categorizedRequests = categorizedRequests.filter((req) => {
-          const reqDate = parseLocalDate(req.date_request); // Adapted field
+          const reqDate = parseLocalDate(req.date_request);
           return reqDate && reqDate >= start;
         });
       }
     }
 
-    // End date filter (inclusive)
     if (endDate) {
-      // Use parseLocalDate to ensure YYYY-MM-DD is treated as LOCAL
       const end = parseLocalDate(endDate);
       if (end) {
         end.setHours(23, 59, 59, 999);
         categorizedRequests = categorizedRequests.filter((req) => {
-          const reqDate = parseLocalDate(req.date_request); // Adapted field
+          const reqDate = parseLocalDate(req.date_request); 
           return reqDate && reqDate <= end;
         });
       }
@@ -143,7 +148,6 @@ function ReportsRevolvingFund() {
       return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
     }
 
-    // Text search (Preserved from original)
     if (term) {
       const normalizedTerm = term.replace(/[^0-9.]/g, "");
       categorizedRequests = categorizedRequests.filter(
@@ -181,7 +185,6 @@ function ReportsRevolvingFund() {
     return categorizedRequests;
   }, [requests, search, startDate, endDate]);
 
-  // ---------------------- PAGINATION ----------------------
   const totalPages = Math.max(
     1,
     Math.ceil(filteredRequests.length / rowsPerPage) || 1
@@ -192,7 +195,6 @@ function ReportsRevolvingFund() {
     return filteredRequests.slice(start, start + rowsPerPage);
   }, [filteredRequests, page, rowsPerPage]);
 
-  // ---------------------- MODAL HANDLERS ----------------------
   const openModal = (request) => {
     setModalRequest(request);
     setModalOpen(true);
@@ -209,10 +211,8 @@ function ReportsRevolvingFund() {
     }, 300);
   };
 
-  // ---------------------- RENDER ----------------------
   return (
     <div className="admin-view">
-      {/* ---------- Toolbar and Filters ---------- */}
       <div className="admin-toolbar">
         <div className="admin-toolbar-title">
           <h2>Revolving Fund Reports</h2>
@@ -247,7 +247,6 @@ function ReportsRevolvingFund() {
         </div>
       </div>
 
-      {/* ---------- Status Banner ---------- */}
       {status && (
         <div
           className={`admin-status-banner${
@@ -262,7 +261,6 @@ function ReportsRevolvingFund() {
         </div>
       )}
 
-      {/* ---------- Data Table ---------- */}
       <div className="admin-table-wrapper">
         <table className="admin-table purchase-table">
           <thead>
@@ -275,7 +273,6 @@ function ReportsRevolvingFund() {
               <th style={{ textAlign: "left" }}>Department</th>
               <th style={{ textAlign: "left" }}>Replenish Amount</th>
               <th style={{ textAlign: "center" }}>Status</th>
-              <th style={{ textAlign: "center" }}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -299,7 +296,7 @@ function ReportsRevolvingFund() {
                   parseLocalDate(req.date_request)?.toLocaleDateString() || "—";
                 return (
                   <tr key={req.id}>
-                    <td style={{ textAlign: "center" }}>
+                    <td style={{ textAlign: "center", cursor: "pointer", color: "blue" }} onClick={() => openModal(req)} title="View Details">
                       {req.revolving_request_code}
                     </td>
                     <td style={{ textAlign: "center" }}>{displayDate}</td>
@@ -313,17 +310,14 @@ function ReportsRevolvingFund() {
                         currency: "PHP",
                       })}
                     </td>
-                    <td style={{ textAlign: "center" }}>
+                    <td
+                      style={{
+                        textAlign: "center",
+                        color: statusColors[req.status] || "black",
+                        fontWeight: "bold", 
+                      }}
+                    >
                       {req.status.toUpperCase()}
-                    </td>
-                    <td style={{ textAlign: "center" }}>
-                      <button
-                        className="admin-primary-btn"
-                        onClick={() => openModal(req)}
-                        title="View Details"
-                      >
-                        🔍
-                      </button>
                     </td>
                   </tr>
                 );
@@ -333,7 +327,6 @@ function ReportsRevolvingFund() {
         </table>
       </div>
 
-      {/* ---------- Pagination Controls ---------- */}
       <div className="admin-pagination">
         <span className="admin-pagination-info">
           Showing {visibleRequests.length} of {filteredRequests.length} requests
@@ -376,7 +369,6 @@ function ReportsRevolvingFund() {
         </label>
       </div>
 
-      {/* ---------- Modal for Viewing Request Details ---------- */}
       {modalOpen && modalRequest && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
           <div
@@ -393,7 +385,7 @@ function ReportsRevolvingFund() {
                 ×
               </button>
 
-              <h2>Revolving Fund Replenishment Form - {modalRequest.revolving_request_code}</h2>
+              <h2><small>Reference Number - </small> <small style={{textDecoration: 'underline', color: '#305ab5ff'}}>{modalRequest.revolving_request_code}</small></h2>
 
               <section className="pr-form-section" id="details">
                 <div className="pr-grid-two">

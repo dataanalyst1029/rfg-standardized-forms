@@ -380,7 +380,7 @@ function MaintenanceRepair() {
                                 ×
                             </button>
 
-                            <h2>{modalRequest.mrr_request_code}</h2>
+                            <h2><small>Reference Number - </small><small style={{textDecoration: 'underline', color: '#305ab5ff'}}>{modalRequest.mrr_request_code}</small></h2>
                             <section className="pr-form-section" id="details">
                                 <div className="pr-grid-two">
                                     <div className="pr-field">

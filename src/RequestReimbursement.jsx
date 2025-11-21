@@ -274,12 +274,16 @@ function ReimbursementRequest() {
                                 ×
                             </button>
 
-                            <h2>{modalRequest.rb_request_code}</h2>
-                            <p>
-                                <strong>Date:</strong>{" "}
-                                <em>{new Date(modalRequest.request_date).toLocaleDateString()}</em>
-                            </p>
+                            <h2><small>Reference Number - </small><small style={{textDecoration: 'underline', color: '#305ab5ff'}}>{modalRequest.rb_request_code}</small></h2>
                             <section className="pr-form-section" id="details">
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label>Date</label>
+                                        <input type="text" className="pr-input" value={new Date(modalRequest.request_date).toLocaleDateString()} readOnly />
+                                    </div>
+                                    <div className="pr-field">
+                                    </div>
+                                </div>
                                 <div className="pr-grid-two">
                                     <div className="pr-field">
                                         <label>Cash Advance Liquidation No</label>
@@ -325,72 +329,112 @@ function ReimbursementRequest() {
                                 </div>
                             </section>
 
-                            <div className="submit-content">
-                              <div className="submit-by-content">
-                                <div>
-                                  <span>{modalRequest.requested_by}</span>
-                                  <p>Requested by</p>
-                                </div>
-
-                                <div className="signature-content">
-                                  <input className="submit-sign" type="text" value={modalRequest.request_signature} readOnly />
-                                  {modalRequest.request_signature ? (
-                                    <>
-                                      <img
-                                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
-                                        alt="Signature"
-                                        className="ca-signature-image"
-                                      />
-                                    </>
-                                  ) : (
-                                    <div className="img-sign empty-sign"></div>
-                                  )}
-                                  <p>Signature</p>
-                                </div>
-                              </div>
-                            </div>
-
                             <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                              <div className="submit-content">
-                                <div className="submit-by-content">
-                                    <div>
-                                        <label>
-                                            <span>
-                                              <input
+                                <section className="pr-form-section" id="details">
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label>Requested by</label>
+                                            <input
+                                                type="text"
+                                                name="requested_by"
+                                                value={modalRequest.requested_by || ""}
+                                                className="car-input"
+                                                readOnly
+                                            />
+                                        </div>
+                                        <div className="pr-field receive-signature">
+                                            <label className="pr-label">Signature</label>
+                                            <input
+                                                type="text"
+                                                name="approved_signature"
+                                                value={modalRequest.request_signature || ""}
+                                                className="car-input received-signature"
+                                                required
+                                                readOnly
+                                            />
+                                                {modalRequest.request_signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
+                                                alt="Signature"
+                                                className="img-sign"/>
+                                                ) : (
+                                                <p>No signature available</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label className="pr-label">Approve by</label>
+                                            <input
                                                 type="text"
                                                 name="approved_by"
                                                 value={userData.name || ""}
+                                                className="car-input"
                                                 readOnly
-                                              />
-                                            </span>
-                                            <p>Approved by</p>
-                                        </label>
-                                    </div>
+                                            />
+                                        </div>
 
-                                    <div className="approver-signature">
-                                        <label>
-                                          <input
-                                            type="text"
-                                            name="approve_signature"
-                                            value={userData.signature || ""}
-                                            className="submit-sign"
-                                            required
-                                            readOnly
-                                          />
-                                          {userData.signature ? (
-                                          <img
-                                          src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                                          alt="Signature"
-                                          className="signature-img"/>
-                                          ) : (
-                                              <div className="img-sign empty-sign"></div>
-                                          )}
-                                          <p>Signature</p>
-                                        </label>
+                                        <div className="pr-field receive-signature">
+                                            <label className="pr-label">Signature</label>
+                                            <input
+                                                type="text"
+                                                name="approve_signature"
+                                                value={userData.signature || ""}
+                                                className="car-input received-signature"
+                                                required
+                                                readOnly
+                                            />
+                                                {userData.signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                                                alt="Signature"
+                                                className="img-sign"/>
+                                                ) : (
+                                                <p>No signature available</p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                              </div>
-                              <div className="footer-modal">
+                                    {/* <div className="submit-content">
+                                        <div className="submit-by-content">
+                                            <div>
+                                                <label>
+                                                    <span>
+                                                    <input
+                                                        type="text"
+                                                        name="approved_by"
+                                                        value={userData.name || ""}
+                                                        readOnly
+                                                    />
+                                                    </span>
+                                                    <p>Approved by</p>
+                                                </label>
+                                            </div>
+
+                                            <div className="approver-signature">
+                                                <label>
+                                                <input
+                                                    type="text"
+                                                    name="approve_signature"
+                                                    value={userData.signature || ""}
+                                                    className="submit-sign"
+                                                    required
+                                                    readOnly
+                                                />
+                                                {userData.signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                                                alt="Signature"
+                                                className="signature-img"/>
+                                                ) : (
+                                                    <div className="img-sign empty-sign"></div>
+                                                )}
+                                                <p>Signature</p>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div> */}
+                                </section>
+                                <div className="footer-modal">
                                   <button
                                       type="button"
                                       className="admin-success-btn"

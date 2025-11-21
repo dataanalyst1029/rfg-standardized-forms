@@ -515,7 +515,7 @@ function RevolvingFundRequest() {
                                                 value={modalRequest.submitted_by || ""}
                                                 className="car-input"
                                                 readOnly
-                                                />
+                                            />
                                         </div>
 
                                         <div className="pr-field receive-signature">

@@ -165,6 +165,14 @@ const getInitialView = () => {
       "payment-request",
       "maintenance-repair",
       "overtime-approval-request",
+      "reports-purchase-request",
+      "reports-revolving-fund",
+      "reports-cash-advance",
+      "reports-cash-advance-liquidation",
+      "reports-ca-receipt",
+      "reports-reimbursement-form",
+      "reports-payment",
+      "reports-maintenance-request",
       "approved-requests",
       "profile"
     ];
@@ -684,6 +692,29 @@ function Dashboard({ role, name, onLogout }) {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem(STORAGE_KEY);
+      if (
+        stored &&
+        [
+          "reports",
+          "reports-purchase-request",
+          "reports-revolving-fund",
+          "reports-cash-advance",
+          "reports-cash-advance-liquidation",
+          "reports-ca-receipt",
+          "reports-reimbursement-form",
+          "reports-payment",
+          "reports-maintenance-request",
+          "approved-requests",
+        ].includes(stored)
+      ) {
+        setReportsOpen(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") {
       return undefined;
     }
@@ -820,7 +851,7 @@ function Dashboard({ role, name, onLogout }) {
                         <button
                           type="button"
                           className={`sidebar-item${
-                            activeView === "requests" || activeView === "purchase-request" ? " sidebar-item-active" : ""
+                            activeView === "requests" || activeView === "purchase-request" || activeView === "revolving-fund-request" || activeView === "cash-advance-budget-request" || activeView === "cash-advance-liquidation" || activeView === "reimbursement" || activeView === "payment-request" || activeView === "maintenance-repair" || activeView === "overtime-approval-request" ? " sidebar-item-active" : ""
                           }`}
                           onClick={
                             () => {setRequestsOpen((prev) => !prev);
@@ -877,7 +908,7 @@ function Dashboard({ role, name, onLogout }) {
                                 className={`sidebar-item sidebar-item-nested${
                                   activeView === "cash-advance-budget-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => setActiveView("cash-advance-budget-request")}
+                                onClick={() => handleMenuClick("cash-advance-budget-request")}
                               >
                                 Cash Advance Request
                               </button>
@@ -993,7 +1024,22 @@ function Dashboard({ role, name, onLogout }) {
                         <button
                           type="button"
                           className={`sidebar-item${
-                            activeView.startsWith("reports-") ? " sidebar-item-active" : ""
+                            activeView.startsWith("reports") ? " sidebar-item-active" : ""
+                          }`}
+                          onClick={
+                            () => {setReportsOpen((prev) => !prev);
+                            setRequestsOpen(false);
+                            }
+                          }
+                        >
+                          <span className="sidebar-item-icon">{item.icon}</span>
+                          <span>{item.label}</span>
+                          <span className="sidebar-dropdown-arrow">{reportsOpen ? "▲" : "▼"}</span>
+                        </button>
+                        {/* <button
+                          type="button"
+                          className={`sidebar-item${
+                            activeView.startsWith("reports") || activeView === "reports-purchase-request"  ? " sidebar-item-active" : ""
                           }`}
                           onClick={() => {
                             setReportsOpen((prev) => !prev);
@@ -1003,7 +1049,7 @@ function Dashboard({ role, name, onLogout }) {
                           <span className="sidebar-item-icon">📑</span>
                           <span>{item.label}</span>
                           <span className="sidebar-dropdown-arrow">{reportsOpen ? "▲" : "▼"}</span>
-                        </button>
+                        </button> */}
 
                         {reportsOpen && (
                           <div className="sidebar-dropdown-items">

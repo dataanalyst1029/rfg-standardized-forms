@@ -4,34 +4,28 @@ import "../styles/RequestPurchase.css";
 import "../styles/ReportsAudit.css";
 import { API_BASE_URL } from "../config/api.js";
 
-// Pagination options for the table
 const PAGE_SIZES = [5, 10, 20];
 
-// ✅ Safer date parser for both MM/DD/YYYY and YYYY-MM-DD
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // Handle MM/DD/YYYY (U.S. format)
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const [, month, day, year] = usMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Handle YYYY-MM-DD (ISO format)
   const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Fallback — native parse attempt
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
 
 function ReportsCashAdvance() {
-  // ---------------------- STATE DEFINITIONS ----------------------
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
@@ -48,7 +42,6 @@ function ReportsCashAdvance() {
   const [showConfirmDecline, setShowConfirmDecline] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
-  // ---------------------- DATA FETCHING ----------------------
   const fetchRequests = async () => {
     setLoading(true);
     try {
@@ -56,7 +49,6 @@ function ReportsCashAdvance() {
       if (!response.ok) throw new Error("Failed to fetch cash advance reports");
       const data = await response.json();
 
-      // Sort newest first
       const sortedData = data.sort((a, b) =>
         b.ca_request_code.localeCompare(a.ca_request_code)
       );
@@ -69,7 +61,6 @@ function ReportsCashAdvance() {
     }
   };
 
-  // ---------------------- SIDE EFFECTS ----------------------
   useEffect(() => {
     if (!storedId) return;
     fetch(`${API_BASE_URL}/users/${storedId}`)
@@ -92,7 +83,6 @@ function ReportsCashAdvance() {
     setPage(1);
   }, [search, rowsPerPage, startDate, endDate]);
 
-  // ---------------------- FILTERING LOGIC ----------------------
   const filteredRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
     let categorizedRequests = requests;
@@ -155,7 +145,6 @@ function ReportsCashAdvance() {
     return categorizedRequests;
   }, [requests, search, startDate, endDate]);
 
-  // ---------------------- PAGINATION ----------------------
   const totalPages = Math.max(
     1,
     Math.ceil(filteredRequests.length / rowsPerPage) || 1
@@ -166,7 +155,6 @@ function ReportsCashAdvance() {
     return filteredRequests.slice(start, start + rowsPerPage);
   }, [filteredRequests, page, rowsPerPage]);
 
-  // ---------------------- MODAL HANDLERS ----------------------
   const openModal = (request) => {
     setModalRequest(request);
     setModalOpen(true);
@@ -183,10 +171,8 @@ function ReportsCashAdvance() {
     }, 300);
   };
 
-  // ---------------------- RENDER ----------------------
   return (
     <div className="admin-view">
-      {/* ---------- Toolbar and Filters ---------- */}
       <div className="admin-toolbar">
         <div className="admin-toolbar-title">
           <h2>Cash Advance Request Reports</h2>
@@ -221,7 +207,6 @@ function ReportsCashAdvance() {
         </div>
       </div>
 
-      {/* ---------- Status Banner ---------- */}
       {status && (
         <div
           className={`admin-status-banner${
@@ -236,7 +221,6 @@ function ReportsCashAdvance() {
         </div>
       )}
 
-      {/* ---------- Data Table ---------- */}
       <div className="admin-table-wrapper">
         <table className="admin-table purchase-table">
           <thead>
@@ -298,7 +282,6 @@ function ReportsCashAdvance() {
         </table>
       </div>
 
-      {/* ---------- Pagination Controls ---------- */}
       <div className="admin-pagination">
         <span className="admin-pagination-info">
           Showing {visibleRequests.length} of {filteredRequests.length} requests
@@ -343,7 +326,6 @@ function ReportsCashAdvance() {
         </label>
       </div>
 
-      {/* ---------- Modal for Viewing Request Details ---------- */}
       {modalOpen && modalRequest && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
           <div className="admin-modal-backdrop" role="dialog" aria-modal="true">

@@ -384,7 +384,7 @@ function RequestPurchase() {
                                 ×
                             </button>
 
-                            <h2>{modalRequest.purchase_request_code}</h2>
+                            <h2><small>Reference Number - </small><small style={{textDecoration: 'underline', color: '#305ab5ff'}}>{modalRequest.purchase_request_code}</small></h2>
 
                             <section className="pr-form-section" id="details">
                                 <div className="pr-grid-two">
