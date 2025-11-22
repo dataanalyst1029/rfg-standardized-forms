@@ -13,7 +13,11 @@ import RequestCashAdvanceLiquidation from "./RequestCashAdvanceLiquidation";
 import RequestReimbursement from "./RequestReimbursement";
 import RequestPayment from "./RequestPayment";
 import RequestMaintenanceRepair from "./RequestMaintenanceRepair";
+<<<<<<< HEAD
 import RequestOvertimeApproval from "./RequestOvertimeApproval";
+=======
+import RequestTransmittalList from "./RequestTransmittalList.jsx";
+>>>>>>> 0005edb (Transmittal Lists and Reports)
 import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
 // import { useNavigate } from "react-router-dom";
@@ -30,6 +34,7 @@ import ReportsMaintenanceRepair from "./reports/ReportsMaintenanceRepair.jsx";
 import ReportsCreditCard from "./reports/ReportsCreditCard.jsx"
 import ReportsInterbranchTransferSlip from "./reports/ReportsInterbranchTransferSlip.jsx";
 import ReportsLeaveApplication from "./reports/ReportsLeaveApplication.jsx";
+import ReportsTransmittal from "./reports/ReportsTransmittal.jsx";
 const STORAGE_KEY = "rfg-dashboard-active-view";
 
 const NAVIGATION = [
@@ -427,6 +432,12 @@ function renderActiveView(view, extraProps = {}) {
           <RequestMaintenanceRepair />
         </div>
       );
+    case "transmittal-list":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <RequestTransmittalList />
+        </div>
+      );
 
     case "overtime-approval-request":
       return (
@@ -501,6 +512,13 @@ function renderActiveView(view, extraProps = {}) {
       return (
         <div className="dashboard-content dashboard-content--flush">
           <ReportsCreditCard/>
+        </div>
+      );
+
+    case "reports-transmittal":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ReportsTransmittal/>
         </div>
       );
 
@@ -990,28 +1008,39 @@ function Dashboard({ role, name, onLogout }) {
                                 HR Leave Application
                               </button>
                             )}
-                            {userAccess.includes("Interbranch Transfer Slip") && (
-                              <button
-                                type="button"
-                                className={`sidebar-item sidebar-item-nested${
-                                  activeView === "purchase-request" ? " underline-active" : ""
-                                }`}
-                                onClick={() => handleMenuClick("purchase-request")}
-                              >
-                                Interbranch Transfer Slip
-                              </button>
-                            )}
-                            {userAccess.includes("Credit Card Acknowledgement Receipt") && (
-                              <button
-                                type="button"
-                                className={`sidebar-item sidebar-item-nested${
-                                  activeView === "purchase-request" ? " underline-active" : ""
-                                }`}
-                                onClick={() => handleMenuClick("purchase-request")}
-                              >
-                                Credit Card Acknowledgement Receipt
-                              </button>
-                            )}
+            {userAccess.includes("Interbranch Transfer Slip") && (
+              <button
+                type="button"
+                className={`sidebar-item sidebar-item-nested${
+                  activeView === "interbranch-transfer-slip" ? " underline-active" : ""
+                }`}
+                onClick={() => handleMenuClick("interbranch-transfer-slip")}
+              >
+                Interbranch Transfer Slip
+              </button>
+            )}
+            {userAccess.includes("Credit Card Acknowledgement Receipt") && (
+              <button
+                type="button"
+                className={`sidebar-item sidebar-item-nested${
+                  activeView === "credit-card-acknowledgement" ? " underline-active" : ""
+                }`}
+                onClick={() => handleMenuClick("credit-card-acknowledgement")}
+              >
+                Credit Card Acknowledgement Receipt
+              </button>
+            )}
+            {userAccess.includes("Transmittal Form") && (
+              <button
+                type="button"
+                className={`sidebar-item sidebar-item-nested${
+                  activeView === "transmittal-list" ? " underline-active" : ""
+                }`}
+                onClick={() => handleMenuClick("transmittal-list")}
+              >
+                Transmittal Form
+              </button>
+            )}
                           </div>
                         )}
                       </div>
@@ -1194,6 +1223,18 @@ function Dashboard({ role, name, onLogout }) {
                                   onClick={() => handleMenuClick("reports-credit-card-acknowledgement")}
                                 >
                                   Credit Card Acknowledgement Receipt
+                                </button>
+                              )}
+
+                              {(role === "admin" || userAccess.includes("Transmittal Form")) && (
+                                <button
+                                  type="button"
+                                  className={`sidebar-item sidebar-item-nested${
+                                    activeView === "reports-transmittal" ? " underline-active" : ""
+                                  }`}
+                                  onClick={() => handleMenuClick("reports-transmittal")}
+                                >
+                                  Transmittal Requests
                                 </button>
                               )}
                           </div>

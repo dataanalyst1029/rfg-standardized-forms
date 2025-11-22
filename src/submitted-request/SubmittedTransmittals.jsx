@@ -211,141 +211,142 @@ function SubmittedTransmittals({ onLogout, currentUserId, showAll = false }) {
               </div>
 
               {selectedRequest && (
-                <div className="transmittal-record">
-                  <header className="transmittal-record__header">
-                    <div className="transmittal-record__branding">
-                      <img src={rfgLogo} alt="RFG logo" />
-                    </div>
-                    <p className="transmittal-record__code">
-                      {selectedRequest.form_code}
-                    </p>
-                    <span className="transmittal-record__status">
-                      {selectedRequest.status || "Pending"}
-                    </span>
-                  </header>
-                  <p className="transmittal-record__route">
-                    {selectedRequest.origin_branch || "—"} →{" "}
-                    {selectedRequest.destination_branch || "—"}
-                  </p>
+                <><div className="transmittal-record-wrapper">
+                    <div className="transmittal-record">
+                      <header className="transmittal-record__header">
+                        <div className="transmittal-record__branding">
+                          <img src={rfgLogo} alt="RFG logo" />
+                        </div>
+                        <p className="transmittal-record__code">{selectedRequest.form_code}</p>
+                      </header>
+                      <p className="transmittal-record__route">
+                        {selectedRequest.origin_branch || "—"} → {selectedRequest.destination_branch || "—"}
+                      </p>
 
-                  <div className="transmittal-record__meta-grid">
-                    <div>
-                      <p className="label">Purpose</p>
-                      <p>{selectedRequest.purpose || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="label">Prepared on</p>
-                      <p>{formatDate(selectedRequest.transmittal_date)}</p>
-                    </div>
-                    <div>
-                      <p className="label">Sender</p>
-                      <p>{selectedRequest.sender_name || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="label">Recipient</p>
-                      <p>{selectedRequest.recipient_name || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="label">Origin branch</p>
-                      <p>{selectedRequest.origin_branch || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="label">Destination branch</p>
-                      <p>{selectedRequest.destination_branch || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="label">Delivery mode</p>
-                      <p>{selectedRequest.delivery_mode || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="label">Tracking #</p>
-                      <p>{selectedRequest.tracking_no || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="label">Condition</p>
-                      <p>{selectedRequest.condition_status || "—"}</p>
-                    </div>
-                  </div>
+                      <div className="transmittal-record__meta-grid">
+                        <div>
+                          <p className="label">Purpose</p>
+                          <p>{selectedRequest.purpose || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="label">Prepared on</p>
+                          <p>{formatDate(selectedRequest.transmittal_date)}</p>
+                        </div>
+                        <div>
+                          <p className="label">Sender</p>
+                          <p>{selectedRequest.sender_name || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="label">Recipient</p>
+                          <p>{selectedRequest.recipient_name || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="label">Origin branch</p>
+                          <p>{selectedRequest.origin_branch || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="label">Destination branch</p>
+                          <p>{selectedRequest.destination_branch || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="label">Delivery mode</p>
+                          <p>{selectedRequest.delivery_mode || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="label">Tracking #</p>
+                          <p>{selectedRequest.tracking_no || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="label">Condition</p>
+                          <p>{selectedRequest.condition_status || "—"}</p>
+                        </div>
+                      </div>
 
-                  <div className="transmittal-record__table-wrapper">
-                    <table className="transmittal-record__table">
-                      <thead>
-                        <tr>
-                          <th>Reference #</th>
-                          <th>Description</th>
-                          <th>Qty</th>
-                          <th>Remarks</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {loadingItems ? (
-                          <tr>
-                            <td colSpan={4}>Loading items...</td>
-                          </tr>
-                        ) : items.length ? (
-                      items.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.reference_no || "—"}</td>
-                          <td>{item.description || "—"}</td>
-                          <td>{item.quantity ?? "—"}</td>
-                          <td>{item.remarks || "—"}</td>
-                        </tr>
-                      ))
-                    ) : (
-                          <tr>
-                            <td colSpan={4}>No items recorded.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="transmittal-record__notes">
-                    <p className="label">Notes / discrepancies</p>
-                    <p>{selectedRequest.notes || "—"}</p>
-                  </div>
-
-                  <div className="transmittal-record__signatures">
-                    <table>
-                      <tbody>
-                        <tr>
-                          <th>Submitted by</th>
-                          <td>{selectedRequest.sender_name || "—"}</td>
-                          <th>Signature</th>
-                          <td>
-                            {selectedRequest.sender_signature ? (
-                              <img
-                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.sender_signature}`}
-                                alt="Submitted signature"
-                              />
+                      <div className="transmittal-record__table-wrapper">
+                        <table className="transmittal-record__table">
+                          <thead>
+                            <tr>
+                              <th>Reference #</th>
+                              <th>Description</th>
+                              <th>Qty</th>
+                              <th>Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {loadingItems ? (
+                              <tr>
+                                <td colSpan={4}>Loading items...</td>
+                              </tr>
+                            ) : items.length ? (
+                              items.map((item) => (
+                                <tr key={item.id}>
+                                  <td>{item.reference_no || "—"}</td>
+                                  <td>{item.description || "—"}</td>
+                                  <td>{item.quantity ?? "—"}</td>
+                                  <td>{item.remarks || "—"}</td>
+                                </tr>
+                              ))
                             ) : (
-                              "—"
+                              <tr>
+                                <td colSpan={4}>No items recorded.</td>
+                              </tr>
                             )}
-                          </td>
-                        </tr>
-                        <tr>
-                          <th>Received by</th>
-                          <td>{selectedRequest.received_by || "—"}</td>
-                          <th>Signature</th>
-                          <td>
-                            {selectedRequest.received_signature ? (
-                              <img
-                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.received_signature}`}
-                                alt="Received signature"
-                              />
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                    <div className="transmittal-record__received-date">
-                      <p className="label">Date received</p>
-                      <p>{formatDate(selectedRequest.received_date)}</p>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="transmittal-record__notes">
+                        <p className="label">Notes / discrepancies</p>
+                        <p>{selectedRequest.notes || "—"}</p>
+                      </div>
+
+                      <div className="transmittal-record__signatures">
+                        <table>
+                          <tbody>
+                            <tr>
+                              <th>Submitted by</th>
+                              <td>{selectedRequest.sender_name || "—"}</td>
+                              <th>Signature</th>
+                              <td>
+                                {selectedRequest.sender_signature ? (
+                                  <img
+                                    src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.sender_signature}`}
+                                    alt="Submitted signature" />
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                            </tr>
+                            <tr>
+                              <th>Received by</th>
+                              <td>{selectedRequest.received_by || "—"}</td>
+                              <th>Signature</th>
+                              <td>
+                                {selectedRequest.received_signature ? (
+                                  <img
+                                    src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.received_signature}`}
+                                    alt="Received signature" />
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <div className="transmittal-record__received-date">
+                          <p className="label">Date received</p>
+                          <p>{formatDate(selectedRequest.received_date)}</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  </div><div
+                    className={`floating-decline-reason ${(selectedRequest.status || "pending").toLowerCase()}`}
+                  >
+                      <div className="floating-decline-content">
+                        <strong>Status:</strong>
+                        <p>{selectedRequest.status || "Pending"}</p>
+                      </div>
+                    </div></>
               )}
             </>
           )}

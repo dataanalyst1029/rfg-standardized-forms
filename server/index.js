@@ -3539,6 +3539,72 @@ app.get("/api/transmittals/items", async (req, res) => {
   }
 });
 
+app.put("/api/transmittals/status", async (req, res) => {
+  const { id, status, received_by, received_signature, received_date } = req.body || {};
+  const normalize = (value) => (value === "" || value === undefined ? null : value);
+  const statusValue =
+    typeof status === "string" && status.trim()
+      ? status.trim().toLowerCase() === "received"
+        ? "Received"
+        : status.trim().toLowerCase() === "declined"
+          ? "Declined"
+          : status.trim()
+      : null;
+
+  const requestId = Number(id);
+
+  if (!requestId || !statusValue) {
+    return res.status(400).json({ message: "Valid id and status are required" });
+  }
+
+  try {
+    await pool.query(
+      `UPDATE transmittal_requests
+          SET status = $2,
+              received_by = COALESCE($3, received_by),
+              received_signature = COALESCE($4, received_signature),
+              received_date = COALESCE($5, received_date)
+        WHERE id = $1`,
+      [
+        requestId,
+        statusValue,
+        normalize(received_by),
+        normalize(received_signature),
+        received_date ? new Date(received_date) : null,
+      ],
+    );
+
+    const result = await pool.query(
+      `
+      SELECT tr.*,
+        json_agg(
+          json_build_object(
+            'id', tri.id,
+            'reference_no', tri.reference_no,
+            'description', tri.description,
+            'quantity', tri.quantity,
+            'remarks', tri.remarks
+          )
+        ) FILTER (WHERE tri.id IS NOT NULL) AS items
+      FROM transmittal_requests tr
+      LEFT JOIN transmittal_request_items tri ON tr.id = tri.request_id
+      WHERE tr.id = $1
+      GROUP BY tr.id
+      `,
+      [requestId],
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ message: "Transmittal not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error updating transmittal status:", err);
+    res.status(500).json({ message: "Server error updating transmittal status" });
+  }
+});
+
 /* ------------------------
    INTERBRANCH TRANSFER SLIP API
 ------------------------ */

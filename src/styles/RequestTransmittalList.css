@@ -1,0 +1,120 @@
+.transmittal-list-wrapper .panel-search input {
+  min-width: 240px;
+}
+
+.transmittal-list-wrapper .admin-table-wrapper {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.transmittal-list-wrapper .admin-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-app-bg);
+  z-index: 1;
+}
+
+.transmittal-list-wrapper .admin-table td:last-child {
+  text-align: center;
+  width: 120px;
+}
+
+.transmittal-list-wrapper .admin-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.modal-field label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.modal-field span {
+  display: inline-block;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.6rem;
+  background: var(--color-app-bg);
+  border: 1px solid var(--color-border);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* Modal layout to match other request popups */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  overflow-y: auto;
+  z-index: 1200;
+}
+
+.admin-modal-panel.request-modal {
+  width: min(1100px, 100%);
+  background: var(--color-surface, #fff);
+  border-radius: 16px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.12);
+  padding: 1.25rem 1.5rem 1.5rem;
+  position: relative;
+}
+
+.admin-modal-panel.request-modal .panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-modal-panel.request-modal h2 {
+  margin: 0 0 0.25rem 0;
+}
+
+.admin-modal-panel.request-modal .panel-meta {
+  margin: 0;
+}
+
+.admin-modal-panel.request-modal .admin-danger-btn {
+  min-width: 36px;
+  padding: 0.35rem 0.65rem;
+}
+
+.admin-table-wrapper.purchase-table-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+}
+
+.admin-table.purchase-table thead th {
+  background: var(--color-app-bg);
+  text-transform: none;
+}
+
+.modal-actions {
+  position: sticky;
+  bottom: 0;
+  padding-top: 1rem;
+  background: var(--color-surface, #fff);
+}
