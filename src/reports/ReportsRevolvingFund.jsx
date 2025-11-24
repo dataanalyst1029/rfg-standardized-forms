@@ -296,7 +296,7 @@ function ReportsRevolvingFund() {
                   parseLocalDate(req.date_request)?.toLocaleDateString() || "—";
                 return (
                   <tr key={req.id}>
-                    <td style={{ textAlign: "center", cursor: "pointer", color: "blue" }} onClick={() => openModal(req)} title="View Details">
+                    <td style={{ textAlign: "center", cursor: "pointer", color: "blue", textDecoration: "underline" }} onClick={() => openModal(req)} title="View Details">
                       {req.revolving_request_code}
                     </td>
                     <td style={{ textAlign: "center" }}>{displayDate}</td>
@@ -317,7 +317,9 @@ function ReportsRevolvingFund() {
                         fontWeight: "bold", 
                       }}
                     >
-                      {req.status.toUpperCase()}
+                      <small>
+                        {req.status.toUpperCase()}
+                      </small>
                     </td>
                   </tr>
                 );
@@ -385,19 +387,39 @@ function ReportsRevolvingFund() {
                 ×
               </button>
 
-              <h2><small>Reference Number - </small> <small style={{textDecoration: 'underline', color: '#305ab5ff'}}>{modalRequest.revolving_request_code}</small></h2>
+              <h2>
+                <small>Reference Number - </small>
+                <small 
+                  style={{
+                    textDecoration: "underline",
+                    color: "#305ab5ff"
+                  }}
+                >
+                  {modalRequest.revolving_request_code}
+                </small>{" - "}
+                <small 
+                  style={{ 
+                    color: statusColors[modalRequest.status] || "black",
+                    fontWeight: "bold"
+                  }}
+                >
+                  {modalRequest.status.toUpperCase()}
+                </small>
+              </h2>
 
               <section className="pr-form-section" id="details">
                 <div className="pr-grid-two">
                   <div className="pr-field">
                     <label className="pr-label">
-                      Date:
+                      Date
                     </label>
                     <input
                       value={parseLocalDate(modalRequest.date_request)?.toLocaleDateString() || "—"}
                       className="pr-input"
                       readOnly
                     />
+                  </div>
+                  <div className="pr-field">
                   </div>
                 </div>
 
@@ -566,86 +588,69 @@ function ReportsRevolvingFund() {
                 </div>
               </section>
 
-              <div className="submit-content">
-                <div className="submit-by-content">
-                  <div>
-                    <span>{modalRequest.submitted_by}</span>
-                    <p>Submitted by</p>
-                  </div>
-
-                  <div className="signature-content">
+              <section className="pr-form-section">
+                <h2><small>Signature Details</small></h2>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">Submitted by</label>
                     <input
-                      className="submit-sign"
-                      type="text"
-                      value={modalRequest.submitter_signature}
+                      value={modalRequest.submitted_by}
+                      className="pr-input"
                       readOnly
                     />
+                  </div>
+
+                  <div className="pr-field receive-signature">
+                    <label classNclassName="pr-label">Signature</label>
+                    <input
+                        type="text"
+                        name="submitter_signature"
+                        value={modalRequest.submitter_signature || ""}
+                        className="pr-input received-signature"
+                        required
+                        readOnly
+                    />
                     {modalRequest.submitter_signature ? (
-                      <>
-                        <img
-                          src={`${API_BASE_URL}/uploads/signatures/${modalRequest.submitter_signature}`}
-                          alt="Signature"
-                          className="ca-signature-image"
-                        />
-                      </>
-                    ) : (
-                      <p>
-                        <i>No signature available</i>
-                      </p>
+                      <img
+                      src={`${API_BASE_URL}/uploads/signatures/${modalRequest.submitter_signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                        <p></p>
                     )}
-                    <p>Signature</p>
                   </div>
                 </div>
-              </div>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">Approved by</label>
+                    <input
+                      value={modalRequest.approved_by}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
 
-              <form
-                className="request-footer-form"
-                onSubmit={(e) => e.preventDefault()}
-              >
-                <div className="submit-content">
-                  <div className="submit-by-content">
-                    <div>
-                      <label>
-                        <span>
-                          <input
-                            type="text"
-                            name="approved_by"
-                            value={userData.name || ""}
-                            className="approver"
-                            readOnly
-                          />
-                        </span>
-                        <p>Approved by</p>
-                      </label>
-                    </div>
-
-                    <div className="approver-signature">
-                      <label>
-                        <span>
-                          <input
-                            type="text"
-                            name="approved_signature"
-                            value={userData.signature || ""}
-                            className="submit-sign approver"
-                            required
-                            readOnly
-                          />
-                        </span>
-                        {userData.signature ? (
-                          <img
-                            src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                            alt="Signature"
-                            className="signature-img"
-                          />
-                        ) : (
-                          <div className="img-sign empty-sign"></div>
-                        )}
-                        <p>Signature</p>
-                      </label>
-                    </div>
+                  <div className="pr-field receive-signature">
+                    <label classNclassName="pr-label">Signature</label>
+                    <input
+                        type="text"
+                        name="approver_signature"
+                        value={modalRequest.approver_signature || ""}
+                        className="pr-input received-signature"
+                        required
+                        readOnly
+                    />
+                    {modalRequest.approver_signature ? (
+                      <img
+                      src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approver_signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                        <p></p>
+                    )}
                   </div>
                 </div>
-              </form>
+              </section>
             </div>
           </div>
         </div>

@@ -5,68 +5,73 @@ import "../styles/ReportsAudit.css";
 import "../styles/RequestRevolvingFund.css";
 import { API_BASE_URL } from "../config/api.js";
 
-// Pagination options for the table
 const PAGE_SIZES = [5, 10, 20];
 
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // Handle MM/DD/YYYY (U.S. format)
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const [, month, day, year] = usMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Handle YYYY-MM-DD (ISO format)
   const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Fallback — native parse attempt
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
 
 function ReportsCashAdvanceLiquidation() {
-  // ---------------------- STATE DEFINITIONS ----------------------
 
-  // Main dataset of cash advance luquidation requests
   const [requests, setRequests] = useState([]);
 
-  // Loading spinner control while fetching data
   const [loading, setLoading] = useState(false);
 
-  // Status messages (e.g. network errors or info)
   const [status, setStatus] = useState(null);
 
-  // Search and pagination controls
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Modal states for viewing request details
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRequest, setModalRequest] = useState(null);
 
-  // Date range filters
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // const [startDate, setStartDate] = useState("");
+  // const [endDate, setEndDate] = useState("");
 
-  // Approver / user info
   const storedId = sessionStorage.getItem("id");
   const [userData, setUserData] = useState({ name: "", signature: "" });
 
-  // Misc. modal animation / confirmation states
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [showConfirmDecline, setShowConfirmDecline] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
-  // ---------------------- DATA FETCHING ----------------------
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-  // Fetch all cash advance luquidation from backend
+  const formatDate = (date) => {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(date - tzOffset).toISOString().slice(0, 10);
+    return localISOTime;
+  };
+
+  const [startDate, setStartDate] = useState(formatDate(firstDayOfMonth));
+  const [endDate, setEndDate] = useState(formatDate(today));
+
+  const statusColors = {
+    Declined: 'red',
+    Pending: "orange",
+    Approved: "blue",
+    Received: "purple",
+    Completed: "green",
+    Accomplished: "teal",
+  };
+
   const fetchRequests = async () => {
     setLoading(true);
     try {
@@ -74,7 +79,6 @@ function ReportsCashAdvanceLiquidation() {
       if (!response.ok) throw new Error("Failed to fetch cash advance liquidation");
       const data = await response.json();
 
-      // Sort newest first based on request code
       const sortedData = data.sort((a, b) =>
         b.cal_request_code.localeCompare(a.cal_request_code)
       );
@@ -88,9 +92,6 @@ function ReportsCashAdvanceLiquidation() {
     }
   };
 
-  // ---------------------- SIDE EFFECTS ----------------------
-
-  // Fetch approver (current user) details for footer signature
   useEffect(() => {
     if (!storedId) return;
     fetch(`${API_BASE_URL}/users/${storedId}`)
@@ -99,34 +100,27 @@ function ReportsCashAdvanceLiquidation() {
       .catch((err) => console.error("Error fetching user data:", err));
   }, [storedId]);
 
-  // Fetch cash advance luquidation requests when component mounts
   useEffect(() => {
     fetchRequests();
   }, []);
 
-  // Automatically clear status message after a few seconds
   useEffect(() => {
     if (!status) return undefined;
     const timeout = setTimeout(() => setStatus(null), 4000);
     return () => clearTimeout(timeout);
   }, [status]);
 
-  // Reset page to 1 when filters or search change
   useEffect(() => {
     setPage(1);
   }, [search, rowsPerPage, startDate, endDate]);
 
-  // ---------------------- FILTERING LOGIC ----------------------
-
   const filteredRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
 
-    // Step 1: Keep only requests with "pending" status
     let categorizedRequests = requests/*.filter(
       (req) => req.status?.toLowerCase() === "pending"
     )*/;
 
-    // Step 2: Apply start date filter (inclusive)
     if (startDate) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
@@ -136,7 +130,6 @@ function ReportsCashAdvanceLiquidation() {
       });
     }
 
-    // ✅ End date filter (inclusive)
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
@@ -155,7 +148,6 @@ function ReportsCashAdvanceLiquidation() {
       return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
     }
 
-    // Step 4: Apply text search filter (matches multiple fields)
     if (term) {
       categorizedRequests = categorizedRequests.filter((req) => {
         const topLevelMatch = 
@@ -187,28 +179,21 @@ function ReportsCashAdvanceLiquidation() {
     return categorizedRequests;
   }, [requests, search, startDate, endDate]);
 
-  // ---------------------- PAGINATION ----------------------
-
   const totalPages = Math.max(
     1,
     Math.ceil(filteredRequests.length / rowsPerPage) || 1
   );
 
-  // Slice the filtered results for current page view
   const visibleRequests = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     return filteredRequests.slice(start, start + rowsPerPage);
   }, [filteredRequests, page, rowsPerPage]);
 
-  // ---------------------- MODAL HANDLERS ----------------------
-
-  // Open modal and store selected request
   const openModal = (request) => {
     setModalRequest(request);
     setModalOpen(true);
   };
 
-  // Animate and close modal (with fade-out)
   const handleCloseModal = () => {
     setIsClosing(true);
     setTimeout(() => {
@@ -220,11 +205,8 @@ function ReportsCashAdvanceLiquidation() {
     }, 300);
   };
 
-  // ---------------------- RENDER ----------------------
-
   return (
     <div className="admin-view">
-      {/* ---------- Toolbar and Filters ---------- */}
       <div className="admin-toolbar">
         <div className="admin-toolbar-title">
           <h2>Cash Advance Liquidation Reports</h2>
@@ -232,7 +214,6 @@ function ReportsCashAdvanceLiquidation() {
         </div>
 
         <div className="admin-toolbar-actions">
-          {/* Date range filter inputs */}
           <p>Filter from </p>
           <input
             type="date"
@@ -250,7 +231,6 @@ function ReportsCashAdvanceLiquidation() {
             min={startDate}
           />
 
-          {/* Text search input */}
           <input
             type="search"
             className="admin-search"
@@ -262,7 +242,6 @@ function ReportsCashAdvanceLiquidation() {
         </div>
       </div>
 
-      {/* ---------- Status banner for errors/info ---------- */}
       {status && (
         <div
           className={`admin-status-banner${
@@ -277,7 +256,6 @@ function ReportsCashAdvanceLiquidation() {
         </div>
       )}
 
-      {/* ---------- Data Table ---------- */}
       <div className="admin-table-wrapper">
         <table className="admin-table purchase-table">
           <thead>
@@ -291,11 +269,9 @@ function ReportsCashAdvanceLiquidation() {
               <th style={{ textAlign: "left" }}>Check No.</th>
               <th style={{ textAlign: "center" }}>Nature of Activity</th>
               <th style={{ textAlign: "center" }}>Status</th>
-              <th style={{ textAlign: "center" }}>Action</th>
             </tr>
           </thead>
           <tbody>
-            {/* Loading or empty states */}
             {loading ? (
               <tr>
                 <td colSpan={8} className="admin-empty-state">
@@ -311,10 +287,9 @@ function ReportsCashAdvanceLiquidation() {
                 </td>
               </tr>
             ) : (
-              // Map visible requests into table rows
               visibleRequests.map((req) => (
                 <tr key={req.id}>
-                  <td style={{ textAlign: "center" }}>
+                  <td style={{ textAlign: "center", cursor: "pointer", color: "blue", textDecoration: "underline" }} onClick={() => openModal(req)} title="View Details">
                     {req.cal_request_code}
                   </td>
                   <td style={{ textAlign: "center" }}>
@@ -328,15 +303,14 @@ function ReportsCashAdvanceLiquidation() {
                   <td style={{ textAlign: "center" }}>
                     {req.status.toUpperCase()}
                   </td>
-                  <td style={{ textAlign: "center" }}>{req.status}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <button
-                      className="admin-primary-btn"
-                      onClick={() => openModal(req)}
-                      title="View Details"
-                    >
-                      🔍
-                    </button>
+                  <td
+                    style={{
+                      textAlign: "center",
+                      color: statusColors[req.status] || "black",
+                      fontWeight: "bold", 
+                    }}
+                  >
+                    {req.status.toUpperCase()}
                   </td>
                 </tr>
               ))
@@ -345,7 +319,6 @@ function ReportsCashAdvanceLiquidation() {
         </table>
       </div>
 
-      {/* ---------- Pagination Controls ---------- */}
       <div className="admin-pagination">
         <span className="admin-pagination-info">
           Showing {visibleRequests.length} of {filteredRequests.length} requests
@@ -373,7 +346,6 @@ function ReportsCashAdvanceLiquidation() {
           </button>
         </div>
 
-        {/* Rows-per-page selector */}
         <label className="admin-pagination-info" htmlFor="rowsPerPage">
           Rows per page
           <select
@@ -391,300 +363,352 @@ function ReportsCashAdvanceLiquidation() {
         </label>
       </div>
 
-      {/* ---------- Modal for Viewing Request Details ---------- */}
-        {modalOpen && modalRequest && (
-                <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
-                    <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-                        <div className="admin-modal-panel request-modals">
-                            <button
-                                className="admin-close-btn"
-                                onClick={handleCloseModal}
-                                aria-label="Close"
-                                >
-                                ×
-                            </button>
+      {modalOpen && modalRequest && (
+        <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
+            <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+                <div className="admin-modal-panel request-modals">
+                    <button
+                        className="admin-close-btn"
+                        onClick={handleCloseModal}
+                        aria-label="Close"
+                        >
+                        ×
+                    </button>
 
-                            <h2>Cash Advance Liquidation - {modalRequest.cal_request_code}</h2>
+                    <h2>
+                      <small>Reference Number - </small>
+                      <small 
+                        style={{
+                          textDecoration: "underline",
+                          color: "#305ab5ff"
+                        }}
+                      >
+                        {modalRequest.cal_request_code}
+                      </small>{" - "}
+                      <small 
+                        style={{ 
+                          color: statusColors[modalRequest.status] || "black",
+                          fontWeight: "bold"
+                        }}
+                      >
+                        {modalRequest.status.toUpperCase()}
+                      </small>
+                    </h2>
 
-                            <section className="pr-form-section" id="details">
-                              <div className="pr-grid-two">
-                                <div className="pr-field">
-                                  <label className="pr-label" htmlFor="employeeID">
-                                    Date:
-                                  </label>
-                                  <input
-                                    value={new Date(modalRequest.request_date).toLocaleDateString()}
-                                    className="pr-input"
-                                    readOnly
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="pr-grid-two">
-                                <div className="pr-field">
-                                  <label className="pr-label" htmlFor="employeeID">
-                                    Employee ID
-                                  </label>
-                                  <input
-                                    value={modalRequest.employee_id}
-                                    className="pr-input"
-                                    readOnly
-                                  />
-                                </div>
-                                 <div className="pr-field">
-                                  <label className="pr-label" htmlFor="employeeID">
-                                    Name
-                                  </label>
-                                  <input
-                                    value={modalRequest.name}
-                                    className="pr-input"
-                                    readOnly
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="pr-grid-two">
-                                <div className="pr-field">
-                                  <label className="pr-label" htmlFor="employeeID">
-                                    Branch
-                                  </label>
-                                  <input
-                                    value={modalRequest.branch}
-                                    className="pr-input"
-                                    readOnly
-                                  />
-                                </div>
-                                 <div className="pr-field">
-                                  <label className="pr-label" htmlFor="employeeID">
-                                    Department
-                                  </label>
-                                  <input
-                                    value={modalRequest.department}
-                                    className="pr-input"
-                                    readOnly
-                                  />
-                                </div>
-                              </div>
-                            </section>
-
-
-                          <section className="pr-form-section">
-                            <div class="replenish-amount">
-                                <p>
-                                    <strong>Nature of Activity:</strong>{" "}
-                                    <em>{modalRequest.nature_activity}</em>
-                                </p>
-                                <p>
-                                    <strong>Inclusive date(s):</strong>{" "}
-                                    <em>{new Date(modalRequest.inclusive_date_from).toLocaleDateString()} - {new Date(modalRequest.inclusive_date_to).toLocaleDateString()}</em>
-                                </p>
-                            </div>
-
-                            {modalRequest.items && modalRequest.items.length > 0 ? (
-                            <table className="request-items-table">
-                                <thead>
-                                <tr>
-                                    <th className="text-center">DATE</th>
-                                    <th className="text-center">DESCRIPTION</th>
-                                    <th className="text-center">OR NO.</th>
-                                    <th className="text-center">AMOUNT</th>
-                                    <th className="text-center">EXPENSE CHARGES</th>
-                                    <th>Store/Branch</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {modalRequest.items.map((item) => (
-                                    <tr key={item.id}>
-                                        <td className="text-center">{item.transaction_date}</td>
-                                        <td className="text-center">{item.description}</td>
-                                        <td className="text-center">{item.or_no}</td>
-                                        <td className="text-center">
-                                            {item.amount? Number(item.amount).toLocaleString("en-PH", {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })
-                                            : "0.00"}
-                                        </td>
-                                        <td className="text-center">{item.exp_charges}</td>
-                                        <td className="text-center">{item.store_branch}</td>
-                                        {/* <td>{item.remarks}</td> */}
-                                    </tr>
-    
-                                ))}
-                                <tr>
-                                    <td className="text-center" colSpan={3}><b>Total Expenses</b></td>
-                                    <td className="text-center">{modalRequest.total_expense
-                                            ? Number(modalRequest.total_expense).toLocaleString("en-PH", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })
-                                        : "0.00"}
-                                    </td>
-                                    <td colSpan={2}></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                            ) : (
-                            <p>—</p> 
-                            )}
-                          </section>
-                            
-
-                            <section className="pr-form-section">
-                                <div>
-                                    <table className="request-items-table">
-                                        <tr>
-                                            <th className="text-center">BUDGETED</th>
-                                            <th className="text-center">ACTUAL</th>
-                                            <th className="text-center">DIFFERENCE</th>
-                                        </tr>
-                                        <tr>
-                                            <td className="text-center">
-                                                {modalRequest.budgeted
-                                                    ? Number(modalRequest.budgeted).toLocaleString("en-PH", {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2,
-                                                })
-                                                : "0.00"}
-                                            </td>
-                                            <td className="text-center">
-                                                {modalRequest.actual
-                                                    ? Number(modalRequest.actual).toLocaleString("en-PH", {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2,
-                                                })
-                                                : "0.00"}</td>
-                                            <td className="text-center">
-                                                {modalRequest.difference
-                                                    ? Number(modalRequest.difference).toLocaleString("en-PH", {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2,
-                                                })
-                                                : "0.00"}
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </section>
-
-                            <div className="pr-items-card">
-                                <div className="pr-flex-container">
-                                    <div className="cal-section" >
-                                        <h2 className="pr-section-title">When Budgeted Exceeds Actual</h2>
-                                        <div>
-                                            <span>Deposit of Excess</span>
-                                            <input type="text" value={modalRequest.excess_deposit} readOnly />
-                                        </div>
-                                        <div>
-                                            <span>Date</span>
-                                            <input type="text" value={new Date(modalRequest.date_excess).toLocaleDateString()} readOnly/>
-                                        </div>
-                                        <div>
-                                            <span>Acknowledgement Receipt No.</span>
-                                            <input type="text" value={modalRequest.ack_rcpt_no} readOnly/>
-                                        </div>
-                                        <div>
-                                            <span>Amount</span>
-                                            <input 
-                                                type="text"
-                                                value={modalRequest.exceed_amount? Number(modalRequest.exceed_amount).toLocaleString("en-PH", {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2,
-                                                })
-                                                : "0.00"} readOnly
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="cal-section" >
-                                        <h2 className="pr-section-title">When Actual Exceeds Budgeted</h2>
-                                        <div>
-                                            <span>Reimbursable Amount</span>
-                                            <input 
-                                                type="text"
-                                                value={modalRequest.rb_amount? Number(modalRequest.rb_amount).toLocaleString("en-PH", {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2,
-                                                })
-                                                : "0.00"} readOnly
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="submit-content">
-                              <div className="submit-by-content">
-                                <div>
-                                  <span>{modalRequest.prepared_by}</span>
-                                  <p>Prepared by</p>
-                                </div>
-
-                                <div className="signature-content">
-                                      <input className="submit-sign" type="text" value={modalRequest.prepared_signature} readOnly />
-                                        {modalRequest.prepared_signature ? (
-                                            <>
-                                            <img
-                                                src={`${API_BASE_URL}/uploads/signatures/${modalRequest.prepared_signature}`}
-                                                alt="Signature"
-                                                className="cal-signature-image"
-                                            />
-                                            </>
-                                        ) : (
-                                            <div className="img-sign empty-sign"></div>
-                                        )}
-                                  <p>Signature</p>
-                                </div>
-                              </div>
-                            </div>
-
-                            <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                              <div className="submit-content">
-                                <div className="submit-by-content">
-                                    <div>
-                                      <label>
-                                        <span>
-                                            <input
-                                            type="text"
-                                            name="approved_by"
-                                            value={modalRequest.approved_by || ""}
-                                            className="approver"
-                                            readOnly
-                                            />
-                                        </span>
-                                        <p>Approved by</p>
-                                      </label>
-                                    </div>
-
-                                    <div className="approver-signature">
-                                        <label>
-                                          <span>
-                                            <input
-                                            type="text"
-                                            name="approve_signature"
-                                            value={modalRequest.approve_signature || ""}
-                                            className="submit-sign approver"
-                                            required
-                                            readOnly
-                                          />
-                                          </span>
-                                          {modalRequest.approve_signature ? (
-                                          <img
-                                          src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approve_signature}`}
-                                          alt="Signature"
-                                          className="signature-img"/>
-                                          ) : (
-                                              <div className="img-sign empty-sign"></div>
-                                          )}
-                                          <p>Signature</p>
-                                        </label>
-                                    </div>
-                                </div>
-                              </div>
-                            </form>
+                    <section className="pr-form-section" id="details">
+                      <div className="pr-grid-two">
+                        <div className="pr-field">
+                          <label className="pr-label" htmlFor="employeeID">
+                            Date:
+                          </label>
+                          <input
+                            value={new Date(modalRequest.request_date).toLocaleDateString()}
+                            className="pr-input"
+                            readOnly
+                          />
                         </div>
+                        <div className="pr-field">
+                          
+                        </div>
+                      </div>
+
+                      <div className="pr-grid-two">
+                        <div className="pr-field">
+                          <label className="pr-label" htmlFor="employeeID">
+                            Employee ID
+                          </label>
+                          <input
+                            value={modalRequest.employee_id}
+                            className="pr-input"
+                            readOnly
+                          />
+                        </div>
+                          <div className="pr-field">
+                          <label className="pr-label" htmlFor="employeeID">
+                            Name
+                          </label>
+                          <input
+                            value={modalRequest.name}
+                            className="pr-input"
+                            readOnly
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pr-grid-two">
+                        <div className="pr-field">
+                          <label className="pr-label" htmlFor="employeeID">
+                            Branch
+                          </label>
+                          <input
+                            value={modalRequest.branch}
+                            className="pr-input"
+                            readOnly
+                          />
+                        </div>
+                          <div className="pr-field">
+                          <label className="pr-label" htmlFor="employeeID">
+                            Department
+                          </label>
+                          <input
+                            value={modalRequest.department}
+                            className="pr-input"
+                            readOnly
+                          />
+                        </div>
+                      </div>
+                      <div className="pr-grid-two">
+                        <div className="pr-field">
+                          <label className="pr-label" htmlFor="natureActivity">
+                            Nature of Activity
+                          </label>
+                          <input
+                            value={modalRequest.nature_activity}
+                            className="pr-input"
+                            readOnly
+                          />
+                        </div>
+                          <div className="pr-field">
+                          <label className="pr-label" htmlFor="employeeID">
+                            Inclusive date(s)
+                          </label>
+                          <input
+                            value={
+                              `${new Date(modalRequest.inclusive_date_from).toLocaleDateString()} - ${new Date(modalRequest.inclusive_date_to).toLocaleDateString()}`
+                            }
+                            className="pr-input"
+                            readOnly
+                          />
+                        </div>
+                      </div>
+                    </section>
+
+
+                  <section className="pr-form-section">
+                    {modalRequest.items && modalRequest.items.length > 0 ? (
+                    <table className="request-items-table">
+                        <thead>
+                        <tr>
+                            <th className="text-center">DATE</th>
+                            <th className="text-center">DESCRIPTION</th>
+                            <th className="text-center">OR NO.</th>
+                            <th className="text-center">AMOUNT</th>
+                            <th className="text-center">EXPENSE CHARGES</th>
+                            <th>Store/Branch</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {modalRequest.items.map((item) => (
+                            <tr key={item.id}>
+                                <td className="text-center">{item.transaction_date}</td>
+                                <td className="text-center">{item.description}</td>
+                                <td className="text-center">{item.or_no}</td>
+                                <td className="text-center">
+                                    {item.amount? Number(item.amount).toLocaleString("en-PH", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })
+                                    : "0.00"}
+                                </td>
+                                <td className="text-center">{item.exp_charges}</td>
+                                <td className="text-center">{item.store_branch}</td>
+                            </tr>
+
+                        ))}
+                        <tr>
+                            <td className="text-center" colSpan={3}><b>Total Expenses</b></td>
+                            <td className="text-center">{modalRequest.total_expense
+                                    ? Number(modalRequest.total_expense).toLocaleString("en-PH", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })
+                                : "0.00"}
+                            </td>
+                            <td colSpan={2}></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    ) : (
+                    <p>—</p> 
+                    )}
+                  </section>
+                    
+                  <section className="pr-form-section">
+                    <div>
+                        <table className="request-items-table">
+                            <tr>
+                                <th className="text-center">BUDGETED</th>
+                                <th className="text-center">ACTUAL</th>
+                                <th className="text-center">DIFFERENCE</th>
+                            </tr>
+                            <tr>
+                                <td className="text-center">
+                                    {modalRequest.budgeted
+                                        ? Number(modalRequest.budgeted).toLocaleString("en-PH", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })
+                                    : "0.00"}
+                                </td>
+                                <td className="text-center">
+                                    {modalRequest.actual
+                                        ? Number(modalRequest.actual).toLocaleString("en-PH", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })
+                                    : "0.00"}</td>
+                                <td className="text-center">
+                                    {modalRequest.difference
+                                        ? Number(modalRequest.difference).toLocaleString("en-PH", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })
+                                    : "0.00"}
+                                </td>
+                            </tr>
+                        </table>
                     </div>
+                  </section>
+
+                  <div className="pr-items-card">
+                    <div className="pr-flex-container">
+                        <div className="cal-section" >
+                            <h2 className="pr-section-title">When Budgeted Exceeds Actual</h2>
+                            <div>
+                                <span>Deposit of Excess</span>
+                                <input type="text" value={modalRequest.excess_deposit} readOnly />
+                            </div>
+                            <div>
+                                <span>Date</span>
+                                <input type="text" value={new Date(modalRequest.date_excess).toLocaleDateString()} readOnly/>
+                            </div>
+                            <div>
+                                <span>Acknowledgement Receipt No.</span>
+                                <input type="text" value={modalRequest.ack_rcpt_no} readOnly/>
+                            </div>
+                            <div>
+                                <span>Amount</span>
+                                <input 
+                                    type="text"
+                                    value={modalRequest.exceed_amount? Number(modalRequest.exceed_amount).toLocaleString("en-PH", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })
+                                    : "0.00"} readOnly
+                                />
+                            </div>
+                        </div>
+                        <div className="cal-section" >
+                          <h2 className="pr-section-title">When Actual Exceeds Budgeted</h2>
+                          <div>
+                              <span>Reimbursable Amount</span>
+                              <input 
+                                  type="text"
+                                  value={modalRequest.rb_amount? Number(modalRequest.rb_amount).toLocaleString("en-PH", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                  })
+                                  : "0.00"} readOnly
+                              />
+                          </div>
+                        </div>
+                      </div>
+                  </div>
+
+                  <section className="pr-form-section" >
+                    <h2><small>Signature Details</small></h2>
+                    <div className="pr-grid-two">
+                      <div className="pr-field">
+                        <label className="pr-label">Prepared by</label>
+                        <input
+                          value={modalRequest.prepared_by}
+                          className="pr-input"
+                          readOnly
+                        />
+                      </div>
+
+                      <div className="pr-field receive-signature">
+                        <label className="pr-label">Signature</label>
+                        <input
+                            type="text"
+                            value={modalRequest.prepared_signature || ""}
+                            className="pr-input received-signature"
+                            required
+                            readOnly
+                        />
+                        {modalRequest.prepared_signature ? (
+                          <img
+                          src={`${API_BASE_URL}/uploads/signatures/${modalRequest.prepared_signature}`}
+                          alt="Signature"
+                          className="img-sign"/>
+                          ) : (
+                            <p style={{display: 'none'}}></p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="pr-grid-two">
+                      <div className="pr-field">
+                        <label className="pr-label">Endorsed by</label>
+                        <input
+                          value={modalRequest.endorsed_by}
+                          className="pr-input"
+                          readOnly
+                        />
+                      </div>
+
+                      <div className="pr-field receive-signature">
+                        <label className="pr-label">Signature</label>
+                        <input
+                            type="text"
+                            value={modalRequest.endorsed_signature || ""}
+                            className="pr-input received-signature"
+                            required
+                            readOnly
+                        />
+                        {modalRequest.endorsed_signature ? (
+                          <img
+                          src={`${API_BASE_URL}/uploads/signatures/${modalRequest.endorsed_signature}`}
+                          alt="Signature"
+                          className="img-sign"/>
+                          ) : (
+                            <p style={{display: 'none'}}></p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="pr-grid-two">
+                      <div className="pr-field">
+                        <label className="pr-label">Approved by</label>
+                        <input
+                          value={modalRequest.approved_by}
+                          className="pr-input"
+                          readOnly
+                        />
+                      </div>
+
+                      <div className="pr-field receive-signature">
+                        <label className="pr-label">Signature</label>
+                        <input
+                            type="text"
+                            value={modalRequest.approve_signature || ""}
+                            className="pr-input received-signature"
+                            required
+                            readOnly
+                        />
+                        {modalRequest.approve_signature ? (
+                          <img
+                          src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approve_signature}`}
+                          alt="Signature"
+                          className="img-sign"/>
+                          ) : (
+                            <p style={{display: 'none'}}></p>
+                        )}
+                      </div>
+                    </div>
+                  </section>
                 </div>
-            )}
+            </div>
+        </div>
+      )}
     </div>
   );
 }
