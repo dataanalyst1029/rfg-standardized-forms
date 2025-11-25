@@ -231,29 +231,65 @@ function OverviewPanel({ summary, loading, error } = {}) {
 
   const refreshedLabel = relativeTime(summary?.refreshed_at);
 
+  const [workloadPage, setWorkloadPage] = useState(1);
+  const pageSize = 6;
+  const totalWorkloadPages = Math.max(1, Math.ceil(workloadCards.length / pageSize));
+  useEffect(() => {99
+    setWorkloadPage(1);
+  }, [workloadCards.length]);
+
+  const pagedWorkload = workloadCards.slice((workloadPage - 1) * pageSize, workloadPage * pageSize);
+
   const workloadContent =
     workloadCards.length === 0 && !loading ? (
       <p className="panel-empty">No submissions yet.</p>
     ) : (
-      <div className="dashboard-cards dashboard-cards--compact">
-        {workloadCards.map((card) => (
-          <article key={card.key} className="dashboard-card dashboard-card--compact">
-            <span className="dashboard-card-title">{card.label}</span>
-            <span className="dashboard-card-value">{formatMetric(card.total)}</span>
-            <div className="workload-breakdown">
-              <span className="status-pill status-pill--pending">
-                {formatMetric(card.pending)} pending
+      <>
+        <div className="dashboard-cards dashboard-cards--compact">
+          {pagedWorkload.map((card) => (
+            <article key={card.key} className="dashboard-card dashboard-card--compact">
+              <span className="dashboard-card-title">{card.label}</span>
+              <span className="dashboard-card-value">{formatMetric(card.total)}</span>
+              <div className="workload-breakdown">
+                <span className="status-pill status-pill--pending">
+                  {formatMetric(card.pending)} pending
+                </span>
+                <span className="status-pill status-pill--success">
+                  {formatMetric(card.approved)} approved
+                </span>
+                <span className="status-pill status-pill--danger">
+                  {formatMetric(card.declined)} declined
+                </span>
+              </div>
+            </article>
+          ))}
+        </div>
+        {totalWorkloadPages > 1 && (
+          <div className="admin-pagination" style={{ marginTop: "0.75rem" }}>
+            <div className="admin-pagination-controls">
+              <button
+                type="button"
+                className="admin-pagination-btn"
+                onClick={() => setWorkloadPage((prev) => Math.max(1, prev - 1))}
+                disabled={workloadPage === 1}
+              >
+                Prev
+              </button>
+              <span className="admin-pagination-info">
+                Page {workloadPage} of {totalWorkloadPages}
               </span>
-              <span className="status-pill status-pill--success">
-                {formatMetric(card.approved)} approved
-              </span>
-              <span className="status-pill status-pill--danger">
-                {formatMetric(card.declined)} declined
-              </span>
+              <button
+                type="button"
+                className="admin-pagination-btn"
+                onClick={() => setWorkloadPage((prev) => Math.min(totalWorkloadPages, prev + 1))}
+                disabled={workloadPage === totalWorkloadPages}
+              >
+                Next
+              </button>
             </div>
-          </article>
-        ))}
-      </div>
+          </div>
+        )}
+      </>
     );
 
   const outstandingContent =
