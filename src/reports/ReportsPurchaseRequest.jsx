@@ -275,7 +275,7 @@ function ReportsRequestPurchase() {
             ) : (
               visibleRequests.map((req) => (
                 <tr key={req.id}>
-                  <td style={{ textAlign: "center", cursor: "pointer", color: "blue" }} onClick={() => openModal(req)} title="View Details">
+                  <td style={{ textAlign: "center", cursor: "pointer", color: "blue", textDecoration: "underline" }} onClick={() => openModal(req)} title="View Details">
                     {req.purchase_request_code}
                   </td>
                   <td style={{ textAlign: "center" }}>
@@ -293,7 +293,9 @@ function ReportsRequestPurchase() {
                       fontWeight: "bold", 
                     }}
                   >
-                    {req.status.toUpperCase()}
+                    <small>
+                      {req.status.toUpperCase()}
+                    </small>
                   </td>
                   {/* <td style={{ textAlign: "center" }}>
                     <button
@@ -367,7 +369,26 @@ function ReportsRequestPurchase() {
                 ×
               </button>
 
-              <h2><small>Reference Number - </small><small style={{textDecoration: 'underline', color: '#305ab5ff'}}>{modalRequest.purchase_request_code}</small></h2>
+              <h2>
+                <small>Reference Number - </small>
+                <small 
+                  style={{
+                    textDecoration: "underline",
+                    color: "#305ab5ff"
+                  }}
+                >
+                  {modalRequest.purchase_request_code}
+                </small>{" - "}
+                <small 
+                  style={{ 
+                    color: statusColors[modalRequest.status] || "black",
+                    fontWeight: "bold"
+                  }}
+                >
+                  {modalRequest.status.toUpperCase()}
+                </small>
+              </h2>
+
 
               <section className="pr-form-section">
                 <h2><small>Request Details</small></h2>
@@ -382,6 +403,8 @@ function ReportsRequestPurchase() {
                       className="pr-input"
                       readOnly
                     />
+                  </div>
+                  <div className="pr-field">
                   </div>
                 </div>
 
@@ -481,98 +504,22 @@ function ReportsRequestPurchase() {
                     <input
                         type="text"
                         name="approved_signature"
-                        value={userData.signature || ""}
-                        className="car-input received-signature"
+                        value={modalRequest.approved_signature || ""}
+                        className="pr-input received-signature"
                         required
                         readOnly
                     />
-                    {userData.signature ? (
+                    {modalRequest.approved_signature ? (
                       <img
-                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                      src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
                       alt="Signature"
                       className="img-sign"/>
                       ) : (
-                        <p>No signature available</p>
+                        <p></p>
                     )}
                   </div>
                 </div>
               </section>
-
-              <div className="submit-content">
-                <div className="submit-by-content">
-                  <div>
-                    <span>{modalRequest.request_by}</span>
-                    <p>Requested by</p>
-                  </div>
-
-                  <div className="signature-content">
-                    <input
-                      className="submit-sign"
-                      type="text"
-                      value={modalRequest.request_signature}
-                      readOnly
-                    />
-                    {modalRequest.request_signature ? (
-                      <>
-                        <img
-                          src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
-                          alt="Signature"
-                          className="ca-signature-image"
-                        />
-                      </>
-                    ) : (
-                      <div className="img-sign empty-sign"></div>
-                    )}
-                    <p>Signature</p>
-                  </div>
-                </div>
-              </div>
-
-              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                <div className="submit-content">
-                  <div className="submit-by-content">
-                    <div>
-                      <label>
-                        <span>
-                          <input
-                            type="text"
-                            name="approved_by"
-                            value={modalRequest.approved_by || ""}
-                            className="approver"
-                            readOnly
-                          />
-                        </span>
-                        <p>Approved by</p>
-                      </label>
-                    </div>
-
-                    <div className="approver-signature">
-                      <label>
-                        <span>
-                          <input
-                            type="text"
-                            name="approved_signature"
-                            value={modalRequest.approved_signature || ""}
-                            className="submit-sign approver"
-                            required
-                            readOnly
-                          />
-                        </span>
-                        {modalRequest.approved_signature ? (
-                          <img
-                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
-                            alt="Signature"
-                            className="signature-img"
-                          />
-                        ) : (
-                          <div className="img-sign empty-sign"></div>
-                        )}
-                        <p>Signature</p>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </form>
             </div>
           </div>
         </div>
