@@ -1,4 +1,3 @@
-/* eslint-env node */
 import process from "node:process";
 import express from "express";
 import cors from "cors";
@@ -58,149 +57,149 @@ const uploadFiles = multer({
   { name: "profile_img", maxCount: 1 },
 ]);
 
-const getNextRevolvingFundCode = async () => {
-  const year = new Date().getFullYear();
-  const prefix = `RFF-${year}-`;
+// const getNextRevolvingFundCode = async () => {
+//   const year = new Date().getFullYear();
+//   const prefix = `RFF-${year}-`;
 
-  const { rows } = await pool.query(
-    `SELECT form_code
-       FROM revolving_fund_requests
-      WHERE form_code LIKE $1
-      ORDER BY form_code DESC
-      LIMIT 1`,
-    [`${prefix}%`],
-  );
+//   const { rows } = await pool.query(
+//     `SELECT form_code
+//        FROM revolving_fund_requests
+//       WHERE form_code LIKE $1
+//       ORDER BY form_code DESC
+//       LIMIT 1`,
+//     [`${prefix}%`],
+//   );
 
-  if (rows.length === 0) {
-    return `${prefix}001`;
-  }
+//   if (rows.length === 0) {
+//     return `${prefix}001`;
+//   }
 
-  const lastCode = rows[0].form_code;
-  const parts = lastCode.split("-");
-  const lastNumber = parseInt(parts[2], 10);
-  const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
-  return `${prefix}${nextNumber}`;
-};
+//   const lastCode = rows[0].form_code;
+//   const parts = lastCode.split("-");
+//   const lastNumber = parseInt(parts[2], 10);
+//   const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
+//   return `${prefix}${nextNumber}`;
+// };
 
-const getNextCashAdvanceCode = async () => {
-  const year = new Date().getFullYear();
-  const prefix = `CAR-${year}-`;
+// const getNextCashAdvanceCode = async () => {
+//   const year = new Date().getFullYear();
+//   const prefix = `CAR-${year}-`;
 
-  const { rows } = await pool.query(
-    `SELECT form_code
-       FROM cash_advance_requests
-      WHERE form_code LIKE $1
-      ORDER BY form_code DESC
-      LIMIT 1`,
-    [`${prefix}%`],
-  );
+//   const { rows } = await pool.query(
+//     `SELECT form_code
+//        FROM cash_advance_requests
+//       WHERE form_code LIKE $1
+//       ORDER BY form_code DESC
+//       LIMIT 1`,
+//     [`${prefix}%`],
+//   );
 
-  if (rows.length === 0) {
-    return `${prefix}001`;
-  }
+//   if (rows.length === 0) {
+//     return `${prefix}001`;
+//   }
 
-  const lastCode = rows[0].form_code;
-  const parts = lastCode.split("-");
-  const lastNumber = parseInt(parts[2], 10);
-  const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
-  return `${prefix}${nextNumber}`;
-};
+//   const lastCode = rows[0].form_code;
+//   const parts = lastCode.split("-");
+//   const lastNumber = parseInt(parts[2], 10);
+//   const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
+//   return `${prefix}${nextNumber}`;
+// };
 
-const getNextPaymentRequestCode = async () => {
-  const year = new Date().getFullYear();
-  const prefix = `PRF-${year}-`;
+// const getNextPaymentRequestCode = async () => {
+//   const year = new Date().getFullYear();
+//   const prefix = `PRF-${year}-`;
 
-  const { rows } = await pool.query(
-    `SELECT form_code
-       FROM payment_requests
-      WHERE form_code LIKE $1
-      ORDER BY form_code DESC
-      LIMIT 1`,
-    [`${prefix}%`],
-  );
+//   const { rows } = await pool.query(
+//     `SELECT form_code
+//        FROM payment_requests
+//       WHERE form_code LIKE $1
+//       ORDER BY form_code DESC
+//       LIMIT 1`,
+//     [`${prefix}%`],
+//   );
 
-  if (rows.length === 0) {
-    return `${prefix}001`;
-  }
+//   if (rows.length === 0) {
+//     return `${prefix}001`;
+//   }
 
-  const lastCode = rows[0].form_code;
-  const parts = lastCode.split("-");
-  const lastNumber = parseInt(parts[2], 10);
-  const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
-  return `${prefix}${nextNumber}`;
-};
+//   const lastCode = rows[0].form_code;
+//   const parts = lastCode.split("-");
+//   const lastNumber = parseInt(parts[2], 10);
+//   const nextNumber = String((Number.isNaN(lastNumber) ? 0 : lastNumber) + 1).padStart(3, "0");
+//   return `${prefix}${nextNumber}`;
+// };
 
-const fetchRevolvingFundById = async (id) => {
-  const { rows } = await pool.query(
-    `SELECT *
-       FROM revolving_fund_requests
-      WHERE id = $1`,
-    [id],
-  );
+// const fetchRevolvingFundById = async (id) => {
+//   const { rows } = await pool.query(
+//     `SELECT *
+//        FROM revolving_fund_requests
+//       WHERE id = $1`,
+//     [id],
+//   );
 
-  if (rows.length === 0) {
-    return null;
-  }
+//   if (rows.length === 0) {
+//     return null;
+//   }
 
-  const request = rows[0];
-  const { rows: itemRows } = await pool.query(
-    `SELECT *
-       FROM revolving_fund_items
-      WHERE request_id = $1
-      ORDER BY entry_date ASC, created_at ASC`,
-    [id],
-  );
+//   const request = rows[0];
+//   const { rows: itemRows } = await pool.query(
+//     `SELECT *
+//        FROM revolving_fund_items
+//       WHERE request_id = $1
+//       ORDER BY entry_date ASC, created_at ASC`,
+//     [id],
+//   );
 
-  return { ...request, items: itemRows };
-};
+//   return { ...request, items: itemRows };
+// };
 
-const fetchCashAdvanceById = async (id) => {
-  const { rows } = await pool.query(
-    `SELECT *
-       FROM cash_advance_requests
-      WHERE id = $1`,
-    [id],
-  );
+// const fetchCashAdvanceById = async (id) => {
+//   const { rows } = await pool.query(
+//     `SELECT *
+//        FROM cash_advance_requests
+//       WHERE id = $1`,
+//     [id],
+//   );
 
-  if (rows.length === 0) {
-    return null;
-  }
+//   if (rows.length === 0) {
+//     return null;
+//   }
 
-  const request = rows[0];
-  const { rows: itemRows } = await pool.query(
-    `SELECT *
-       FROM cash_advance_items
-      WHERE request_id = $1
-      ORDER BY created_at ASC`,
-    [id],
-  );
+//   const request = rows[0];
+//   const { rows: itemRows } = await pool.query(
+//     `SELECT *
+//        FROM cash_advance_items
+//       WHERE request_id = $1
+//       ORDER BY created_at ASC`,
+//     [id],
+//   );
 
-  return { ...request, items: itemRows };
-};
+//   return { ...request, items: itemRows };
+// };
 
-const fetchPaymentRequestById = async (id) => {
-  const { rows } = await pool.query(
-    `SELECT *
-       FROM payment_requests
-      WHERE id = $1`,
-    [id],
-  );
+// const fetchPaymentRequestById = async (id) => {
+//   const { rows } = await pool.query(
+//     `SELECT *
+//        FROM payment_requests
+//       WHERE id = $1`,
+//     [id],
+//   );
 
-  if (rows.length === 0) {
-    return null;
-  }
+//   if (rows.length === 0) {
+//     return null;
+//   }
 
-  const request = rows[0];
-  const { rows: itemRows } = await pool.query(
-    `SELECT *
-       FROM payment_request_items
-      WHERE request_id = $1
-      ORDER BY created_at ASC`,
-    [id],
-  );
+//   const request = rows[0];
+//   const { rows: itemRows } = await pool.query(
+//     `SELECT *
+//        FROM payment_request_items
+//       WHERE request_id = $1
+//       ORDER BY created_at ASC`,
+//     [id],
+//   );
 
-  return { ...request, items: itemRows };
-};
+//   return { ...request, items: itemRows };
+// };
 
 
 pool.connect()
@@ -1600,11 +1599,9 @@ app.get("/api/cash_advance_request/:code", async (req, res) => {
 
     const data = result.rows[0];
 
-    // ✅ Convert date fields to plain YYYY-MM-DD (no timezone)
     const formatDate = (d) => {
       if (!d) return null;
       const dateObj = new Date(d);
-      // Offset fix: add 1 day if UTC offset pushes it backward
       return new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000)
         .toISOString()
         .split("T")[0];
@@ -1836,8 +1833,8 @@ app.put("/api/update_cash_advance_liquidation", uploadForm.none(), async (req, r
   try {
     const {
       cal_request_code,
-      approved_by,
-      approve_signature,
+      endorsed_by,
+      endorsed_signature,
       status,
       declined_reason,
     } = req.body;
@@ -1855,12 +1852,12 @@ app.put("/api/update_cash_advance_liquidation", uploadForm.none(), async (req, r
     const values = [status];
     let paramIndex = 2;
 
-    if (status === "Approved") {
+    if (status === "Endorsed") {
       query += `,
-        approved_by = $${paramIndex++},
-        approve_signature = $${paramIndex++}
+        endorsed_by = $${paramIndex++},
+        endorsed_signature = $${paramIndex++}
       `;
-      values.push(approved_by, approve_signature);
+      values.push(endorsed_by, endorsed_signature);
     }
 
     if (status === "Declined") {

@@ -7,21 +7,18 @@ const PAGE_SIZES = [5, 10, 20];
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // Handle MM/DD/YYYY (U.S. format)
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const [, month, day, year] = usMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Handle YYYY-MM-DD (ISO format)
   const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Fallback — native parse attempt
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
@@ -34,8 +31,8 @@ function ReportsPayment() {
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [modalOpen, setModalOpen] = useState(false);
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
+    // const [startDate, setStartDate] = useState("");
+    // const [endDate, setEndDate] = useState("");
     const [modalRequest, setModalRequest] = useState(null);
 
         const fetchRequests = async () => {
@@ -64,7 +61,26 @@ function ReportsPayment() {
     const [showLoadingModal, setShowLoadingModal] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
 
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
+    const formatDate = (date) => {
+        const tzOffset = date.getTimezoneOffset() * 60000;
+        const localISOTime = new Date(date - tzOffset).toISOString().slice(0, 10);
+        return localISOTime;
+    };
+
+    const [startDate, setStartDate] = useState(formatDate(firstDayOfMonth));
+    const [endDate, setEndDate] = useState(formatDate(today));
+
+    const statusColors = {
+        Declined: 'red',
+        Pending: "orange",
+        Approved: "blue",
+        Received: "purple",
+        Completed: "green",
+        Accomplished: "teal",
+    };
 
     useEffect(() => {
     if (!storedId) return;
@@ -89,13 +105,11 @@ function ReportsPayment() {
         setPage(1);
     }, [search, rowsPerPage, startDate, endDate]);
 
-    // ---------------------- FILTERING LOGIC ----------------------
       const filteredRequests = useMemo(() => {
         const term = search.trim().toLowerCase();
     
         let categorizedRequests = requests;
     
-        // ✅ Start date filter (inclusive)
         if (startDate) {
           const start = new Date(startDate);
           start.setHours(0, 0, 0, 0);
@@ -105,7 +119,6 @@ function ReportsPayment() {
           });
         }
     
-        // ✅ End date filter (inclusive)
         if (endDate) {
           const end = new Date(endDate);
           end.setHours(23, 59, 59, 999);
@@ -253,14 +266,13 @@ function ReportsPayment() {
                     <th style={{ textAlign: "left" }}>Department</th>
                     <th style={{ textAlign: "center" }}>Amount</th>
                     <th style={{ textAlign: "center" }}>Status</th>
-                    <th style={{ textAlign: "center" }}>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {loading ? (
                     <tr>
                         <td colSpan={8} className="admin-empty-state">
-                        Loading payment requests...
+                        Loading payment reports...
                         </td>
                     </tr>
                     ) : visibleRequests.length === 0 ? (
@@ -272,39 +284,37 @@ function ReportsPayment() {
                         </td>
                     </tr>
                     ) : (
-                    visibleRequests.map((req) => (
-                        <tr key={req.id}>
-                        <td style={{ textAlign: "center" }}>
-                            {req.prf_request_code}
-                        </td>
-                        <td style={{ textAlign: "center" }}>
-                            {new Date(req.request_date).toLocaleDateString()}
-                        </td>
-                        <td style={{ textAlign: "center" }}>{req.employee_id}</td>
-                        <td style={{ textAlign: "left" }}>{req.name}</td>
-                        <td style={{ textAlign: "left" }}>{req.branch}</td>
-                        <td style={{ textAlign: "left" }}>{req.department}</td>
-                        <td style={{ textAlign: "left" }}>
-                            {Number(req.total_amount).toLocaleString("en-PH", {
-                                style: "currency",
-                                currency: "PHP",
-                            })}
-                            </td>
-                        {/* <td style={{ textAlign: "center" }}>
-                            {req.status.toUpperCase()}
-                        </td> */}
-                        <td style={{ textAlign: "center" }}>{req.status}</td>
-                        <td style={{ textAlign: "center" }}>
-                            <button
-                            className="admin-primary-btn"
-                            onClick={() => openModal(req)}
-                            title="View Details"
-                            >
-                            🔍
-                            </button>
-                        </td>
-                        </tr>
-                    ))
+                        visibleRequests.map((req) => (
+                            <tr key={req.id}>
+                                <td style={{ textAlign: "center", cursor: "pointer", color: "blue", textDecoration: "underline" }} onClick={() => openModal(req)} title="View Details">
+                                    {req.prf_request_code}
+                                </td>
+                                <td style={{ textAlign: "center" }}>
+                                    {new Date(req.request_date).toLocaleDateString()}
+                                </td>
+                                <td style={{ textAlign: "center" }}>{req.employee_id}</td>
+                                <td style={{ textAlign: "left" }}>{req.name}</td>
+                                <td style={{ textAlign: "left" }}>{req.branch}</td>
+                                <td style={{ textAlign: "left" }}>{req.department}</td>
+                                <td style={{ textAlign: "left" }}>
+                                    {Number(req.total_amount).toLocaleString("en-PH", {
+                                        style: "currency",
+                                        currency: "PHP",
+                                    })}
+                                </td>
+                                <td
+                                    style={{
+                                    textAlign: "center",
+                                    color: statusColors[req.status] || "black",
+                                    fontWeight: "bold", 
+                                    }}
+                                >
+                                    <small>
+                                    {req.status.toUpperCase()}
+                                    </small>
+                                </td>
+                            </tr>
+                        ))
                     )}
                 </tbody>
                 </table>
@@ -366,13 +376,31 @@ function ReportsPayment() {
                                 ×
                             </button>
 
-                            <h2>Payment Request - {modalRequest.prf_request_code}</h2>
+                            <h2>
+                                <small>Reference Number - </small>
+                                <small 
+                                style={{
+                                    textDecoration: "underline",
+                                    color: "#305ab5ff"
+                                }}
+                                >
+                                {modalRequest.prf_request_code}
+                                </small>{" - "}
+                                <small 
+                                style={{ 
+                                    color: statusColors[modalRequest.status] || "black",
+                                    fontWeight: "bold"
+                                }}
+                                >
+                                {modalRequest.status.toUpperCase()}
+                                </small>
+                            </h2>
 
                             <section className="pr-form-section" id="details">
                                 <div className="pr-grid-two">
                                     <div className="pr-field">
                                         <label className="pr-label" htmlFor="employeeID">
-                                            Date:
+                                            Date
                                         </label>
                                         <input
                                         value={new Date(modalRequest.request_date).toLocaleDateString()}
@@ -380,7 +408,9 @@ function ReportsPayment() {
                                         readOnly
                                         />
                                     </div>
-                                    
+                                    <div className="pr-field">
+
+                                    </div>
                                 </div>
 
                                 <div className="pr-grid-two">
@@ -501,21 +531,19 @@ function ReportsPayment() {
                                         <tr key={item.id}>
                                             <td className="text-center">{item.item}</td>
                                             <td className="text-center">{item.quantity}</td>
-                                            <td className="text-center">{item.unit_price}</td>
-                                            <td className="text-center">{item.amount}</td>
-                                            <td className="text-center">{item.expense_charges}</td>
+                                            <td className="text-center">{Number(item.unit_price).toLocaleString("en-PH", { style: "currency", currency: "PHP", })}</td>
+                                            <td className="text-center">{Number(item.amount).toLocaleString("en-PH", { style: "currency", currency: "PHP", })}</td>
+                                            <td className="text-center">{Number(item.expense_charges).toLocaleString("en-PH", { style: "currency", currency: "PHP", })}</td>
                                             <td className="text-center">{item.location}</td>
                                         </tr>
         
                                     ))}
                                     <tr>
                                         <td colSpan={3} className="text-center">Total</td>
-                                        <td className="text-center">{modalRequest.total_amount
-                                                ? Number(modalRequest.total_amount).toLocaleString("en-PH", {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })
-                                            : "0.00"}
+                                        <td className="text-center">{Number(modalRequest.total_amount).toLocaleString("en-PH", {
+                                                    style: "currency",
+                                                    currency: "PHP",
+                                                    })}
                                         </td>
                                         <td colSpan={2}></td>
                                     </tr>
@@ -526,75 +554,136 @@ function ReportsPayment() {
                                 )}
                             </section>
 
-                            <div className="submit-content">
-                              <div className="submit-by-content">
-                                <div>
-                                  <span>{modalRequest.requested_by}</span>
-                                  <p>Requested by</p>
-                                </div>
+                            <section className="pr-form-section">
+                                {/* <h2><small>Signature Details</small></h2> */}
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label">Requested by</label>
+                                        <input
+                                        value={modalRequest.requested_by}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
 
-                                <div className="signature-content">
-                                  <input className="submit-sign" type="text" value={modalRequest.requested_signature} readOnly />
-                                  {modalRequest.requested_signature ? (
-                                    <>
-                                      <img
+                                    <div className="pr-field receive-signature">
+                                        <label className="pr-label">Signature</label>
+                                        <input
+                                            type="text"
+                                            name="requested_signature"
+                                            value={modalRequest.requested_signature || ""}
+                                            className="pr-input received-signature"
+                                            required
+                                            readOnly
+                                        />
+                                        {modalRequest.requested_signature ? (
+                                        <img
                                         src={`${API_BASE_URL}/uploads/signatures/${modalRequest.requested_signature}`}
                                         alt="Signature"
-                                        className="ca-signature-image"
-                                      />
-                                    </>
-                                  ) : (
-                                    <div className="img-sign empty-sign"></div>
-                                  )}
-                                  <p>Signature</p>
-                                </div>
-                              </div>
-                            </div>
-
-                            <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                              <div className="submit-content">
-                                <div className="submit-by-content">
-                                    <div>
-                                        <label>
-                                            <span>
-                                              <input
-                                                type="text"
-                                                name="approved_by"
-                                                value={userData.name || ""}
-                                                className="approver"
-                                                readOnly
-                                              />
-                                            </span>
-                                            <p>Approved by</p>
-                                        </label>
-                                    </div>
-
-                                    <div className="approver-signature">
-                                        <label>
-                                            <span>
-                                                <input
-                                                    type="text"
-                                                    name="approved_signature"
-                                                    value={userData.signature || ""}
-                                                    className="submit-sign approver"
-                                                    required
-                                                    readOnly
-                                                />
-                                            </span>
-                                          {userData.signature ? (
-                                          <img
-                                          src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                                          alt="Signature"
-                                          className="signature-img"/>
-                                          ) : (
-                                              <div className="img-sign empty-sign"></div>
-                                          )}
-                                          <p>Signature</p>
-                                        </label>
+                                        className="img-sign"/>
+                                        ) : (
+                                            <p></p>
+                                        )}
                                     </div>
                                 </div>
-                              </div>
-                            </form>
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label">Approved by</label>
+                                        <input
+                                        value={modalRequest.approved_by}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+
+                                    <div className="pr-field receive-signature">
+                                        <label className="pr-label">Signature</label>
+                                        <input
+                                            type="text"
+                                            name="approved_signature"
+                                            value={modalRequest.approved_signature || ""}
+                                            className="pr-input received-signature"
+                                            required
+                                            readOnly
+                                        />
+                                        {modalRequest.approved_signature ? (
+                                        <img
+                                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
+                                        alt="Signature"
+                                        className="img-sign"/>
+                                        ) : (
+                                            <p></p>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label">Received by</label>
+                                        <input
+                                        value={modalRequest.received_by}
+                                        className="pr-input"
+                                        readOnly
+                                        />
+                                    </div>
+
+                                    <div className="pr-field receive-signature">
+                                        <label className="pr-label">Signature</label>
+                                        <input
+                                            type="text"
+                                            name="received_signature"
+                                            value={modalRequest.received_signature || ""}
+                                            className="pr-input received-signature"
+                                            required
+                                            readOnly
+                                        />
+                                        {modalRequest.received_signature ? (
+                                        <img
+                                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.received_signature}`}
+                                        alt="Signature"
+                                        className="img-sign"/>
+                                        ) : (
+                                            <p></p>
+                                        )}
+                                    </div>
+                                </div>
+                            </section>
+                            <section className="pr-form-section" id="details">
+                                {modalRequest.items && modalRequest.items.length > 0 ? (
+                                <table className="request-items-table">
+                                    <thead>
+                                    <tr>
+                                        <th colSpan={4} className="text-center">ACCOUNTING DEPARTMENT USE ONLY</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td className="text-left">GL Code</td>
+                                        <td><input type="text" className="prf-input" value={modalRequest.gl_code} readOnly/></td>
+                                        <td className="text-left">OR Number</td>
+                                        <td><input type="text" className="prf-input" value={modalRequest.or_no} readOnly/></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="text-left">Amount</td>
+                                        <td className="text-left">
+                                        <input
+                                            type="text"
+                                            value={Number(modalRequest.gl_amount).toLocaleString("en-PH", {
+                                                    style: "currency",
+                                                    currency: "PHP",
+                                                    })}
+                                            className="prf-input"
+                                        />
+                                        </td>
+                                        <td className="text-left">Check Number</td>
+                                        <td><input type="text" className="prf-input" value={modalRequest.check_number} readOnly/></td>
+                                    </tr>
+                                    
+                                    </tbody>
+                                </table>
+                                ) : (
+                                <p>—</p>
+                                )}
+                            </section>
                         </div>
                     </div>
                 </div>

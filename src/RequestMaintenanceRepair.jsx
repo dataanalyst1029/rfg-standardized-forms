@@ -121,7 +121,6 @@ function MaintenanceRepair() {
         Math.ceil(filteredRequests.length / rowsPerPage) || 1
     );
 
-    // Separate list for accounting — show only approved requests
     const approvedRequests = useMemo(() => {
         return requests.filter(
             (req) => req.status?.toLowerCase() === "approved"
@@ -656,7 +655,7 @@ function MaintenanceRepair() {
                         <div className="admin-modal-panel request-modals">
                             <button
                                 className="admin-close-btn"
-                                onClick={handleCloseModal}
+                                onClick={handleCloseModalAccomplish}
                                 aria-label="Close"
                                 >
                                 ×

@@ -38,8 +38,8 @@ function ReportsMaintenanceRepair() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [modalOpen, setModalOpen] = useState(false);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // const [startDate, setStartDate] = useState("");
+  // const [endDate, setEndDate] = useState("");
   const [modalRequest, setModalRequest] = useState(null);
 
   const fetchRequests = async () => {
@@ -68,6 +68,27 @@ function ReportsMaintenanceRepair() {
 
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const formatDate = (date) => {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(date - tzOffset).toISOString().slice(0, 10);
+    return localISOTime;
+  };
+
+  const [startDate, setStartDate] = useState(formatDate(firstDayOfMonth));
+  const [endDate, setEndDate] = useState(formatDate(today));
+
+  const statusColors = {
+    Declined: 'red',
+    Pending: "orange",
+    Approved: "blue",
+    Received: "purple",
+    Completed: "green",
+    Accomplished: "teal",
+  };
 
   useEffect(() => {
     if (!storedId) return;
@@ -250,14 +271,13 @@ function ReportsMaintenanceRepair() {
               <th style={{ textAlign: "left" }}>Department</th>
               <th style={{ textAlign: "center" }}>Date Needed</th>
               <th style={{ textAlign: "center" }}>Status</th>
-              <th style={{ textAlign: "center" }}>Action</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={8} className="admin-empty-state">
-                  Loading maintenance/repair requests...
+                  Loading maintenance/repair reports...
                 </td>
               </tr>
             ) : visibleRequests.length === 0 ? (
@@ -271,7 +291,9 @@ function ReportsMaintenanceRepair() {
             ) : (
               visibleRequests.map((req) => (
                 <tr key={req.id}>
-                  <td style={{ textAlign: "center" }}>{req.mrr_request_code}</td>
+                  <td style={{ textAlign: "center", cursor: "pointer", color: "blue", textDecoration: "underline" }} onClick={() => openModal(req)} title="View Details">
+                    {req.mrr_request_code}
+                  </td>
                   <td style={{ textAlign: "center" }}>
                     {parseLocalDate(req.request_date)?.toLocaleDateString() ||
                       "—"}
@@ -284,15 +306,16 @@ function ReportsMaintenanceRepair() {
                     {parseLocalDate(req.date_needed)?.toLocaleDateString() ||
                       "—"}
                   </td>
-                  <td style={{ textAlign: "center" }}>{req.status}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <button
-                      className="admin-primary-btn"
-                      onClick={() => openModal(req)}
-                      title="View Details"
-                    >
-                      🔍
-                    </button>
+                  <td
+                    style={{
+                      textAlign: "center",
+                      color: statusColors[req.status] || "black",
+                      fontWeight: "bold", 
+                    }}
+                  >
+                    <small>
+                      {req.status.toUpperCase()}
+                    </small>
                   </td>
                 </tr>
               ))
@@ -345,7 +368,6 @@ function ReportsMaintenanceRepair() {
         </label>
       </div>
 
-      {/* ---------- ✅ UPDATED MODAL ---------- */}
       {modalOpen && modalRequest && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
           <div
@@ -362,217 +384,244 @@ function ReportsMaintenanceRepair() {
                 ×
               </button>
 
-              <h2>{modalRequest.mrr_request_code}</h2>
-              <p>
-                <strong>Date:</strong>{" "}
-                <em>
-                  {parseLocalDate(
-                    modalRequest.request_date
-                  )?.toLocaleDateString() || "—"}
-                </em>
-              </p>
-
-              {/* ----- 1. Employee Info Block ----- */}
-              <div className="employee-info">
-                <p>
-                  <strong>Requester:</strong>{" "}
-                  <em>{modalRequest.name}</em>
-                </p>
-                <p>
-                  <strong>Employee ID:</strong>{" "}
-                  <em>{modalRequest.employee_id}</em>
-                </p>
-                <p>
-                  <strong>Branch:</strong> <em>{modalRequest.branch}</em>
-                </p>
-                <p>
-                  <strong>Department:</strong> <em>{modalRequest.department}</em>
-                </p>
-              </div>
-
-              {/* ----- 2. Work Details Block (UPDATED TO TABLE) ----- */}
-              <div className="pr-items-card" style={{ marginTop: '1.5rem', border: '1px solid #ddd' }}>
-                <h2 
-                  className="pr-section-title" 
-                  style={{ 
-                    padding: '0.5rem 0.75rem', 
-                    borderBottom: '1px solid #ddd',
-                    margin: 0,
-                    fontSize: '1rem',
-                    fontWeight: 600
+              <h2>
+                <small>Reference Number - </small>
+                <small 
+                  style={{
+                    textDecoration: "underline",
+                    color: "#305ab5ff"
                   }}
                 >
-                  Work Request Details
-                </h2>
-                <table className="request-items-table" style={{ border: 'none', width: '100%' }}>
-                  <tbody style={{ border: 'none' }}>
-                    <tr style={{ borderBottom: '1px solid #eee' }}>
-                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Asset Tag</th>
-                      <td style={{ width: '30%', borderRight: '1px solid #eee' }}>{modalRequest.asset_tag || 'N/A'}</td>
-                      <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Date Needed</th>
-                      <td style={{ width: '30%' }}>
-                        {parseLocalDate(modalRequest.date_needed)?.toLocaleDateString() || "—"}
-                      </td>
-                    </tr>
-                    <tr>
-                      <th style={{ borderRight: '1px solid #eee', verticalAlign: 'top', paddingTop: '0.75rem' }}>
-                        Work Description
-                      </th>
-                      <td colSpan="3" style={{ padding: '0.75rem', minHeight: '80px', verticalAlign: 'top' }}>
-                        {modalRequest.work_description}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                  {modalRequest.mrr_request_code}
+                </small>{" - "}
+                <small 
+                  style={{ 
+                    color: statusColors[modalRequest.status] || "black",
+                    fontWeight: "bold"
+                  }}
+                >
+                  {modalRequest.status.toUpperCase()}
+                </small>
+              </h2>
               
-              {/* ----- 3. Completion Details (UPDATED TO TABLE) ----- */}
-              {(modalRequest.performed_by ||
-                modalRequest.date_completed ||
-                modalRequest.completion_remarks) && (
-                <div className="pr-items-card" style={{ marginTop: '1.5rem', border: '1px solid #ddd' }}>
-                  <h2 
-                    className="pr-section-title" 
-                    style={{ 
-                      padding: '0.5rem 0.75rem', 
-                      borderBottom: '1px solid #ddd',
-                      margin: 0,
-                      fontSize: '1rem',
-                      fontWeight: 600
-                    }}
-                  >
-                    Completion Details
-                  </h2>
-                  <table className="request-items-table" style={{ border: 'none', width: '100%' }}>
-                    <tbody style={{ border: 'none' }}>
-                      <tr style={{ borderBottom: '1px solid #eee' }}>
-                        <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Performed by</th>
-                        <td style={{ width: '30%', borderRight: '1px solid #eee' }}>
-                          {modalRequest.performed_by}
-                        </td>
-                        <th style={{ width: '20%', borderRight: '1px solid #eee' }}>Date Completed</th>
-                        <td style={{ width: '30%' }}>
-                          {parseLocalDate(modalRequest.date_completed)?.toLocaleDateString() || "—"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <th style={{ borderRight: '1px solid #eee', verticalAlign: 'top', paddingTop: '0.75rem' }}>
-                          Remarks
-                        </th>
-                        <td colSpan="3" style={{ padding: '0.75rem', minHeight: '60px', verticalAlign: 'top' }}>
-                          {modalRequest.completion_remarks}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* ----- 4. "Requested by" Signature Block ----- */}
-              <div className="submit-content">
-                <div className="submit-by-content">
-                  <div>
-                    <span>{modalRequest.name}</span>
-                    <p>Requested by</p>
-                  </div>
-
-                  <div className="signature-content">
+              <section className="pr-form-section">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Date Request
+                    </label>
                     <input
-                      className="submit-sign"
-                      type="text"
-                      value={modalRequest.signature}
+                      value={parseLocalDate(modalRequest.request_date)?.toLocaleDateString() ||
+                        "Invalid date"}
+                      className="pr-input"
                       readOnly
                     />
-                    {modalRequest.signature && (
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Date Needed
+                    </label>
+                    <input
+                      value={parseLocalDate(modalRequest.date_needed)?.toLocaleDateString() ||
+                        "Invalid date"}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Employee ID
+                    </label>
+                    <input
+                      value={modalRequest.employee_id}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Name
+                    </label>
+                    <input
+                      value={modalRequest.name}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Branch
+                    </label>
+                    <input
+                      value={modalRequest.branch}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Department
+                    </label>
+                    <input
+                      value={modalRequest.department}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="pr-form-section">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Description of Work Required
+                    </label>
+                    <textarea
+                      value={modalRequest.work_description}
+                      className="pr-input"
+                      rows={1}
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Asset Tag/Code (if applicable)
+                    </label>
+                    <input
+                      value={modalRequest.asset_tag}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="pr-form-section" id="details">
+                
+                  <table className="request-items-table">
+                    <thead>
+                      <tr>
+                        <th colSpan={4} className="text-center">COMPLETION INFORMATION</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="text-left pr-label">Performed by</td>
+                        <td className="text-left"><input type="text" className="prf-input" value={modalRequest.performed_by} readOnly/></td>
+                          <td className="text-left pr-label">Date Completed</td>
+                          <td><input className="prf-input" value={parseLocalDate(modalRequest.date_completed)?.toLocaleDateString() ||
+                            "Invalid date"} readOnly/>
+                          </td>
+                      </tr>
+                      <tr>
+                        <td className="text-left pr-label">Remarks</td>
+                        <td className="text-left" colSpan={3}>
+                          <textarea type="text" rows={1} style={{width: '100%'}} className="prf-input" value={modalRequest.remarks} readOnly/>
+                        </td>
+                      </tr>
+                      
+                    </tbody>
+                  </table>
+              </section>
+
+              <section className="pr-form-section">
+                {/* <h2><small>Signature Details</small></h2> */}
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">Requested by</label>
+                    <input
+                      value={modalRequest.requested_by}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+
+                  <div className="pr-field receive-signature">
+                    <label className="pr-label">Signature</label>
+                    <input
+                        type="text"
+                        name="request_signature"
+                        value={modalRequest.request_signature || ""}
+                        className="pr-input received-signature"
+                        required
+                        readOnly
+                    />
+                    {modalRequest.request_signature ? (
                       <img
-                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.signature}`}
-                        alt="Signature"
-                        className="cal-signature-image" // Standardized class
-                      />
+                      src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                        <p></p>
                     )}
-                    <p>Signature</p>
                   </div>
                 </div>
-              </div>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">Approved by</label>
+                    <input
+                      value={modalRequest.approved_by}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
 
-              {/* ----- 5. "Approved by" Signature Block (Styled like Approver) ----- */}
-              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                <div className="submit-content">
-                  <div className="submit-by-content-approve"> {/* Changed class */}
-                    <div>
-                      <span>
-                        <input
-                          type="text"
-                          name="approved_by"
-                          value={modalRequest.approved_by || ""}
-                          className="approver-name" // Added class
-                          readOnly
-                        />
-                      </span>
-                      <p>Approved by</p>
-                    </div>
-
-                    <div className="signature-content">
-                      <label>
-                        <input
-                          className="submit-sign"
-                          type="text"
-                          value={modalRequest.approved_signature}
-                          readOnly
-                        />
-                        {modalRequest.approved_signature && (
-                          <img
-                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
-                            alt="Signature"
-                            className="cal-signature-image" // Standardized class
-                          />
-                        )}
-                        <p>Signature</p>
-                      </label>
-                    </div>
+                  <div className="pr-field receive-signature">
+                    <label className="pr-label">Signature</label>
+                    <input
+                        type="text"
+                        name="approved_signature"
+                        value={modalRequest.approved_signature || ""}
+                        className="pr-input received-signature"
+                        required
+                        readOnly
+                    />
+                    {modalRequest.approved_signature ? (
+                      <img
+                      src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                        <p></p>
+                    )}
                   </div>
                 </div>
-              </form>
-              
-              {/* ----- 6. "Accomplished by" Signature Block (Styled like Approver) ----- */}
-              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                <div className="submit-content">
-                  <div className="submit-by-content-approve"> {/* Changed class */}
-                    <div>
-                      <span>
-                        <input
-                          type="text"
-                          name="accomplished_by"
-                          value={modalRequest.accomplished_by || ""}
-                          className="approver-name" // Added class
-                          readOnly
-                        />
-                      </span>
-                      <p>Accomplished by</p>
-                    </div>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">Accomplished by</label>
+                    <input
+                      value={modalRequest.accomplished_by}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
 
-                    <div className="signature-content">
-                      <label>
-                        <input
-                          className="submit-sign"
-                          type="text"
-                          value={modalRequest.accomplished_signature}
-                          readOnly
-                        />
-                        {modalRequest.accomplished_signature && (
-                          <img
-                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.accomplished_signature}`}
-                            alt="Signature"
-                            className="cal-signature-image" // Standardized class
-                          />
-                        )}
-                        <p>Signature</p>
-                      </label>
-                    </div>
+                  <div className="pr-field receive-signature">
+                    <label className="pr-label">Signature</label>
+                    <input
+                        type="text"
+                        name="accomplished_signature"
+                        value={modalRequest.accomplished_signature || ""}
+                        className="pr-input received-signature"
+                        required
+                        readOnly
+                    />
+                    {modalRequest.accomplished_signature ? (
+                      <img
+                      src={`${API_BASE_URL}/uploads/signatures/${modalRequest.accomplished_signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                        <p></p>
+                    )}
                   </div>
                 </div>
-              </form>
-              
+              </section>
             </div>
           </div>
         </div>

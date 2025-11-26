@@ -4,33 +4,28 @@ import "../styles/RequestPurchase.css";
 import "../styles/ReportsAudit.css";
 import { API_BASE_URL } from "../config/api.js";
 
-// Pagination options for the table
 const PAGE_SIZES = [5, 10, 20];
 
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // Handle MM/DD/YYYY (U.S. format)
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const [, month, day, year] = usMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Handle YYYY-MM-DD (ISO format)
   const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Fallback — native parse attempt
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
 
 function ReportsReimbursementForm() {
-  // ---------------------- STATE DEFINITIONS ----------------------
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
@@ -39,13 +34,33 @@ function ReportsReimbursementForm() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRequest, setModalRequest] = useState(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // const [startDate, setStartDate] = useState("");
+  // const [endDate, setEndDate] = useState("");
   const storedId = sessionStorage.getItem("id");
   const [userData, setUserData] = useState({ name: "", signature: "" });
   const [isClosing, setIsClosing] = useState(false);
 
-  // ---------------------- DATA FETCHING ----------------------
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const formatDate = (date) => {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(date - tzOffset).toISOString().slice(0, 10);
+    return localISOTime;
+  };
+
+  const [startDate, setStartDate] = useState(formatDate(firstDayOfMonth));
+  const [endDate, setEndDate] = useState(formatDate(today));
+
+  const statusColors = {
+    Declined: 'red',
+    Pending: "orange",
+    Approved: "blue",
+    Received: "purple",
+    Completed: "green",
+    Accomplished: "teal",
+  };
+
   const fetchRequests = async () => {
     setLoading(true);
     try {
@@ -53,7 +68,6 @@ function ReportsReimbursementForm() {
       if (!response.ok) throw new Error("Failed to fetch reimbursement requests");
       const data = await response.json();
 
-      // Sort newest first
       const sortedData = data.sort((a, b) =>
         b.rb_request_code.localeCompare(a.rb_request_code)
       );
@@ -67,7 +81,6 @@ function ReportsReimbursementForm() {
     }
   };
 
-  // ---------------------- SIDE EFFECTS ----------------------
   useEffect(() => {
     if (!storedId) return;
     fetch(`${API_BASE_URL}/users/${storedId}`)
@@ -90,13 +103,11 @@ function ReportsReimbursementForm() {
     setPage(1);
   }, [search, rowsPerPage, startDate, endDate]);
 
-  // ---------------------- FILTERING LOGIC ----------------------
   const filteredRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
 
     let categorizedRequests = requests;
 
-    // ✅ Start date filter (inclusive)
     if (startDate) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
@@ -106,7 +117,6 @@ function ReportsReimbursementForm() {
       });
     }
 
-    // ✅ End date filter (inclusive)
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
@@ -125,7 +135,6 @@ function ReportsReimbursementForm() {
       return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
     }
 
-    // ✅ Text search
     if (term) {
       const normalizedTerm = term.replace(/[^0-9.]/g, "");
       categorizedRequests = categorizedRequests.filter((req) =>
@@ -160,7 +169,6 @@ function ReportsReimbursementForm() {
     return categorizedRequests;
   }, [requests, search, startDate, endDate]);
 
-  // ---------------------- PAGINATION ----------------------
   const totalPages = Math.max(
     1,
     Math.ceil(filteredRequests.length / rowsPerPage) || 1
@@ -171,7 +179,6 @@ function ReportsReimbursementForm() {
     return filteredRequests.slice(start, start + rowsPerPage);
   }, [filteredRequests, page, rowsPerPage]);
 
-  // ---------------------- MODAL HANDLERS ----------------------
   const openModal = (request) => {
     setModalRequest(request);
     setModalOpen(true);
@@ -186,10 +193,8 @@ function ReportsReimbursementForm() {
     }, 300);
   };
 
-  // ---------------------- RENDER ----------------------
   return (
     <div className="admin-view">
-      {/* ---------- Toolbar and Filters ---------- */}
       <div className="admin-toolbar">
         <div className="admin-toolbar-title">
           <h2>Reimbursement Form Reports</h2>
@@ -239,7 +244,6 @@ function ReportsReimbursementForm() {
         </div>
       )}
 
-      {/* ---------- Data Table ---------- */}
       <div className="admin-table-wrapper">
         <table className="admin-table purchase-table">
           <thead>
@@ -250,7 +254,6 @@ function ReportsReimbursementForm() {
               <th style={{ textAlign: "center" }}>Employee ID</th>
               <th style={{ textAlign: "center" }}>Reimbursement Amount</th>
               <th style={{ textAlign: "center" }}>Status</th>
-              <th style={{ textAlign: "center" }}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -271,7 +274,9 @@ function ReportsReimbursementForm() {
             ) : (
               visibleRequests.map((req) => (
                 <tr key={req.id}>
-                  <td style={{ textAlign: "center" }}>{req.rb_request_code}</td>
+                  <td style={{ textAlign: "center", cursor: "pointer", color: "blue", textDecoration: "underline" }} onClick={() => openModal(req)} title="View Details">
+                    {req.rb_request_code}
+                  </td>
                   <td style={{ textAlign: "center" }}>
                     {new Date(req.request_date).toLocaleDateString()}
                   </td>
@@ -283,15 +288,16 @@ function ReportsReimbursementForm() {
                       currency: "PHP",
                     })}
                   </td>
-                  <td style={{ textAlign: "center" }}>{req.status}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <button
-                      className="admin-primary-btn"
-                      onClick={() => openModal(req)}
-                      title="View Details"
-                    >
-                      🔍
-                    </button>
+                  <td
+                    style={{
+                      textAlign: "center",
+                      color: statusColors[req.status] || "black",
+                      fontWeight: "bold", 
+                    }}
+                  >
+                    <small>
+                      {req.status.toUpperCase()}
+                    </small>
                   </td>
                 </tr>
               ))
@@ -300,7 +306,6 @@ function ReportsReimbursementForm() {
         </table>
       </div>
 
-      {/* ---------- Pagination Controls ---------- */}
       <div className="admin-pagination">
         <span className="admin-pagination-info">
           Showing {visibleRequests.length} of {filteredRequests.length} requests
@@ -345,7 +350,6 @@ function ReportsReimbursementForm() {
         </label>
       </div>
 
-      {/* ---------- Modal for Viewing Request Details (UPDATED) ---------- */}
       {modalOpen && modalRequest && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
           <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
@@ -358,19 +362,40 @@ function ReportsReimbursementForm() {
                 ×
               </button>
 
-              <h2>Reimbursement Form - {modalRequest.rb_request_code}</h2>
+              <h2>
+                <small>Reference Number - </small>
+                <small 
+                  style={{
+                    textDecoration: "underline",
+                    color: "#305ab5ff"
+                  }}
+                >
+                  {modalRequest.rb_request_code}
+                </small>{" - "}
+                <small 
+                  style={{ 
+                    color: statusColors[modalRequest.status] || "black",
+                    fontWeight: "bold"
+                  }}
+                >
+                  {modalRequest.status.toUpperCase()}
+                </small>
+              </h2>
 
               <section className="pr-form-section" id="details">
                 <div className="pr-grid-two">
                   <div className="pr-field">
                     <label className="pr-label" htmlFor="employeeID">
-                      Date:
+                      Date
                     </label>
                     <input
                       value={new Date(modalRequest.request_date).toLocaleDateString()}
                       className="pr-input"
                       readOnly
                     />
+                  </div>
+                  <div className="pr-field">
+
                   </div>
                 </div>
                 <div className="pr-grid-two">
@@ -419,125 +444,89 @@ function ReportsReimbursementForm() {
                 </div>
               </section>
 
-              {/* ----- 2. Reimbursement Details (UPDATED TO TABLE) ----- */}
-              <section className="pr-form-section" id="details">
-                <h2 
-                  className="pr-section-title" 
-                  style={{ 
-                    padding: '0.5rem 0.75rem', 
-                    borderBottom: '1px solid #ddd',
-                    margin: 0,
-                    fontSize: '1rem',
-                    fontWeight: 600
-                  }}
-                >
-                  Reimbursement Details
-                </h2>
-                <table className="request-items-table" style={{ border: 'none', width: '100%' }}>
-                  <tbody style={{ border: 'none' }}>
-                    {/* Row 1: 4 Columns (25% each ensures 50/50 split between the two pairs) */}
-                    <tr>
-                      <th style={{ width: '25%', borderRight: '1px solid #eee' }}>CA Liquidation No.</th>
-                      <td style={{ width: '25%', borderRight: '1px solid #eee' }}>{modalRequest.cal_no}</td>
-                      <th style={{ width: '25%', borderRight: '1px solid #eee' }}>Cash Advance No.</th>
-                      <td style={{ width: '25%' }}>{modalRequest.ca_no}</td>
-                    </tr>
-
-                    {/* Row 2: 2 Columns. The value cell spans 3 columns (25% + 25% + 25% = 75%) */}
-                    <tr>
-                      <th style={{ borderRight: '1px solid #eee' }}>BPI Account No.</th>
-                      <td colSpan="3">{modalRequest.bpi_acc_no}</td>
-                    </tr>
-
-                    {/* Row 3: 2 Columns. The value cell spans 3 columns */}
-                    <tr style={{ borderTop: '1px solid #eee' }}>
-                      <th style={{ borderRight: '1px solid #eee' }}>Total Reimbursable Amount</th>
-                      <td colSpan="3">
-                        {Number(modalRequest.total_rb_amount).toLocaleString("en-PH", {
-                          style: "currency",
-                          currency: "PHP",
-                        })}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <section className="pr-form-section">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Cash Advance Liquidation No.
+                    </label>
+                    <input
+                      value={modalRequest.cal_no}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Cash Advance No.
+                    </label>
+                    <input
+                      value={modalRequest.ca_no}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      BPI Account No.
+                    </label>
+                    <input
+                      value={modalRequest.bpi_acc_no}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label" htmlFor="employeeID">
+                      Total Reimbursable Amount
+                    </label>
+                    <input
+                      value={Number(modalRequest.total_rb_amount).toLocaleString("en-PH", {
+                              style: "currency",
+                              currency: "PHP",
+                            })}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
               </section>
 
-              {/* ----- 3. "Requested by" Signature Block ----- */}
-              <div className="submit-content">
-                <div className="submit-by-content">
-                  <div>
-                    <span>{modalRequest.requested_by}</span>
-                    <p>Requested by</p>
+              <section className="pr-form-section">
+                {/* <h2><small>Signature Details</small></h2> */}
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">Requested by</label>
+                    <input
+                      value={modalRequest.requested_by}
+                      className="pr-input"
+                      readOnly
+                    />
                   </div>
 
-                  <div className="signature-content">
+                  <div className="pr-field receive-signature">
+                    <label className="pr-label">Signature</label>
                     <input
-                      className="submit-sign"
-                      type="text"
-                      value={modalRequest.request_signature}
-                      readOnly
+                        type="text"
+                        name="request_signature"
+                        value={modalRequest.request_signature || ""}
+                        className="pr-input received-signature"
+                        required
+                        readOnly
                     />
                     {modalRequest.request_signature ? (
                       <img
-                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
-                        alt="Signature"
-                        className="ca-signature-image" // Standardized class
-                      />
-                    ) : (
-                      <div className="img-sign empty-sign"></div>
+                      src={`${API_BASE_URL}/uploads/signatures/${modalRequest.request_signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                        <p></p>
                     )}
-                    <p>Signature</p>
                   </div>
                 </div>
-              </div>
-
-              {/* ----- 4. "Approved by" Signature Block ----- */}
-              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                <div className="submit-content">
-                  <div className="submit-by-content"> {/* Changed class */}
-                    <div>
-                      <label>
-                        <span>
-                          <input
-                            type="text"
-                            name="approved_by"
-                            value={modalRequest.approved_by || ""} // Using logged-in user's name
-                            className="approver" // Added class
-                            readOnly
-                          />
-                        </span>
-                        <p>Approved by</p>
-                      </label>
-                    </div>
-
-                    <div className="approver-signature"> {/* Changed class */}
-                      <label>
-                        <span>
-                           <input
-                            type="text"
-                            name="approve_signature"
-                            value={modalRequest.approve_signature || ""} // Using logged-in user's signature
-                            className="submit-sign approver"
-                            readOnly
-                          />
-                        </span>
-                        {modalRequest.approve_signature ? (
-                          <img
-                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approve_signature}`}
-                            alt="Signature"
-                            className="ca-signature-image" // Standardized class
-                          />
-                        ) : (
-                          <div className="img-sign empty-sign"></div>
-                        )}
-                        <p>Signature</p>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </form>
-
+              </section>
             </div>
           </div>
         </div>

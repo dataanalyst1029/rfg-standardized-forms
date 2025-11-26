@@ -19,7 +19,7 @@ import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
 // import { useNavigate } from "react-router-dom";
 import { useNavigate, useParams } from "react-router-dom";
-import ReportsAudit from "./reports/ReportsAudit.jsx";
+import ReportsOvertimeApproval from "./reports/ReportsOvertimeApproval.jsx";
 import ReportsPurchaseRequest from "./reports/ReportsPurchaseRequest.jsx";
 import ReportsRevolvingFund from "./reports/ReportsRevolvingFund.jsx";
 import ReportsCashAdvance from "./reports/ReportsCashAdvance.jsx";
@@ -175,6 +175,7 @@ const getInitialView = () => {
       "reports-reimbursement-form",
       "reports-payment",
       "reports-maintenance-request",
+      "reports-overtime-approval",
       "approved-requests",
       "profile"
     ];
@@ -541,6 +542,13 @@ function renderActiveView(view, extraProps = {}) {
         </div>
       );
 
+    case "reports-overtime-approval":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ReportsOvertimeApproval/>
+        </div>
+      );
+
     case "reports-credit-card-acknowledgement":
       return (
         <div className="dashboard-content dashboard-content--flush">
@@ -567,11 +575,6 @@ function renderActiveView(view, extraProps = {}) {
         <div className="dashboard-content dashboard-content--flush">
           <ReportsLeaveApplication/>
         </div>
-      );
-
-    case "reports-audit":
-      return (
-        <ReportsAudit/>
       );
 
     case "forms-menu":
@@ -757,6 +760,7 @@ function Dashboard({ role, name, onLogout }) {
           "reports-reimbursement-form",
           "reports-payment",
           "reports-maintenance-request",
+          "reports-overtime-approval",
           "approved-requests",
         ].includes(stored)
       ) {
@@ -1041,39 +1045,39 @@ function Dashboard({ role, name, onLogout }) {
                                 HR Leave Application
                               </button>
                             )}
-            {userAccess.includes("Interbranch Transfer Slip") && (
-              <button
-                type="button"
-                className={`sidebar-item sidebar-item-nested${
-                  activeView === "interbranch-transfer-slip" ? " underline-active" : ""
-                }`}
-                onClick={() => handleMenuClick("interbranch-transfer-slip")}
-              >
-                Interbranch Transfer Slip
-              </button>
-            )}
-            {userAccess.includes("Credit Card Acknowledgement Receipt") && (
-              <button
-                type="button"
-                className={`sidebar-item sidebar-item-nested${
-                  activeView === "credit-card-acknowledgement" ? " underline-active" : ""
-                }`}
-                onClick={() => handleMenuClick("credit-card-acknowledgement")}
-              >
-                Credit Card Acknowledgement Receipt
-              </button>
-            )}
-            {userAccess.includes("Transmittal Form") && (
-              <button
-                type="button"
-                className={`sidebar-item sidebar-item-nested${
-                  activeView === "transmittal-list" ? " underline-active" : ""
-                }`}
-                onClick={() => handleMenuClick("transmittal-list")}
-              >
-                Transmittal Form
-              </button>
-            )}
+                            {userAccess.includes("Interbranch Transfer Slip") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "interbranch-transfer-slip" ? " underline-active" : ""
+                                }`}
+                                onClick={() => handleMenuClick("interbranch-transfer-slip")}
+                              >
+                                Interbranch Transfer Slip
+                              </button>
+                            )}
+                            {userAccess.includes("Credit Card Acknowledgement Receipt") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "credit-card-acknowledgement" ? " underline-active" : ""
+                                }`}
+                                onClick={() => handleMenuClick("credit-card-acknowledgement")}
+                              >
+                                Credit Card Acknowledgement Receipt
+                              </button>
+                            )}
+                            {userAccess.includes("Transmittal Form") && (
+                              <button
+                                type="button"
+                                className={`sidebar-item sidebar-item-nested${
+                                  activeView === "transmittal-list" ? " underline-active" : ""
+                                }`}
+                                onClick={() => handleMenuClick("transmittal-list")}
+                              >
+                                Transmittal Form
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1215,9 +1219,9 @@ function Dashboard({ role, name, onLogout }) {
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
-                                    activeView === "reports-audit" ? " underline-active" : ""
+                                    activeView === "reports-overtime-approval" ? " underline-active" : ""
                                   }`}
-                                  onClick={() => handleMenuClick("reports-audit")}
+                                  onClick={() => handleMenuClick("reports-overtime-approval")}
                                 >
                                   HR Overtime Approval
                                 </button>
