@@ -66,6 +66,7 @@ function ReportsCashAdvanceLiquidation() {
   const statusColors = {
     Declined: 'red',
     Pending: "orange",
+    Endorsed: "yellow",
     Approved: "blue",
     Received: "purple",
     Completed: "green",
@@ -275,7 +276,7 @@ function ReportsCashAdvanceLiquidation() {
             {loading ? (
               <tr>
                 <td colSpan={8} className="admin-empty-state">
-                  Loading cash advance luquidation reports...
+                  Loading cash advance liquidation reports...
                 </td>
               </tr>
             ) : visibleRequests.length === 0 ? (
@@ -570,50 +571,61 @@ function ReportsCashAdvanceLiquidation() {
                     </div>
                   </section>
 
-                  <div className="pr-items-card">
+                  <section className="pr-form-section" >
                     <div className="pr-flex-container">
-                        <div className="cal-section" >
+                        <div className="pr-section">
                             <h2 className="pr-section-title">When Budgeted Exceeds Actual</h2>
                             <div>
-                                <span>Deposit of Excess</span>
-                                <input type="text" value={modalRequest.excess_deposit} readOnly />
+                            <span>Deposit of Excess</span>
+                            <input
+                                value={modalRequest.excess_deposit || ""}
+                                readOnly
+                            />
                             </div>
                             <div>
-                                <span>Date</span>
-                                <input type="text" value={new Date(modalRequest.date_excess).toLocaleDateString()} readOnly/>
+                            <span>Date</span>
+                            <input
+                                value={new Date(modalRequest.date_excess).toLocaleDateString()}
+                                readOnly
+                            />
                             </div>
                             <div>
-                                <span>Acknowledgement Receipt No.</span>
-                                <input type="text" value={modalRequest.ack_rcpt_no} readOnly/>
+                            <span>Acknowledgement Receipt No.</span>
+                            <input
+                                value={modalRequest.ack_rcpt_no || ""}
+                                readOnly
+                            />
                             </div>
                             <div>
                                 <span>Amount</span>
-                                <input 
-                                    type="text"
-                                    value={modalRequest.exceed_amount? Number(modalRequest.exceed_amount).toLocaleString("en-PH", {
+                                <input
+                                value={modalRequest.exceed_amount
+                                        ? Number(modalRequest.exceed_amount).toLocaleString("en-PH", {
                                         minimumFractionDigits: 2,
                                         maximumFractionDigits: 2,
                                     })
-                                    : "0.00"} readOnly
+                                    : "0.00"}
+                                readOnly
                                 />
                             </div>
                         </div>
-                        <div className="cal-section" >
-                          <h2 className="pr-section-title">When Actual Exceeds Budgeted</h2>
-                          <div>
-                              <span>Reimbursable Amount</span>
-                              <input 
-                                  type="text"
-                                  value={modalRequest.rb_amount? Number(modalRequest.rb_amount).toLocaleString("en-PH", {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                  })
-                                  : "0.00"} readOnly
-                              />
-                          </div>
+                        <div className="pr-section" >
+                            <h2 className="pr-section-title">When Actual Exceeds Budgeted</h2>
+                            <div>
+                                <span>Reimbursable Amount</span>
+                                <input
+                                value={modalRequest.rb_amount
+                                        ? Number(modalRequest.rb_amount).toLocaleString("en-PH", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })
+                                    : "0.00"}
+                                readOnly
+                                />
+                            </div>
                         </div>
-                      </div>
-                  </div>
+                    </div>
+                  </section>
 
                   <section className="pr-form-section" >
                     <h2><small>Signature Details</small></h2>

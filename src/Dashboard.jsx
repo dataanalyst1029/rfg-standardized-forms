@@ -6,6 +6,7 @@ import ManageUsers from "./ManageUsers.jsx";
 import ManageUsersAccess from "./ManageUsersAccess.jsx";
 import ManageBranches from "./ManageBranches.jsx";
 import ManageDepartments from "./ManageDepartments.jsx";
+import LeaveTypes from "./LeaveTypes.jsx";
 import RequestPurchase from "./RequestPurchase.jsx";
 import RequestRevolvingFund from "./RequestRevolvingFund";
 import RequestCashAdvance from "./RequestCashAdvance";
@@ -109,6 +110,14 @@ const NAVIGATION = [
         description:
           "Maintain department hierarchy for routing and approvals.",
       },
+      {
+        id: "leave-information",
+        label: "Leave Information",
+        icon: "🏷️",
+        headline: "Manage Leave Types",
+        description:
+          "Create and update available leave types.",
+      },
     ],
   },
 ];
@@ -177,6 +186,7 @@ const getInitialView = () => {
       "reports-maintenance-request",
       "reports-overtime-approval",
       "approved-requests",
+      "leave-information",
       "profile"
     ];
     if (validIds.includes(stored)) {
@@ -616,6 +626,12 @@ function renderActiveView(view, extraProps = {}) {
           <ManageDepartments />
         </div>
       );
+      case "leave-information":
+        return (
+          <div className="dashboard-content dashboard-content--flush">
+            <LeaveTypes />   
+          </div>
+        );
     default:
       return (
         <PlaceholderPanel
@@ -892,6 +908,20 @@ function Dashboard({ role, name, onLogout }) {
                         type="button"
                         className={`sidebar-item${activeView === "departments" ? " sidebar-item-active" : ""}`}
                         onClick={() => handleMenuClick("departments")}
+                      >
+                        <span className="sidebar-item-icon">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  } 
+
+                  if (item.id === "leave-information") {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`sidebar-item${activeView === "leave-information" ? " sidebar-item-active" : ""}`}
+                        onClick={() => handleMenuClick("leave-information")}
                       >
                         <span className="sidebar-item-icon">{item.icon}</span>
                         <span>{item.label}</span>
@@ -1293,8 +1323,6 @@ function Dashboard({ role, name, onLogout }) {
                       </button>
                     );
                   }
-
-
 
                   return (
                     <button

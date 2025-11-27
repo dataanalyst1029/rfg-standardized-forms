@@ -1,356 +1,122 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import "./styles/LeaveApplication.css";
-import "./styles/CAReceipt.css";
-import "./styles/CreditCardAcknowledgementReceipt.css";
 import { API_BASE_URL } from "../config/api.js";
+import { useNavigate } from "react-router-dom";
 
-const LEAVE_TYPES = [
-  { id: "Annual", label: "Annual Leave" },
-  { id: "Sick", label: "Sick Leave" },
-  { id: "Maternity", label: "Maternity Leave" },
-  { id: "Paternity", label: "Paternity Leave" },
-  { id: "Emergency", label: "Emergency Leave" },
-  { id: "Bereavement", label: "Bereavement Leave" },
-  { id: "Others", label: "Others" },
-];
+const today = new Date().toISOString().split("T")[0];
 
-const createInitialFormState = (storedUser) => ({
-  requester_name: "", // Will be populated by fetch
-  employee_id: "", // Will be populated by fetch
-  branch: storedUser.branch || "",
-  department: storedUser.department || "",
+const initialFormData = {
+  laf_request_code: "",
+  request_date: today,
+  user_id: "",
+  employee_id: "",
+  name: "",
+  branch: "",
+  department: "",
   position: "",
-  request_date: new Date().toISOString().split("T")[0],
-  signature: null, // Will be populated by fetch
   leave_type: "",
-  leave_other_text: "",
-  leave_start: "",
-  leave_end: "",
-  purpose: "",
-});
-
-const calculateLeaveDays = (start, end) => {
-  if (!start || !end) {
-    return 0;
-  }
-  const from = new Date(start);
-  const to = new Date(end);
-  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
-    return 0;
-  }
-  const diff = to.getTime() - from.getTime();
-  if (diff < 0) {
-    return 0;
-  }
-  return Math.round(diff / (24 * 60 * 60 * 1000)) + 1;
+  leave_date_from: today, 
+  leave_date_to: today, 
+  specify_other_leave_type: "",
+  requested_by: "",
+  requested_signature: "",
 };
 
+
+const NAV_SECTIONS = [
+  { id: "pr-main", label: "New Leave Application" },
+  { id: "submitted", label: "View Submitted Requests" },
+];
+
 function LeaveApplication({ onLogout }) {
-  const storedUser = JSON.parse(sessionStorage.getItem("user") || "{}");
+  const [formData, setFormData] = useState(initialFormData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState({});
+  const [message, setMessage] = useState(null);
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState(createInitialFormState(storedUser));
-  const [loading, setLoading] = useState(true);
-  const [branches, setBranches] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [request, setRequest] = useState(null);
-  const [message, setMessage] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [nextReferenceCode, setNextReferenceCode] = useState(null);
-  const [activeSection, setActiveSection] = useState("details");
-
-  const role = (storedUser.role || "").toLowerCase();
-  const isUserAccount = role === "user" || role === "staff";
-
-  const availableDepartments = formData.branch
-    ? departments.filter((dept) => {
-        if (dept.branch_id === null || dept.branch_id === undefined) {
-          return true;
-        }
-        const branchRecord = branches.find(
-          (branch) => branch.branch_name === formData.branch,
-        );
-        return branchRecord
-          ? Number(dept.branch_id) === Number(branchRecord.id)
-          : true;
+  useEffect(() => {
+    const storedId = sessionStorage.getItem("id");
+    if (!storedId) return;
+    fetch(`${API_BASE_URL}/users/${storedId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setUserData(data);
+        setFormData((prev) => ({
+          ...prev,
+          user_id: storedId,
+          received_by: data.name || "",
+          received_signature: data.signature || "",
+        }));
       })
-    : departments;
-
-  const totalLeaveDays = useMemo(
-    () => calculateLeaveDays(formData.leave_start, formData.leave_end),
-    [formData.leave_start, formData.leave_end],
-  );
+      .catch((err) => console.error("Error fetching user data:", err));
+  }, []);
 
   useEffect(() => {
-    if (storedUser.id) {
-      fetch(`${API_BASE_URL}/users/${storedUser.id}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to fetch user data");
-          return res.json();
-        })
-        .then((data) => {
-          // Update formData with the full user data, including signature
-          setFormData((prev) => ({
-            ...prev,
-            requester_name: data.name || prev.requester_name,
-            employee_id: data.employee_id || prev.employee_id,
-            signature: data.signature || null, // <-- This fills the signature
-          }));
-        })
-        .catch((err) => {
-          console.error("Error fetching user data:", err);
-        });
-    }
-  }, [storedUser.id]);
-
-  useEffect(() => {
-    let isMounted = true;
-    if (request) {
-      setNextReferenceCode(null);
-      return () => {
-        isMounted = false;
-      };
-    }
-
     const fetchNextCode = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/leave_requests/next-code`);
-        if (!res.ok) {
-          throw new Error("Failed to load next reference code");
-        }
+        const res = await fetch(`${API_BASE_URL}/api/leave_application/next-code`);
         const data = await res.json();
-        if (isMounted) {
-          setNextReferenceCode(data.nextCode || null);
-        }
+        if (data.nextCode)
+          setFormData((prev) => ({ ...prev, laf_request_code: data.nextCode }));
       } catch (error) {
-        console.error("Error fetching next leave code:", error);
+        console.error("Error getting next CAR code:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchNextCode();
+  }, []);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [request]);
-
-  useEffect(() => {
-    const loadLookups = async () => {
-      try {
-        const [branchRes, deptRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/branches`),
-          fetch(`${API_BASE_URL}/api/departments`),
-        ]);
-
-        const branchData = branchRes.ok ? await branchRes.json() : [];
-        const deptData = deptRes.ok ? await deptRes.json() : [];
-
-        setBranches(branchData);
-        setDepartments(deptData);
-
-        if (branchData.length) {
-          const matchedBranch = branchData.find(
-            (branch) =>
-              (branch.branch_name || "").toLowerCase() ===
-              (storedUser.branch || "").toLowerCase(),
-          );
-          if (matchedBranch) {
-            setFormData((prev) => ({
-              ...prev,
-              branch: matchedBranch.branch_name,
-            }));
-          }
-        }
-
-        if (deptData.length && storedUser.department) {
-          const matchedDept = deptData.find(
-            (dept) =>
-              (dept.department_name || "").toLowerCase() ===
-              storedUser.department.toLowerCase(),
-          );
-          if (matchedDept) {
-            setFormData((prev) => ({
-              ...prev,
-              department: matchedDept.department_name,
-            }));
-          }
-        }
-      } catch (error) {
-        console.error("Error loading leave lookups:", error);
-      }
-    };
-
-    loadLookups();
-  }, [storedUser.branch, storedUser.department]);
-
-  const handleBackToForms = () => {
-    navigate("/forms-list");
-  };
-
-  const showMessage = (type, text) => {
-    setMessage({ type, text });
-    if (type !== "error") {
-      setTimeout(() => setMessage(null), 2500);
-    }
-  };
-
-  const handleFieldChange = (event) => {
-    const { name, value } = event.target;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleBranchChange = (event) => {
-    const newBranchName = event.target.value;
-
-    // 1. Find the branch record for the new branch name
-    const branchRecord = branches.find(
-      (branch) => branch.branch_name === newBranchName,
-    );
-
-    // 2. Filter departments based on the new branch
-    const newAvailableDepartments = newBranchName
-      ? departments.filter((dept) => {
-          if (dept.branch_id === null || dept.branch_id === undefined) {
-            return true;
-          }
-          return branchRecord
-            ? Number(dept.branch_id) === Number(branchRecord.id)
-            : true;
-        })
-      : departments;
-
-    // 3. Get the first department from the new list
-    const firstDepartment = newAvailableDepartments[0]?.department_name || "";
-
-    // 4. Set both branch and department at the same time
-    setFormData((prev) => ({
-      ...prev,
-      branch: newBranchName,
-      department: firstDepartment,
-    }));
-  };
-
-  const handleLeaveTypeChange = (event) => {
-    const value = event.target.value;
-    setFormData((prev) => ({
-      ...prev,
-      leave_type: value,
-      leave_other_text: value === "Others" ? prev.leave_other_text : "",
-    }));
-  };
-
-  const submitRequest = async () => {
-    if (!isUserAccount) {
-      return;
-    }
-    if (!formData.requester_name.trim()) {
-      showMessage("error", "Requester name is required.");
-      return;
-    }
-    if (!formData.branch) {
-      showMessage("error", "Select a branch.");
-      return;
-    }
-    if (!formData.department) {
-      showMessage("error", "Select a department.");
-      return;
-    }
-    if (!formData.position.trim()) {
-      showMessage("error", "Position is required.");
-      return;
-    }
-    if (!formData.leave_type) {
-      showMessage("error", "Select a leave type.");
-      return;
-    }
-    if (formData.leave_type === "others" && !formData.leave_other_text.trim()) {
-      showMessage("error", "Specify the leave type.");
-      return;
-    }
-    if (!formData.leave_start || !formData.leave_end) {
-      showMessage("error", "Provide the leave dates.");
-      return;
-    }
-    if (new Date(formData.leave_start) > new Date(formData.leave_end)) {
-      showMessage("error", "Leave end date must be on or after the start date.");
-      return;
-    }
-    if (!formData.purpose.trim()) {
-      showMessage("error", "Please provide remarks or reason for the leave.");
-      return;
-    }
-
-    setIsSaving(true);
-
-    const payload = {
-      form_code: nextReferenceCode,
-      requester_name: formData.requester_name,
-      employee_id: formData.employee_id,
-      branch: formData.branch,
-      department: formData.department,
-      position: formData.position,
-      request_date: formData.request_date,
-      signature: formData.signature,
-      leave_type:
-        formData.leave_type === "Others"
-          ? `Others - ${formData.leave_other_text.trim()}`
-          : formData.leave_type,
-      leave_start: formData.leave_start,
-      leave_end: formData.leave_end,
-      leave_hours: totalLeaveDays*8,
-      purpose: formData.purpose,
-      submitted_by: storedUser.id || null,
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/leave_requests`, {
+      const res = await fetch(`${API_BASE_URL}/api/leave_application`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
       });
+
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to submit leave request.");
-      }
-      setRequest(data);
-      showMessage("success", "Leave request submitted for endorsement.");
+      if (!res.ok) throw new Error(data.message || "Failed to submit receipt");
+
+      setMessage({ type: "success", text: "Leave application submitted successfully!" });
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
-      console.error("Error submitting leave request:", error);
-      showMessage("error", error.message || "Unable to submit leave request.");
+      setMessage({ type: "error", text: error.message });
+      setTimeout(() => setMessage(null), 3000);
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
   };
 
-  const isReadOnly = Boolean(request);
+  const [leaveTypes, setLeaveTypes] = useState([]);
+
+    useEffect(() => {
+      fetch(`${API_BASE_URL}/api/leave_types`)
+        .then((res) => res.json())
+        .then((data) => setLeaveTypes(data))
+        .catch((err) => console.error("Error fetching leave types:", err));
+    }, []);
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
-      navigate("/forms/submitted-hr-leave-application");
-      return;
-    }
-
-    setActiveSection(sectionId);
-
-    const mainContainer = document.getElementById("lar-main");
-    const target = document.getElementById(sectionId);
-
-    const header = mainContainer?.querySelector(".pr-topbar");
-
-    if (mainContainer && target) {
-      const headerHeight = header ? header.offsetHeight : 0;
-
-      const targetTop = target.offsetTop;
-
-      const scrollToPosition = targetTop - headerHeight;
-
-      mainContainer.scrollTo({
-        top: scrollToPosition < 0 ? 0 : scrollToPosition,
-        behavior: "smooth",
-      })
+      navigate("/submitted-hr-leave-application"); 
+    } else {
+      setActiveSection(sectionId);
+      const element = document.getElementById(sectionId);
+      if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -358,356 +124,265 @@ function LeaveApplication({ onLogout }) {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
-        <span>Loading Leave Application Form</span>
+        <span>Loading Leave Application Form...</span>
       </div>
     );
 
   return (
     <div className="pr-layout">
+      {message && (
+        <div className="message-modal-overlay">
+          <div className={`message-modal-content ${message.type}`}>
+            {message.text}
+          </div>
+        </div>
+      )}
+
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2
-            onClick={handleBackToForms}
-            style={{ cursor: "pointer", color: "#007bff" }}
-            title="Back to Forms Library"
-          >
-            Leave Application
+          <h2 onClick={() => navigate("/forms-list")} style={{ cursor: "pointer", color: "#007bff" }}>
+            Leave Application Form
           </h2>
-          <span>Standardized form</span>
+          <span>Standardized Form</span>
         </div>
+
         <nav className="pr-sidebar-nav">
-          {[
-            { id: "details", label: "Request details" },
-            { id: "leave-type", label: "Leave information" },
-            { id: "signature-details", label: "Signature details" },
-            { id: "submitted", label: "View submitted requests" },
-          ].map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              className={activeSection === section.id ? "is-active" : ""}
-              onClick={() => handleNavigate(section.id)}
-            >
-              {section.label}
-            </button>
-          ))}
+            {NAV_SECTIONS.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                className={section.id === "pr-main" ? "is-active" : ""}
+                onClick={() => handleNavigate(section.id)}
+              >
+                {section.label}
+              </button>
+            ))}
         </nav>
+
         <div className="pr-sidebar-footer">
-          <span className="pr-sidebar-meta">
-            Submit requests early based on the leave policy guidelines.
-          </span>
-          {onLogout && (
-            <button
-              type="button"
-              className="pr-sidebar-logout"
-              onClick={onLogout}
-            >
-              Sign out
-            </button>
-          )}
+          <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
+            Sign out
+          </button>
         </div>
       </aside>
-      <main className="pr-main" id="lar-main">
+
+      <main className="pr-main">
         <header className="pr-topbar">
           <div>
-            <h1 className="topbar-title">Leave Application Form</h1>
+            <h1>Leave Application Form</h1>
             <p className="pr-topbar-meta">
               File a leave request and track endorsements through HR.
             </p>
           </div>
-          <div className="pr-reference-card">
-            <span className="pr-reference-label">Reference code</span>
-            <span className="pr-reference-value">
-              {request?.form_code || nextReferenceCode || "Pending assignment"}
+
+          <div className="car-reference-card">
+            <span className="car-reference-label">Reference code</span>
+            <span className="pr-label">
+              {formData.laf_request_code || "—"}
             </span>
-            <span className="pr-reference-label">Date filed</span>
-            <span>
-              <input
-                type="date"
-                name="request_date"
-                value={formData.request_date}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
+            <span className="car-reference-label">Request date</span>
+            <span className="pr-label">
+              {new Date(formData.request_date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </span>
           </div>
         </header>
 
-        {message && (
-          <div className={`leave-alert leave-alert--${message.type}`}>
-            {message.text}
-          </div>
-        )}
+        <form onSubmit={handleSubmit} className="cash-receipt-form">
+          <section className="car-form-section">
+            <h2 className="pr-section-title">Requestor Details</h2>
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="name">
+                  Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  value={userData.name}
+                  onChange={handleChange}
+                  className="pr-input"
+                  readOnly
+                  required
+                />
+                <input
+                  type="hidden"
+                  id="requestById"
+                  name="user_id"
+                  value={formData.user_id} 
+                  className="pr-input"
+                  readOnly
+                />
+              </div>
+                
 
-        <section className="pr-form-section" id="details">
-          <h2 className="pr-section-title">Requestor details</h2>
-          <p className="pr-section-subtitle">
-            Confirm your information. HR uses these details to locate your leave
-            records.
-          </p>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="requester_name">
-                Name
-              </label>
-              <input
-                id="requester_name"
-                name="requester_name"
-                value={formData.requester_name}
-                className="pr-input"
-                readOnly
-              />
+              <div className="pr-field">
+                <label className="pr-label" htmlFor="employeeID">
+                  Employee ID
+                </label>
+                <input
+                  id="employeeID"
+                  name="employee_id"
+                  value={userData.employee_id}
+                  className="pr-input"
+                  readOnly
+                  required
+                />
+              </div>
             </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="employee_id">
-                Employee ID
-              </label>
-              <input
-                id="employee_id"
-                value={formData.employee_id}
-                className="pr-input"
-                readOnly
-              />
-            </div>
-          </div>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="branch">
-                Branch
-              </label>
-              <select
-                id="branch"
-                name="branch"
-                value={formData.branch || ""}
-                onChange={handleBranchChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              >
-                <option value="">Select branch</option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.branch_name}>
-                    {branch.branch_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="department">
-                Department
-              </label>
-              {availableDepartments.length ? (
-                <select
+
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label">Branch</label>
+                <input
+                  id="branch"
+                  name="branch"
+                  value={userData.branch}
+                  onChange={handleChange}
+                  className="pr-input"
+                  readOnly
+                  required
+                />
+              </div>
+              <div className="pr-field">
+                <label className="pr-label">Department</label>
+                <input
                   id="department"
                   name="department"
-                  value={formData.department || ""}
-                  onChange={handleFieldChange}
+                  value={userData.department}
+                  onChange={handleChange}
                   className="pr-input"
-                  disabled={isReadOnly}
+                  readOnly
+                  required
+                />
+              </div>
+            </div>
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label">Position</label>
+                <input
+                  id="position"
+                  name="position"
+                  value={userData.position}
+                  onChange={handleChange}
+                  className="pr-input"
+                  required
+                />
+              </div>
+              <div className="pr-field">
+              </div>
+            </div>
+          </section>
+
+          <section className="car-form-section">
+            <label className="pr-label">Leave Date</label>
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <input
+                  type="date"
+                  id="leave_date_from"
+                  name="leave_date_from"
+                  value={formData.leave_date_from}
+                  min={today}
+                  onChange={handleChange}
+                  className="pr-input"
+                  required
+                />
+              </div>
+              <div className="pr-field">
+                <input
+                  type="date"
+                  id="leave_date_to"
+                  name="leave_date_to"
+                  value={formData.leave_date_to}
+                  min={formData.leave_date_from} 
+                  onChange={handleChange}
+                  className="pr-input"
+                  required
+                />
+              </div>
+            </div>
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label">Leave Type (please select one below)</label>
+                <select
+                  name="leave_type"
+                  value={formData.leave_type || ""}
+                  onChange={handleChange}
+                  className="pr-input"
+                  required
                 >
-                  <option value="">Select department</option>
-                  {availableDepartments.map((department) => (
-                    <option
-                      key={department.id}
-                      value={department.department_name}
-                    >
-                      {department.department_name}
+                  <option value="" disabled>-- Select Leave Type --</option>
+
+                  {leaveTypes.map((lt) => (
+                    <option key={lt.id} value={lt.leave_type}>
+                      {lt.leave_type} ({lt.leave_days} days)
                     </option>
                   ))}
+
+                  <option value="Others">Others (Specify)</option>
                 </select>
-              ) : (
-                <input
-                  id="department"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleFieldChange}
-                  className="pr-input"
-                  disabled={isReadOnly}
-                  placeholder="No departments configured"
-                />
+              </div>
+
+              {formData.leave_type === "Others" && (
+                <div className="pr-field">
+                  <label className="pr-label">Specify Other Leave Type</label>
+                  <input
+                    type="text"
+                    name="specify_other_leave_type"
+                    value={formData.specify_other_leave_type || ""}
+                    onChange={handleChange}
+                    className="pr-input"
+                    required
+                  />
+                </div>
               )}
             </div>
-          </div>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="position">
-                Position
-              </label>
-              <input
-                id="position"
-                name="position"
-                value={formData.position}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section className="pr-form-section" id="leave-type">
-          <h2 className="pr-section-title">Leave information</h2>
-          <p className="pr-section-subtitle">
-            Select one leave type and specify the dates covered by this request.
-          </p>
-          <div className="leave-type-grid">
-            {LEAVE_TYPES.map((type) => (
-              <label key={type.id} className="leave-type-option">
-                <input
-                  type="radio"
-                  name="leave_type"
-                  value={type.id}
-                  checked={formData.leave_type === type.id}
-                  onChange={handleLeaveTypeChange}
-                  disabled={isReadOnly}
-                />
-                <span>{type.label}</span>
-              </label>
-            ))}
-          </div>
-          {formData.leave_type === "Others" && (
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="leave_other_text">
-                Specify leave type
-              </label>
-              <input
-                id="leave_other_text"
-                name="leave_other_text"
-                value={formData.leave_other_text}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-          )}
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="leave_start">
-                Leave start
-              </label>
-              <input
-                type="date"
-                id="leave_start"
-                name="leave_start"
-                value={formData.leave_start}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-                max={formData.leave_end}
-              />
-            </div>
-            <div className="pr-field">
-              <label className="pr-label" htmlFor="leave_end">
-                Leave end
-              </label>
-              <input
-                type="date"
-                id="leave_end"
-                name="leave_end"
-                value={formData.leave_end}
-                min={formData.leave_start || undefined}
-                onChange={handleFieldChange}
-                className="pr-input"
-                disabled={isReadOnly}
-              />
-            </div>
-          </div>
-          <div className="pr-field">
-            <label className="pr-label">Total days</label>
-            <input
-              value={totalLeaveDays.toString()}
-              readOnly
-              className="pr-input"
-            />
-          </div>
-          <div className="pr-field">
-            <label className="pr-label" htmlFor="purpose">
-              Remarks / Purpose
-            </label>
-            <textarea
-              id="purpose"
-              name="purpose"
-              value={formData.purpose}
-              onChange={handleFieldChange}
-              className="pr-textarea"
-              rows={4}
-              disabled={isReadOnly}
-            />
-          </div>
-        </section>
+          <section className="car-form-section" id="signature">
+              <div className="pr-grid-two">
+                <div className="pr-field">
+                  <label className="pr-label">Requested by:</label>
+                  <input type="text" name="requested_by" className="car-input" value={userData.name || ""} required readOnly/>
+                </div>
 
-        <section className="pr-form-section" id="signature-details">
-          <h2 className="pr-section-title">Signature details</h2>
-          <p className="pr-section-subtitle">Confirm your signature.</p>
-          <div className="pr-grid-two">
-            <div className="pr-field">
-              <label className="car-reference-value" htmlFor="requester_name">
-                Requested by
-              </label>
-              <input
-                type="text"
-                id="requester_name"
-                name="requester_name"
-                value={formData.requester_name}
-                className="car-input"
-                readOnly
-              />
-            </div>
-            <div className="pr-field receive-signature">
-              <label className="car-reference-value">Signature</label>
-              <input
-                type="text"
-                name="signature"
-                className="car-input received-signature"
-                value={formData.signature || null}
-                readOnly
-              />
-              {formData.signature ? (
-                <img
-                  src={`${API_BASE_URL}/uploads/signatures/${formData.signature}`}
-                  alt="Signature"
-                  className="img-sign"
-                />
-              ) : (
-                <p className="cc-signature-missing">No signature found</p>
-              )}
-            </div>
-          </div>
-        </section>
+                <div className="pr-field receive-signature">
+                  <label className="pr-label">Signature</label>
+                  <input type="text" name="requested_signature" className="car-input received-signature" value={userData.signature || ""} readOnly />
+                  {userData.signature ? (
+                    <img
+                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                          <p className="img-sign-prf empty-sign"></p>
+                    )}
+                </div>
+              </div>
+          </section>
 
-        <div className="pr-form-actions">
-          <button
-            type="button"
-            className="pr-submit"
-            onClick={submitRequest}
-            disabled={isSaving || isReadOnly || !isUserAccount}
-          >
-            Submit for endorsement
-          </button>
-          {request && (
-            <button
-              type="button"
-              className="pr-sidebar-logout"
-              onClick={() => {
-                setRequest(null);
-                // Keep user data (name, id, signature) but reset the form
-                setFormData((prev) => ({
-                  ...createInitialFormState(storedUser), // Get a fresh form
-                  requester_name: prev.requester_name, // Keep fetched name
-                  employee_id: prev.employee_id, // Keep fetched ID
-                  signature: prev.signature, // Keep fetched signature
-                  branch: prev.branch, // Keep selected branch
-                  department: prev.department, // Keep selected dept
-                }));
-                setNextReferenceCode(null);
-                setMessage(null);
-              }}
-              disabled={isSaving}
-            >
-              Start new request
+          <section className="car-form-section" id="signature">
+            <div style={{border: '1px solid #e6e6e6ff', borderRadius: '15px'}}>
+              <ul>
+                <li><strong>Vacation Leave:</strong> Must be filed seven (7) days before the planned leave</li>
+                <li><strong>Sick Leave:</strong> Inform immediate head. Must be filed within three (3) days after leave date. Medical certificate must be attached.</li>
+                <li><strong>Emergency Leave:</strong> Inform immediate head. Must be filed within three (3) days after leave date. </li>
+                <li><strong>Maternity or Paternity Leave:</strong> Must be filed within seven (7) days after leave date. Birth certificate must be attached.</li>
+                <li><strong>Bereavement Leave:</strong> Must be filed within seven (7) days after leave date. Death certificate must be attached. </li>
+              </ul>
+            </div>
+          </section>
+
+          <div className="pr-form-actions">
+            <button type="submit" className="pr-submit" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit Leave Application"}
             </button>
-          )}
-        </div>
+          </div>
+        </form>
       </main>
     </div>
   );

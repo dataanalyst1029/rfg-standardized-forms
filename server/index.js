@@ -1641,7 +1641,7 @@ app.get("/api/cash_advance_liquidation/next-code", async (req, res) => {
       [`CAL-${year}-%`]
     );
 
-    let nextCode;
+    let nextCode; 
     if (result.rows.length > 0) {
       const lastCode = result.rows[0].cal_request_code;
       const lastNum = parseInt(lastCode.split("-")[2]);
@@ -1653,7 +1653,7 @@ app.get("/api/cash_advance_liquidation/next-code", async (req, res) => {
 
     res.json({ nextCode });
   } catch (err) {
-    console.error("❌ Error generating next revolving fund request code:", err);
+    console.error("❌ Error generating next cash advance liquidation code:", err);
     res.status(500).json({ message: "Server error generating next code" });
   }
 });
@@ -1858,6 +1858,64 @@ app.put("/api/update_cash_advance_liquidation", uploadForm.none(), async (req, r
         endorsed_signature = $${paramIndex++}
       `;
       values.push(endorsed_by, endorsed_signature);
+    }
+
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE cal_request_code = $${paramIndex} RETURNING *`;
+    values.push(cal_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Cash advance liquidation not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Cash advance liquidation updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating cash advance liquidation:", err);
+    res.status(500).json({ message: "Server error updating cash advance liquidation." });
+  }
+});
+
+// UPDATE CASH ADVANCELIQUIDATION APPROVING
+app.put("/api/update_cash_advance_liquidation_approving", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      cal_request_code,
+      approved_by,
+      approve_signature,
+      status,
+    } = req.body;
+
+    if (!cal_request_code) {
+      return res.status(400).json({ message: "cal_request_code is required." });
+    }
+
+    let query = `
+      UPDATE cash_advance_liquidation
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Approved") {
+      query += `,
+        approved_by = $${paramIndex++},
+        approve_signature = $${paramIndex++}
+      `;
+      values.push(approved_by, approve_signature);
     }
 
     if (status === "Declined") {
@@ -3151,7 +3209,158 @@ app.put("/api/overtime_approval_request/:id", async (req, res) => {
   }
 });
 
-// ✅ Fetch single user by ID
+
+/* ------------------------
+   LEAVE APPLICATION API
+------------------------ */
+
+app.get("/api/leave_application/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const result = await pool.query(
+      `SELECT laf_request_code
+       FROM leave_application
+       WHERE laf_request_code LIKE $1
+       ORDER BY laf_request_code DESC
+       LIMIT 1`,
+      [`LAF-${year}-%`]
+    );
+
+    let nextCode;
+    if (result.rows.length > 0) {
+      const lastCode = result.rows[0].laf_request_code;
+      const lastNum = parseInt(lastCode.split("-")[2], 10);
+      const nextNum = String(lastNum + 1).padStart(6, "0");
+      nextCode = `LAF-${year}-${nextNum}`;
+    } else {
+      nextCode = `LAF-${year}-000001`;
+    }
+
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("❌ Error generating next leave application code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+
+app.post("/api/leave_application", async (req, res) => {
+  const {
+    laf_request_code,
+    request_date,
+    employee_id,
+    name,
+    branch,
+    department,
+    position,
+    leave_type,
+    leave_date_from,
+    leave_date_to,
+    specify_other_leave_type,
+    requested_by,
+    requested_signature,
+    user_id,
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const existing = await client.query(
+      "SELECT id FROM leave_application WHERE laf_request_code = $1",
+      [laf_request_code]
+    );
+    if (existing.rows.length > 0) {
+      await client.query("ROLLBACK");
+      return res
+        .status(400)
+        .json({ message: `Leave Applciation ${laf_request_code} already exists.` });
+    }
+
+    await client.query(
+      `INSERT INTO leave_application (
+        laf_request_code, 
+        request_date, 
+        employee_id, 
+        name, 
+        branch, 
+        department, 
+        position, 
+        leave_type, 
+        leave_date_from,
+        leave_date_to,
+        specify_other_leave_type,
+        requested_by, 
+        requested_signature, 
+        user_id
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+      [
+        laf_request_code,
+        request_date || new Date(),
+        employee_id,
+        name,
+        branch,
+        department,
+        position,
+        leave_type,
+        leave_date_from,
+        leave_date_to,
+        specify_other_leave_type,
+        requested_by,
+        requested_signature,
+        user_id,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: `✅ Leave Application ${laf_request_code} saved successfully!`,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("❌ Error saving leave application:", err);
+    res.status(500).json({ message: "Server error saving leave application" });
+  } finally {
+    client.release();
+  }
+});
+
+app.get("/api/leave_application", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        id,
+        laf_request_code,
+        request_date,
+        employee_id,
+        name,
+        branch,
+        department,
+        position,
+        leave_type,
+        leave_date_from,
+        leave_date_to,
+        specify_other_leave_type,
+        requested_by,
+        requested_signature,
+        user_id,
+        status
+      FROM leave_application
+      ORDER BY request_date DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching CA receipts:", err);
+    res.status(500).json({ message: "Server error fetching CA receipts" });
+  }
+});
+
+
+//  Fetch single user by ID
 app.get("/api/users/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -3318,6 +3527,78 @@ app.delete("/api/departments/:id", async (req, res) => {
     res.status(500).json({ message: "Server error deleting department" });
   }
 });
+
+
+/* ------------------------
+   LEAVE TYPE CRUD API
+------------------------ */
+app.get("/api/leave_types", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM leave_types ORDER BY id ASC");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching leave type:", err);
+    res.status(500).json({ message: "Server error fetching leave type" });
+  }
+});
+
+app.post("/api/leave_types", async (req, res) => {
+  const { leave_type, leave_days} = req.body;
+
+  if (!leave_type || !leave_days) {
+    return res.status(400).json({ message: "Leave type and leave days are required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO leave_types (leave_type, leave_days)
+       VALUES ($1, $2)
+       RETURNING *`,
+      [leave_type, leave_days]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error adding leave type:", err);
+    res.status(500).json({ message: "Server error adding leave type" });
+  }
+});
+
+app.put("/api/leave_types/:id", async (req, res) => {
+  const { id } = req.params;
+  const { leave_type, leave_days} = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE leave_types 
+       SET leave_type = $1, leave_days = $2, updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [leave_type, leave_days, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Leave type not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error updating leave type:", err);
+    res.status(500).json({ message: "Server error updating leave type" });
+  }
+});
+
+app.delete("/api/leave_types/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM leave_types WHERE id = $1", [id]);
+    res.json({ message: "Leave type deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting leave type:", err);
+    res.status(500).json({ message: "Server error deleting leave type" });
+  }
+});
+
 
 /* ------------------------
    TRANSMITTAL FORM API
@@ -3781,246 +4062,6 @@ app.get("/api/interbranch_transfer_slip_items", async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching interbranch transfer slip items:", err);
     res.status(500).json({ message: "Server error fetching interbranch transfer slip items" });
-  }
-});
-
-// /* ------------------------
-//    MAINTENANCE REQUESTS API
-// ------------------------ */
-// app.get("/api/maintenance_requests/next-code", async (req, res) => {  // Generate next available maintenance request code
-//   try {
-//     const year = new Date().getFullYear();  // Get current year for code prefix
-
-//     const result = await pool.query(  // Query latest code that matches current year
-//       `SELECT form_code 
-//        FROM maintenance_requests 
-//        WHERE form_code LIKE $1 
-//        ORDER BY form_code DESC 
-//        LIMIT 1`,
-//       [`MRF-${year}-%`]  // Pattern for current year’s codes
-//     );
-
-//     let nextCode;  // Variable to store generated code
-//     if (result.rows.length > 0) {  // If a record exists for this year
-//       const lastCode = result.rows[0].form_code;  // Get latest code
-//       const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
-//       const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
-//       nextCode = `MRF-${year}-${nextNum}`;  // Construct next code
-//     } else {
-//       nextCode = `MRF-${year}-000001`;  // If none found, start from 000001
-//     }
-
-//     res.json({ nextCode });  // Return next code to client
-//   } catch (err) {
-//     console.error("❌ Error generating next maintenance/repair form code:", err);  // Log error
-//     res.status(500).json({ message: "Server error generating next code" });  // Send error response
-//   }
-// });
-
-// app.post("/api/maintenance_requests", async (req, res) => {  // Create new maintenance request
-//   const {
-//     form_code,
-//     status,
-//     requester_name,
-//     branch,
-//     department,
-//     employee_id,
-//     request_date,
-//     signature,
-//     date_needed,
-//     work_description,
-//     asset_tag,
-//     performed_by,
-//     date_completed,
-//     completion_remarks,
-//     submitted_by,
-//     submitted_at,
-//     approved_by,
-//     approved_sig,
-//     accomplished_by,
-//     accomplished_sig,
-
-//     items = [],  // Default to empty array if no items
-//   } = req.body;
-
-//   const client = await pool.connect();  // Get DB client for transaction
-//   try {
-//     await client.query("BEGIN");  // Start transaction
-
-//     const result = await client.query(  // Insert main request record
-//       `INSERT INTO maintenance_requests
-//       (form_code, requester_name, branch, department, employee_id, request_date, signature, date_needed, work_description, asset_tag, performed_by, date_completed, completion_remarks, submitted_by)
-//       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, $14)
-//       RETURNING id`,
-//       [
-//         form_code,
-//         requester_name,
-//         branch,
-//         department,
-//         employee_id,
-//         request_date,
-//         signature,
-//         date_needed,
-//         work_description,
-//         asset_tag,
-//         performed_by,
-//         date_completed,
-//         completion_remarks,
-//         submitted_by
-//       ]
-//     );
-
-//     const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
-//     if (!requestId) throw new Error("Failed to get maintenance request ID");  // Validate presence of ID
-
-//     await client.query("COMMIT");  // Commit transaction
-
-//     res.status(201).json({
-//       success: true,
-//       message: `Maintenance/Repair Form ${form_code} saved successfully!`,  // Success message
-//     });
-//   } catch (err) {
-//     await client.query("ROLLBACK");  // Rollback on failure
-//     console.error("❌ Error saving maintenance/repair form:", err);
-//     res.status(500).json({ message: "Server error saving maintenance/repair form" });  // Send error response
-//   } finally {
-//     client.release();  // Release DB client
-//   }
-// });
-
-// app.get("/api/maintenance_requests", async (req, res) => {
-//   try {
-//     const result = await pool.query(`
-//       SELECT *
-//       FROM maintenance_requests
-//       ORDER BY created_at DESC;
-//     `);
-//     res.json(result.rows);
-//   } catch (err) {
-//     console.error("❌ Error fetching maintenance/repair requests:", err);
-//     res.status(500).json({ message: "Server error fetching maintenance/repair requests" });
-//   }
-// });
-
-/* ------------------------
-   LEAVE REQUESTS API
------------------------- */
-app.get("/api/leave_requests/next-code", async (req, res) => {  // Generate next available leave request code
-  try {
-    const year = new Date().getFullYear();  // Get current year for code prefix
-
-    const result = await pool.query(  // Query latest code that matches current year
-      `SELECT form_code 
-       FROM leave_requests 
-       WHERE form_code LIKE $1 
-       ORDER BY form_code DESC 
-       LIMIT 1`,
-      [`LAF-${year}-%`]  // Pattern for current year’s codes
-    );
-
-    let nextCode;  // Variable to store generated code
-    if (result.rows.length > 0) {  // If a record exists for this year
-      const lastCode = result.rows[0].form_code;  // Get latest code
-      const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
-      const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
-      nextCode = `LAF-${year}-${nextNum}`;  // Construct next code
-    } else {
-      nextCode = `LAF-${year}-000001`;  // If none found, start from 000001
-    }
-
-    res.json({ nextCode });  // Return next code to client
-  } catch (err) {
-    console.error("❌ Error generating next leave application form code:", err);  // Log error
-    res.status(500).json({ message: "Server error generating next code" });  // Send error response
-  }
-});
-
-app.post("/api/leave_requests", async (req, res) => {  // Create new leave request
-  const {
-    form_code,
-    status,
-    requester_name,
-    branch,
-    department,
-    employee_id,
-    position,
-    request_date,
-    signature,
-    leave_type,
-    leave_start,
-    leave_end,
-    leave_hours,
-    purpose,
-    submitted_by,
-    submitted_at,
-    endorsed_by,
-    endorsed_at,
-    approved_by,
-    approved_at,
-    hr_notes,
-    available_vacation,
-    available_sick,
-    available_emergency, 
-
-    items = [],  // Default to empty array if no items
-  } = req.body;
-
-  const client = await pool.connect();  // Get DB client for transaction  
-  try {
-    await client.query("BEGIN");  // Start transaction
-
-    const result = await client.query(  // Insert main request record
-      `INSERT INTO leave_requests
-      (form_code, requester_name, branch, department, employee_id, position, request_date, signature, leave_type, leave_start, leave_end, leave_hours, purpose, submitted_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, $14)
-      RETURNING id`,
-      [
-        form_code,
-        requester_name,
-        branch,
-        department,
-        employee_id,
-        position,
-        request_date,
-        signature,
-        leave_type,
-        leave_start,
-        leave_end,
-        leave_hours,
-        purpose,
-        submitted_by
-      ]
-    );
-
-    const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
-    if (!requestId) throw new Error("Failed to get leave application ID");  // Validate presence of ID
-
-    await client.query("COMMIT");  // Commit transaction
-
-    res.status(201).json({
-      success: true,
-      message: `Leave Application Form ${form_code} saved successfully!`,  // Success message
-    });
-  } catch (err) {
-    await client.query("ROLLBACK");  // Rollback on failure
-    console.error("❌ Error saving leave application form:", err);
-    res.status(500).json({ message: "Server error saving leave application form" });  // Send error response
-  } finally {
-    client.release();  // Release DB client
-  }
-});
-
-app.get("/api/leave_requests", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT *
-      FROM leave_requests
-      ORDER BY created_at DESC;
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Error fetching leave applications:", err);
-    res.status(500).json({ message: "Server error fetching leave applications" });
   }
 });
 

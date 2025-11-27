@@ -381,8 +381,6 @@ function SubmittedLeaveApplication({
                 </table>
               </div>
 
-              {/* --- MODIFIED: STATUS INDICATOR --- */}
-              {/* This now uses the exact JSX and classnames from SubmittedPaymentRequests.jsx */}
               {(selectedRequest.status || selectedRequest.decline_reason) && (
                 <div
                   className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}
