@@ -444,8 +444,8 @@ function ManageUsersAccess() {
                   <option value="Reimbursement Form">Reimbursement Form</option>
                   <option value="Payment Request Form">Payment Request Form</option>
                   <option value="Maintenance or Repair">Maintenance or Repair</option>
-                  <option value="c/o HR Overtime Approval">c/o HR Overtime Approval</option>
-                  <option value="c/o HR Leave Application">c/o HR Leave Application</option>
+                  <option value="HR Overtime Approval">HR Overtime Approval</option>
+                  <option value="HR Leave Application">HR Leave Application</option>
                   <option value="Interbranch Transfer Slip">Interbranch Transfer Slip</option>
                   <option value="Transmittal Form">Transmittal Form</option>
                   <option value="Credit Card Acknowledgement Receipt">Credit Card Acknowledgement Receipt</option>

@@ -15,62 +15,128 @@ const initialFormData = {
   department: "",
   position: "",
   leave_type: "",
-  leave_date_from: today, 
-  leave_date_to: today, 
+  leave_date_from: today,
+  leave_date_to: today,
   specify_other_leave_type: "",
   requested_by: "",
   requested_signature: "",
+  requested_days: 1
 };
-
 
 const NAV_SECTIONS = [
   { id: "pr-main", label: "New Leave Application" },
-  { id: "submitted", label: "View Submitted Requests" },
+  { id: "submitted", label: "View Submitted Requests" }
 ];
 
 function LeaveApplication({ onLogout }) {
   const [formData, setFormData] = useState(initialFormData);
+  const [availableDays, setAvailableDays] = useState(0);
+  const [requestedDays, setRequestedDays] = useState(1);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({});
   const [message, setMessage] = useState(null);
+  const [leaveTypes, setLeaveTypes] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const storedId = sessionStorage.getItem("id");
     if (!storedId) return;
+
     fetch(`${API_BASE_URL}/users/${storedId}`)
       .then((res) => res.json())
       .then((data) => {
         setUserData(data);
+
         setFormData((prev) => ({
           ...prev,
           user_id: storedId,
-          received_by: data.name || "",
-          received_signature: data.signature || "",
+          employee_id: data.employee_id || "",
+          name: data.name || "",
+          branch: data.branch || "",
+          department: data.department || "",
+          position: data.position || "",
+          requested_by: data.name || "",
+          requested_signature: data.signature || ""
         }));
       })
-      .catch((err) => console.error("Error fetching user data:", err));
+      .catch((err) => console.error("Error fetching user:", err));
   }, []);
 
   useEffect(() => {
-    const fetchNextCode = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/leave_application/next-code`);
-        const data = await res.json();
-        if (data.nextCode)
-          setFormData((prev) => ({ ...prev, laf_request_code: data.nextCode }));
-      } catch (error) {
-        console.error("Error getting next CAR code:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNextCode();
+    fetch(`${API_BASE_URL}/api/leave_application/next-code`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.nextCode) {
+          setFormData((prev) => ({
+            ...prev,
+            laf_request_code: data.nextCode
+          }));
+        }
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleChange = (e) => {
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/leave_types`)
+      .then((res) => res.json())
+      .then((data) => setLeaveTypes(data));
+  }, []);
+
+  const calculateDays = (from, to) => {
+    const diff =
+      Math.floor(
+        (new Date(to).getTime() - new Date(from).getTime()) /
+          (1000 * 60 * 60 * 24)
+      ) + 1;
+
+    return diff > 0 ? diff : 1;
+  };
+
+  const handleChange = async (e) => {
     const { name, value } = e.target;
+
+    // ⭐ SKIP REMAINING DAYS CHECK WHEN "Others"
+    if (name === "leave_type") {
+      if (value === "Others") {
+        setAvailableDays(999); // optional placeholder
+        setFormData((prev) => ({ ...prev, leave_type: value }));
+        return;
+      }
+
+      const selected = leaveTypes.find((lt) => lt.leave_type === value);
+
+      if (selected) {
+        fetch(
+          `${API_BASE_URL}/api/user_leaves/${formData.user_id}/${selected.leave_type}`
+        )
+          .then((res) => res.json())
+          .then((bal) => {
+            setAvailableDays(bal.leave_days || 0);
+          });
+      }
+
+      setFormData((prev) => ({ ...prev, leave_type: value }));
+      return;
+    }
+
+    if (name === "leave_date_from" || name === "leave_date_to") {
+      const updated = {
+        ...formData,
+        [name]: value
+      };
+
+      const newDays = calculateDays(
+        updated.leave_date_from,
+        updated.leave_date_to
+      );
+
+      setRequestedDays(newDays);
+      setFormData(updated);
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -79,44 +145,43 @@ function LeaveApplication({ onLogout }) {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
+    // ⭐ VALIDATE ONLY WHEN NOT "Others"
+    if (formData.leave_type !== "Others") {
+      if (requestedDays > availableDays) {
+        setMessage({
+          type: "error",
+          text: `You only have ${availableDays} days remaining for this leave type.`
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/leave_application`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          requested_days: requestedDays
+        })
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to submit receipt");
+      if (!res.ok)
+        throw new Error(data.message || "Failed to submit leave application");
 
-      setMessage({ type: "success", text: "Leave application submitted successfully!" });
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    } catch (error) {
-      setMessage({ type: "error", text: error.message });
+      setMessage({
+        type: "success",
+        text: "Leave application submitted successfully!"
+      });
+
+      setTimeout(() => window.location.reload(), 2000);
+    } catch (err) {
+      setMessage({ type: "error", text: err.message });
       setTimeout(() => setMessage(null), 3000);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const [leaveTypes, setLeaveTypes] = useState([]);
-
-    useEffect(() => {
-      fetch(`${API_BASE_URL}/api/leave_types`)
-        .then((res) => res.json())
-        .then((data) => setLeaveTypes(data))
-        .catch((err) => console.error("Error fetching leave types:", err));
-    }, []);
-
-  const handleNavigate = (sectionId) => {
-    if (sectionId === "submitted") {
-      navigate("/submitted-hr-leave-application"); 
-    } else {
-      setActiveSection(sectionId);
-      const element = document.getElementById(sectionId);
-      if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -138,25 +203,33 @@ function LeaveApplication({ onLogout }) {
         </div>
       )}
 
+      {/* -------- SIDEBAR -------- */}
+
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">
-          <h2 onClick={() => navigate("/forms-list")} style={{ cursor: "pointer", color: "#007bff" }}>
+          <h2
+            onClick={() => navigate("/forms-list")}
+            style={{ cursor: "pointer", color: "#007bff" }}
+          >
             Leave Application Form
           </h2>
           <span>Standardized Form</span>
         </div>
 
         <nav className="pr-sidebar-nav">
-            {NAV_SECTIONS.map((section) => (
-              <button
-                key={section.id}
-                type="button"
-                className={section.id === "pr-main" ? "is-active" : ""}
-                onClick={() => handleNavigate(section.id)}
-              >
-                {section.label}
-              </button>
-            ))}
+          {NAV_SECTIONS.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={section.id === "pr-main" ? "is-active" : ""}
+              onClick={() => {
+                if (section.id === "submitted")
+                  navigate("/submitted-hr-leave-application");
+              }}
+            >
+              {section.label}
+            </button>
+          ))}
         </nav>
 
         <div className="pr-sidebar-footer">
@@ -165,6 +238,8 @@ function LeaveApplication({ onLogout }) {
           </button>
         </div>
       </aside>
+
+      {/* -------- MAIN CONTENT -------- */}
 
       <main className="pr-main">
         <header className="pr-topbar">
@@ -177,113 +252,74 @@ function LeaveApplication({ onLogout }) {
 
           <div className="car-reference-card">
             <span className="car-reference-label">Reference code</span>
-            <span className="pr-label">
-              {formData.laf_request_code || "—"}
-            </span>
+            <span className="pr-label">{formData.laf_request_code}</span>
+
             <span className="car-reference-label">Request date</span>
             <span className="pr-label">
               {new Date(formData.request_date).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
-                day: "numeric",
+                day: "numeric"
               })}
             </span>
           </div>
         </header>
 
+        {/* -------- FORM -------- */}
+
         <form onSubmit={handleSubmit} className="cash-receipt-form">
           <section className="car-form-section">
             <h2 className="pr-section-title">Requestor Details</h2>
+
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="pr-label" htmlFor="name">
-                  Name
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  value={userData.name}
-                  onChange={handleChange}
-                  className="pr-input"
-                  readOnly
-                  required
-                />
-                <input
-                  type="hidden"
-                  id="requestById"
-                  name="user_id"
-                  value={formData.user_id} 
-                  className="pr-input"
-                  readOnly
-                />
+                <label className="pr-label">Name</label>
+                <input value={userData.name} className="pr-input" readOnly />
+                <input type="hidden" name="user_id" value={formData.user_id} />
               </div>
-                
 
               <div className="pr-field">
-                <label className="pr-label" htmlFor="employeeID">
-                  Employee ID
-                </label>
-                <input
-                  id="employeeID"
-                  name="employee_id"
-                  value={userData.employee_id}
-                  className="pr-input"
-                  readOnly
-                  required
-                />
+                <label className="pr-label">Employee ID</label>
+                <input value={userData.employee_id} className="pr-input" readOnly />
               </div>
             </div>
 
             <div className="pr-grid-two">
               <div className="pr-field">
                 <label className="pr-label">Branch</label>
-                <input
-                  id="branch"
-                  name="branch"
-                  value={userData.branch}
-                  onChange={handleChange}
-                  className="pr-input"
-                  readOnly
-                  required
-                />
+                <input value={userData.branch} className="pr-input" readOnly />
               </div>
+
               <div className="pr-field">
                 <label className="pr-label">Department</label>
-                <input
-                  id="department"
-                  name="department"
-                  value={userData.department}
-                  onChange={handleChange}
-                  className="pr-input"
-                  readOnly
-                  required
-                />
+                <input value={userData.department} className="pr-input" readOnly />
               </div>
             </div>
+
             <div className="pr-grid-two">
               <div className="pr-field">
                 <label className="pr-label">Position</label>
                 <input
-                  id="position"
+                  type="text"
                   name="position"
-                  value={userData.position}
+                  value={formData.position}
                   onChange={handleChange}
                   className="pr-input"
                   required
                 />
               </div>
-              <div className="pr-field">
-              </div>
             </div>
           </section>
 
+          {/* -------- LEAVE DATE -------- */}
+
           <section className="car-form-section">
             <label className="pr-label">Leave Date</label>
+
             <div className="pr-grid-two">
               <div className="pr-field">
                 <input
                   type="date"
-                  id="leave_date_from"
                   name="leave_date_from"
                   value={formData.leave_date_from}
                   min={today}
@@ -292,34 +328,43 @@ function LeaveApplication({ onLogout }) {
                   required
                 />
               </div>
+
               <div className="pr-field">
                 <input
                   type="date"
-                  id="leave_date_to"
                   name="leave_date_to"
                   value={formData.leave_date_to}
-                  min={formData.leave_date_from} 
+                  min={formData.leave_date_from}
                   onChange={handleChange}
                   className="pr-input"
                   required
                 />
               </div>
             </div>
+
+            {/* ⭐ You may also hide this section for Others */}
+            <p style={{ fontSize: "14px", marginTop: "8px" }}>
+              <strong>Requested Days:</strong> {requestedDays} <br />
+              <strong>Remaining Balance:</strong>{" "}
+              {formData.leave_type === "Others" ? "N/A" : availableDays}
+            </p>
+
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="pr-label">Leave Type (please select one below)</label>
+                <label className="pr-label">Leave Type</label>
+
                 <select
                   name="leave_type"
-                  value={formData.leave_type || ""}
+                  value={formData.leave_type}
                   onChange={handleChange}
                   className="pr-input"
                   required
                 >
-                  <option value="" disabled>-- Select Leave Type --</option>
+                  <option value="">-- Select Leave Type --</option>
 
                   {leaveTypes.map((lt) => (
                     <option key={lt.id} value={lt.leave_type}>
-                      {lt.leave_type} ({lt.leave_days} days)
+                      {lt.leave_type}
                     </option>
                   ))}
 
@@ -333,7 +378,7 @@ function LeaveApplication({ onLogout }) {
                   <input
                     type="text"
                     name="specify_other_leave_type"
-                    value={formData.specify_other_leave_type || ""}
+                    value={formData.specify_other_leave_type}
                     onChange={handleChange}
                     className="pr-input"
                     required
@@ -343,36 +388,38 @@ function LeaveApplication({ onLogout }) {
             </div>
           </section>
 
-          <section className="car-form-section" id="signature">
-              <div className="pr-grid-two">
-                <div className="pr-field">
-                  <label className="pr-label">Requested by:</label>
-                  <input type="text" name="requested_by" className="car-input" value={userData.name || ""} required readOnly/>
-                </div>
-
-                <div className="pr-field receive-signature">
-                  <label className="pr-label">Signature</label>
-                  <input type="text" name="requested_signature" className="car-input received-signature" value={userData.signature || ""} readOnly />
-                  {userData.signature ? (
-                    <img
-                      src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                      alt="Signature"
-                      className="img-sign"/>
-                      ) : (
-                          <p className="img-sign-prf empty-sign"></p>
-                    )}
-                </div>
+          <section className="car-form-section">
+            <div className="pr-grid-two">
+              <div className="pr-field">
+                <label className="pr-label">Requested by:</label>
+                <input value={userData.name} className="car-input" readOnly />
               </div>
+
+              <div className="pr-field receive-signature">
+                <label className="pr-label">Signature</label>
+                <input value={userData.signature || ""} className="car-input received-signature" readOnly />
+
+                {userData.signature ? (
+                  <img
+                    src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                    alt="Signature"
+                    className="img-sign"
+                  />
+                ) : (
+                  <p className="img-sign-prf empty-sign"></p>
+                )}
+              </div>
+            </div>
           </section>
 
-          <section className="car-form-section" id="signature">
-            <div style={{border: '1px solid #e6e6e6ff', borderRadius: '15px'}}>
+          <section className="car-form-section">
+            <div style={{ border: "1px solid #ccc", borderRadius: "15px" }}>
               <ul>
-                <li><strong>Vacation Leave:</strong> Must be filed seven (7) days before the planned leave</li>
-                <li><strong>Sick Leave:</strong> Inform immediate head. Must be filed within three (3) days after leave date. Medical certificate must be attached.</li>
-                <li><strong>Emergency Leave:</strong> Inform immediate head. Must be filed within three (3) days after leave date. </li>
-                <li><strong>Maternity or Paternity Leave:</strong> Must be filed within seven (7) days after leave date. Birth certificate must be attached.</li>
-                <li><strong>Bereavement Leave:</strong> Must be filed within seven (7) days after leave date. Death certificate must be attached. </li>
+                <li><strong>Vacation Leave:</strong> Must be filed 7 days before leave date.</li>
+                <li><strong>Sick Leave:</strong> Must be filed within 3 days with medical certificate.</li>
+                <li><strong>Emergency Leave:</strong> Must be filed within 3 days.</li>
+                <li><strong>Maternity/Paternity Leave:</strong> Must be filed within 7 days.</li>
+                <li><strong>Bereavement Leave:</strong> Must be filed within 7 days.</li>
               </ul>
             </div>
           </section>

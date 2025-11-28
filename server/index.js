@@ -3209,7 +3209,30 @@ app.put("/api/overtime_approval_request/:id", async (req, res) => {
   }
 });
 
+/* ------------------------------
+   GET USER LEAVE BALANCE
+------------------------------ */
+app.get("/api/user_leaves/:user_id/:leave_type", async (req, res) => {
+  const { user_id, leave_type } = req.params;
 
+  try {
+    const result = await pool.query(
+      `SELECT id, user_id, leave_type, leave_days 
+       FROM user_leaves 
+       WHERE user_id = $1 AND leave_type = $2`,
+      [user_id, leave_type]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ leave_days: 0 });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("❌ Error fetching user leave days:", err);
+    res.status(500).json({ message: "Server error fetching user leave days" });
+  }
+});
 /* ------------------------
    LEAVE APPLICATION API
 ------------------------ */
@@ -3244,7 +3267,21 @@ app.get("/api/leave_application/next-code", async (req, res) => {
   }
 });
 
+app.get("/api/leave_application", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM leave_application ORDER BY id DESC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching leave applications:", err);
+    res.status(500).json({ message: "Server error fetching leave applications" });
+  }
+});
 
+/* -----------------------------------------
+   SUBMIT LEAVE APPLICATION (NO DEDUCTION)
+------------------------------------------ */
 app.post("/api/leave_application", async (req, res) => {
   const {
     laf_request_code,
@@ -3261,6 +3298,7 @@ app.post("/api/leave_application", async (req, res) => {
     requested_by,
     requested_signature,
     user_id,
+    requested_days  
   } = req.body;
 
   const client = await pool.connect();
@@ -3271,31 +3309,55 @@ app.post("/api/leave_application", async (req, res) => {
       "SELECT id FROM leave_application WHERE laf_request_code = $1",
       [laf_request_code]
     );
+
     if (existing.rows.length > 0) {
       await client.query("ROLLBACK");
-      return res
-        .status(400)
-        .json({ message: `Leave Applciation ${laf_request_code} already exists.` });
+      return res.status(400).json({
+        message: `Leave Application ${laf_request_code} already exists.`
+      });
+    }
+
+    let remainingDays = ""; 
+
+    if (leave_type !== "Others") {
+      const balanceResult = await client.query(
+        `SELECT leave_days FROM user_leaves
+         WHERE user_id = $1 AND leave_type = $2`,
+        [user_id, leave_type]
+      );
+
+      remainingDays =
+        balanceResult.rows.length > 0
+          ? balanceResult.rows[0].leave_days
+          : 0;
+
+      if (requested_days > remainingDays) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          message: `Insufficient leave balance. You only have ${remainingDays} days remaining.`
+        });
+      }
     }
 
     await client.query(
       `INSERT INTO leave_application (
-        laf_request_code, 
-        request_date, 
-        employee_id, 
-        name, 
-        branch, 
-        department, 
-        position, 
-        leave_type, 
+        laf_request_code,
+        request_date,
+        employee_id,
+        name,
+        branch,
+        department,
+        position,
+        leave_type,
         leave_date_from,
         leave_date_to,
         specify_other_leave_type,
-        requested_by, 
-        requested_signature, 
+        requested_by,
+        requested_signature,
+        requested_days,
         user_id
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
       [
         laf_request_code,
         request_date || new Date(),
@@ -3310,7 +3372,8 @@ app.post("/api/leave_application", async (req, res) => {
         specify_other_leave_type,
         requested_by,
         requested_signature,
-        user_id,
+        requested_days,
+        user_id
       ]
     );
 
@@ -3318,7 +3381,7 @@ app.post("/api/leave_application", async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `✅ Leave Application ${laf_request_code} saved successfully!`,
+      message: `✅ Leave Application ${laf_request_code} submitted successfully!`
     });
   } catch (err) {
     await client.query("ROLLBACK");
@@ -3329,57 +3392,119 @@ app.post("/api/leave_application", async (req, res) => {
   }
 });
 
-app.get("/api/leave_application", async (req, res) => {
+
+/* ------------------------
+   ENDORSE LEAVE APPLICATION REQUEST
+------------------------ */
+app.put("/api/update_leave_application", uploadForm.none(), async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        id,
-        laf_request_code,
-        request_date,
-        employee_id,
-        name,
-        branch,
-        department,
-        position,
-        leave_type,
-        leave_date_from,
-        leave_date_to,
-        specify_other_leave_type,
-        requested_by,
-        requested_signature,
-        user_id,
-        status
-      FROM leave_application
-      ORDER BY request_date DESC
-    `);
-    res.json(result.rows);
+    const {
+      laf_request_code,
+      endorsed_by,
+      endorsed_signature,
+      status,
+      declined_reason,
+    } = req.body;
+
+    if (!laf_request_code) {
+      return res.status(400).json({ message: "LAF request code is required." });
+    }
+
+    let query = `
+      UPDATE leave_application
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Endorsed") {
+      query += `,
+        endorsed_by = $${paramIndex++},
+        endorsed_signature = $${paramIndex++}
+      `;
+      values.push(endorsed_by, endorsed_signature);
+    }
+
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE laf_request_code = $${paramIndex} RETURNING *`;
+    values.push(laf_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Leave application request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Leave request request updated successfully.",
+      data: result.rows[0],
+    });
   } catch (err) {
-    console.error("❌ Error fetching CA receipts:", err);
-    res.status(500).json({ message: "Server error fetching CA receipts" });
+    console.error("❌ Error updating leave request:", err);
+    res.status(500).json({ message: "Server error updating leave request." });
   }
 });
 
-
-//  Fetch single user by ID
-app.get("/api/users/:id", async (req, res) => {
+/* -----------------------------------------
+   HR APPROVAL — DEDUCT LEAVE DAYS
+------------------------------------------ */
+app.put("/api/leave_application/:id/approve", async (req, res) => {
   const { id } = req.params;
 
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
-      `SELECT id, name, signature FROM users WHERE id = $1`,
+    await client.query("BEGIN");
+
+    const result = await client.query(
+      `SELECT user_id, leave_type, requested_days 
+       FROM leave_application WHERE id=$1`,
       [id]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Application not found" });
     }
 
-    res.json(result.rows[0]);
+    const { user_id, leave_type, requested_days } = result.rows[0];
+
+    if (leave_type !== "Others") {
+      await client.query(
+        `UPDATE user_leaves
+         SET leave_days = leave_days - $1
+         WHERE user_id = $2 AND leave_type = $3`,
+        [requested_days, user_id, leave_type]
+      );
+    }
+
+    await client.query(
+      `UPDATE leave_application
+       SET status='Approved'
+       WHERE id = $1`,
+      [id]
+    );
+
+    await client.query("COMMIT");
+    res.json({ success: true, message: "Leave approved and leave balance deducted." });
+
   } catch (err) {
-    console.error("Error fetching user:", err);
-    res.status(500).json({ error: "Database error fetching user" });
+    await client.query("ROLLBACK");
+    console.error("❌ Error approving leave:", err);
+    res.status(500).json({ message: "Server error approving leave" });
+  } finally {
+    client.release();
   }
 });
+
 
 
 /* ------------------------
@@ -3598,6 +3723,79 @@ app.delete("/api/leave_types/:id", async (req, res) => {
     res.status(500).json({ message: "Server error deleting leave type" });
   }
 });
+
+
+/* ------------------------
+   MANAGE USERS LEAVE CRUD API
+------------------------ */
+app.get("/api/user_leaves", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM user_leaves ORDER BY id ASC");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching users leave:", err);
+    res.status(500).json({ message: "Server error fetching users leave" });
+  }
+});
+
+app.post("/api/user_leaves", async (req, res) => {
+  const { user_id, leave_type, leave_days } = req.body;
+
+  if (!user_id || !leave_type || !leave_days) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO user_leaves (user_id, leave_type, leave_days, created_at, updated_at)
+       VALUES ($1, $2, $3, NOW(), NOW())
+       RETURNING *`,
+      [user_id, leave_type, leave_days]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error adding users leave:", err);
+    res.status(500).json({ message: "Server error adding users leave" });
+  }
+});
+
+app.put("/api/user_leaves/:id", async (req, res) => {
+  const { id } = req.params;
+  const { user_id, leave_type, leave_days} = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE user_leaves 
+       SET user_id = $1, leave_type = $2, leave_days = $3, updated_at = NOW()
+       WHERE id = $4
+       RETURNING *`,
+      [user_id, leave_type, leave_days, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Users leave not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error updating users leave:", err);
+    res.status(500).json({ message: "Server error updating users leave" });
+  }
+});
+
+app.delete("/api/user_leaves/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM user_leaves WHERE id = $1", [id]);
+    res.json({ message: "Users leave deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting users leave:", err);
+    res.status(500).json({ message: "Server error deleting users leave" });
+  }
+});
+
 
 
 /* ------------------------

@@ -7,6 +7,7 @@ import ManageUsersAccess from "./ManageUsersAccess.jsx";
 import ManageBranches from "./ManageBranches.jsx";
 import ManageDepartments from "./ManageDepartments.jsx";
 import LeaveTypes from "./LeaveTypes.jsx";
+import ManageLeave from "./ManageLeave.jsx";
 import RequestPurchase from "./RequestPurchase.jsx";
 import RequestRevolvingFund from "./RequestRevolvingFund";
 import RequestCashAdvance from "./RequestCashAdvance";
@@ -15,6 +16,7 @@ import RequestReimbursement from "./RequestReimbursement";
 import RequestPayment from "./RequestPayment";
 import RequestMaintenanceRepair from "./RequestMaintenanceRepair";
 import RequestOvertimeApproval from "./RequestOvertimeApproval.jsx";
+import RequestLeaveApplication from "./RequestLeaveApplication.jsx";
 import RequestTransmittalList from "./RequestTransmittalList.jsx";
 import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
@@ -176,6 +178,7 @@ const getInitialView = () => {
       "payment-request",
       "maintenance-repair",
       "overtime-approval-request",
+      "leave-application-request",
       "reports-purchase-request",
       "reports-revolving-fund",
       "reports-cash-advance",
@@ -187,6 +190,8 @@ const getInitialView = () => {
       "reports-overtime-approval",
       "approved-requests",
       "leave-information",
+      "leave-types",
+      "manage-user-leaves",
       "profile"
     ];
     if (validIds.includes(stored)) {
@@ -490,6 +495,13 @@ function renderActiveView(view, extraProps = {}) {
         </div>
       );
 
+    case "leave-application-request":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <RequestLeaveApplication />
+        </div>
+      );
+
     case "reports-summary":
       return (
         <PlaceholderPanel
@@ -626,12 +638,27 @@ function renderActiveView(view, extraProps = {}) {
           <ManageDepartments />
         </div>
       );
-      case "leave-information":
-        return (
-          <div className="dashboard-content dashboard-content--flush">
-            <LeaveTypes />   
-          </div>
-        );
+    case "leave-information":
+      return (
+        <PlaceholderPanel
+          title="Leave Information"
+          description="Select an option under Leave Information in the sidebar."
+        />
+      );
+
+    case "leave-types":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <LeaveTypes />
+        </div>
+      );
+
+    case "manage-user-leaves":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ManageLeave />
+        </div>
+      );
     default:
       return (
         <PlaceholderPanel
@@ -646,6 +673,7 @@ function Dashboard({ role, name, onLogout }) {
   const [activeView, setActiveView] = useState(getInitialView);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [dashboardSummary, setDashboardSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -753,6 +781,7 @@ function Dashboard({ role, name, onLogout }) {
           "payment-request",
           "maintenance-repair",
           "overtime-approval-request",
+          "leave-application-request",
           "approved-requests",
         ].includes(stored)
       ) {
@@ -781,6 +810,22 @@ function Dashboard({ role, name, onLogout }) {
         ].includes(stored)
       ) {
         setReportsOpen(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem(STORAGE_KEY);
+      if (
+        stored &&
+        [
+          "leave-information",
+          "leave-types",
+          "manage-user-leaves",
+        ].includes(stored)
+      ) {
+        setLeaveOpen(true);
       }
     }
   }, []);
@@ -917,17 +962,55 @@ function Dashboard({ role, name, onLogout }) {
 
                   if (item.id === "leave-information") {
                     return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={`sidebar-item${activeView === "leave-information" ? " sidebar-item-active" : ""}`}
-                        onClick={() => handleMenuClick("leave-information")}
-                      >
-                        <span className="sidebar-item-icon">{item.icon}</span>
-                        <span>{item.label}</span>
-                      </button>
+                      <div key={item.id} className="sidebar-dropdown">
+                        <button
+                          type="button"
+                          className={`sidebar-item${
+                            activeView === "leave-information" ||
+                            activeView === "leave-types" ||
+                            activeView === "manage-user-leaves"
+                              ? " sidebar-item-active"
+                              : ""
+                          }`}
+                          onClick={() => {
+                            setLeaveOpen(prev => !prev);
+                            setRequestsOpen(false);
+                            setReportsOpen(false);
+                          }}
+                        >
+                          <span className="sidebar-item-icon">{item.icon}</span>
+                          <span>{item.label}</span>
+                          <span className="sidebar-dropdown-arrow">
+                            {leaveOpen ? "▲" : "▼"}
+                          </span>
+                        </button>
+
+                        {leaveOpen && (
+                          <div className="sidebar-dropdown-items">
+                            <button
+                              type="button"
+                              className={`sidebar-item sidebar-item-nested${
+                                activeView === "leave-types" ? " underline-active" : ""
+                              }`}
+                              onClick={() => handleMenuClick("leave-types")}
+                            >
+                              Leave Types
+                            </button>
+
+                            <button
+                              type="button"
+                              className={`sidebar-item sidebar-item-nested${
+                                activeView === "manage-user-leaves" ? " underline-active" : ""
+                              }`}
+                              onClick={() => handleMenuClick("manage-user-leaves")}
+                            >
+                              Manage User Leaves
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     );
-                  } 
+                  }
 
                   if (item.id === "requests") {
                     if (role === "admin") return null;
@@ -936,11 +1019,12 @@ function Dashboard({ role, name, onLogout }) {
                         <button
                           type="button"
                           className={`sidebar-item${
-                            activeView === "requests" || activeView === "purchase-request" || activeView === "revolving-fund-request" || activeView === "cash-advance-budget-request" || activeView === "cash-advance-liquidation" || activeView === "reimbursement" || activeView === "payment-request" || activeView === "maintenance-repair" || activeView === "overtime-approval-request" ? " sidebar-item-active" : ""
+                            activeView === "requests" || activeView === "purchase-request" || activeView === "revolving-fund-request" || activeView === "cash-advance-budget-request" || activeView === "cash-advance-liquidation" || activeView === "reimbursement" || activeView === "payment-request" || activeView === "maintenance-repair" || activeView === "overtime-approval-request" || activeView === "leave-application-request" ? " sidebar-item-active" : ""
                           }`}
                           onClick={
                             () => {setRequestsOpen((prev) => !prev);
                             setReportsOpen(false);
+                            setLeaveOpen(false);
                             }
                           }
                         >
@@ -1053,7 +1137,7 @@ function Dashboard({ role, name, onLogout }) {
                                 Maintenance or Repair
                               </button>
                             )}
-                            {userAccess.includes("c/o HR Overtime Approval") && (
+                            {userAccess.includes("HR Overtime Approval") && (
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
@@ -1068,9 +1152,9 @@ function Dashboard({ role, name, onLogout }) {
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
-                                  activeView === "purchase-request" ? " underline-active" : ""
+                                  activeView === "leave-application-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => handleMenuClick("purchase-request")}
+                                onClick={() => handleMenuClick("leave-application-request")}
                               >
                                 HR Leave Application
                               </button>
@@ -1125,6 +1209,7 @@ function Dashboard({ role, name, onLogout }) {
                           onClick={
                             () => {setReportsOpen((prev) => !prev);
                             setRequestsOpen(false);
+                            setLeaveOpen(false);
                             }
                           }
                         >
@@ -1332,6 +1417,7 @@ function Dashboard({ role, name, onLogout }) {
                         setActiveView(item.id);
                         setRequestsOpen(false); 
                         setReportsOpen(false);  
+                        setLeaveOpen(false);  
                       }}
                       className={`sidebar-item${
                         activeView === item.id ? " sidebar-item-active" : ""
@@ -1366,6 +1452,7 @@ function Dashboard({ role, name, onLogout }) {
               handleMenuClick("profile");
               setRequestsOpen(false);
               setReportsOpen(false);
+              setLeaveOpen(false);
             }}
             style={{ marginBottom: "0.5rem" }}
           >

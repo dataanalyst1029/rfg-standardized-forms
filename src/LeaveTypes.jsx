@@ -239,7 +239,6 @@ function LeaveTypes() {
         </table>
       </div>
 
-      {/* PAGINATION */}
       <div className="admin-pagination">
         <span className="admin-pagination-info">
           Showing {visibleLeaveType.length} of {filteredLeaveTypes.length} leave types
