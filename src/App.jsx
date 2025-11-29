@@ -17,10 +17,10 @@ import SubmittedCashAdvanceLiquidation from "./submitted-request/SubmittedCashAd
 import SubmittedReimbursement from "./submitted-request/SubmittedReimbursement";
 import SubmittedPaymentRequest from "./submitted-request/SubmittedPaymentRequest";
 import SubmittedInterbranchTransferSlip from "./submitted-request/SubmittedInterbranchTransferSlip";
-import SubmittedLeaveApplication from "./submitted-request/SubmittedLeaveApplication";
 import SubmittedMaintenanceRepair from "./submitted-request/SubmittedMaintenanceRepair";
 import SubmittedCreditCardAcknowledgement from "./submitted-request/SubmittedCreditCardAcknowledgement";
 import SubmittedOvertimeApproval from "./submitted-request/SubmittedOvertimeApproval";
+import SubmittedLeaveApplication from "./submitted-request/SubmittedLeaveApplication";
 import RevolvingFund from "./forms/RevolvingFund";
 import CashAdvanceRequest from "./forms/CashAdvanceRequest";
 import CashAdvanceLiquidation from "./forms/CashAdvanceLiquidation";
@@ -430,10 +430,26 @@ function App() {
             user ? (
               <SubmittedLeaveApplication onLogout={handleLogout} currentUserId={user.id} />
             ) : (
-              <Navigate to="/forms/hr-leave-application" replace />
+              <Navigate to="/" replace />
             )
           }
         />
+
+        <Route
+          path="/submitted-hr-leave-application"
+          element={<Navigate to="/forms/submitted-hr-leave-application" replace />}
+        />
+
+        {/* <Route
+          path="/forms/submitted-hr-leave-application"
+          element={
+            user ? (
+              <SubmittedLeaveApplication onLogout={handleLogout} currentUserId={user.id} />
+            ) : (
+              <Navigate to="/forms/hr-leave-application" replace />
+            )
+          }
+        /> */}
 
         <Route
           path="/forms/submitted-interbranch-transfer-slip"

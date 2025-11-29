@@ -15,6 +15,7 @@ function RequestLeaveApplication() {
     const [modalRequest, setModalRequest] = useState(null);
     const [modalType, setModalType] = useState(null);
     const [isEndorsing, setIsEndorsing] = useState(false);
+    const [isApproving, setIsApproving] = useState(false);
     const [isDeclining, setIsDeclining] = useState(false);
     const [declineReason, setDeclineReason] = useState("");
 
@@ -45,6 +46,35 @@ function RequestLeaveApplication() {
     const [showLoadingModal, setShowLoadingModal] = useState(false);
     const [showConfirmDecline, setShowConfirmDecline] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
+
+    const [leaveBalances, setLeaveBalances] = useState({
+        vacation: 0,
+        sick: 0,
+        emergency: 0,
+    });
+
+    const fetchLeaveBalances = async (userId) => {
+        try {
+            const types = [
+            { key: "vacation", name: "Vacation Leave" },
+            { key: "sick", name: "Sick Leave" },
+            { key: "emergency", name: "Emergency Leave" },
+            ];
+
+            const balances = {};
+
+            for (const t of types) {
+            const res = await fetch(`${API_BASE_URL}/api/user_leaves/${userId}/${encodeURIComponent(t.name)}`);
+            const data = await res.json();
+            balances[t.key] = data.leave_days || 0;
+            }
+
+            setLeaveBalances(balances);
+
+        } catch (error) {
+            console.error("Error loading leave balances:", error);
+        }
+    };
 
     useEffect(() => {
         const fetchAccess = async () => {
@@ -142,8 +172,12 @@ function RequestLeaveApplication() {
      const openModalEndorsed = (request) => {
         setModalRequest(request);
         setModalType("end");
+
+        fetchLeaveBalances(request.user_id);
+
         setModalOpen(true);
     };
+
 
     const handleCloseModal = () => {
         setIsClosing(true);
@@ -680,6 +714,7 @@ function RequestLeaveApplication() {
 
                             <h2><small>Reference Number - </small><small style={{textDecoration: 'underline', color: '#305ab5ff'}}>{modalRequest.laf_request_code}</small></h2>
                             <section className="pr-form-section">
+                                <h2 className="pr-label">Requestor Details</h2>
                                 <div className="pr-grid-two">
                                     <div className="pr-field">
                                         <label className="pr-label">Date</label>
@@ -756,6 +791,46 @@ function RequestLeaveApplication() {
                                 </div>
                             </section>
 
+                            <section className="pr-form-section">
+                                <h2 className="pr-label">For HR</h2>
+
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label">Remarks</label>
+                                        <textarea name="remarks" id="remarks" className="pr-input" rows={1} required></textarea>
+                                    </div>
+                                    <div className="pr-field">
+                                        <label className="pr-label">Date Received</label>
+                                        <input type="date" className="pr-input" name="date_received" value={new Date().toISOString().split("T")[0]} required/>
+                                    </div>
+                                </div>
+
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label">Available Leave Days</label>
+
+                                        <div className="pr-input">
+                                            <div style={{ display: 'grid', gridTemplateColumns: '150px auto', justifyContent: 'center', rowGap: '6px'}}>
+                                                
+                                                <span className="pr-label">Vacation Leave:</span>
+                                                <span>{leaveBalances.vacation}</span>
+
+                                                <span className="pr-label">Sick Leave:</span>
+                                                <span>{leaveBalances.sick}</span>
+
+                                                <span className="pr-label">Emergency Leave:</span>
+                                                <span>{leaveBalances.emergency}</span>
+
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <div className="pr-field">
+
+                                    </div>
+                                </div>
+                            </section>
+
                             <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
                                 <section className="pr-form-section" id="details">
                                     <div className="pr-grid-two">
@@ -791,10 +866,10 @@ function RequestLeaveApplication() {
                                     </div>
                                     <div className="pr-grid-two">
                                         <div className="pr-field">
-                                            <label className="pr-label">Endorsed by</label>
+                                            <label className="pr-label">Approved by</label>
                                             <input
                                                 type="text"
-                                                name="endorsed_by"
+                                                name="approve_by"
                                                 value={userData.name || ""}
                                                 className="car-input"
                                                 readOnly
@@ -805,7 +880,7 @@ function RequestLeaveApplication() {
                                             <label className="pr-label">Signature</label>
                                             <input
                                                 type="text"
-                                                name="endorsed_signature"
+                                                name="approve_signature"
                                                 value={userData.signature || ""}
                                                 className="car-input received-signature"
                                                 required
@@ -823,152 +898,171 @@ function RequestLeaveApplication() {
                                     </div>
                                 </section>
                                 <div className="footer-modal">
-                                  <button
-                                      type="button"
-                                      className="admin-success-btn"
-                                      disabled={isEndorsing}
-                                      onClick={async () => {
-                                      setIsEndorsing(true);
-                                      const form = document.querySelector(".request-footer-form");
-                                      const formData = new FormData(form);
+                                    <button
+                                        type="button"
+                                        className="admin-success-btn"
+                                        disabled={isApproving}
+                                        onClick={async () => {
+                                            const remarks = document.querySelector("textarea[name='remarks']").value.trim();
+                                            const date_received = document.querySelector("input[name='date_received']").value;
 
-                                      formData.append("laf_request_code", modalRequest.laf_request_code);
-                                      formData.append("status", "Approved");
+                                            // ⭐ REQUIRED VALIDATION
+                                            if (!remarks) {
+                                                setStatus({ type: "error", message: "Remarks is required." });
+                                                return;
+                                            }
+                                            if (!date_received) {
+                                                setStatus({ type: "error", message: "Date received is required." });
+                                                return;
+                                            }
 
-                                      setShowLoadingModal(true);
+                                            setIsApproving(true);
+                                            setShowLoadingModal(true);
 
-                                      try {
-                                          const response = await fetch(`${API_BASE_URL}/api/update_leave_application_approve`, {
-                                          method: "PUT",
-                                          body: formData,
-                                          });
+                                            try {
+                                                const response = await fetch(
+                                                    `${API_BASE_URL}/api/leave_application/${modalRequest.id}/approve`,
+                                                    {
+                                                        method: "PUT",
+                                                        headers: {
+                                                            "Content-Type": "application/json",
+                                                        },
+                                                        body: JSON.stringify({
+                                                            approve_by: userData.name,
+                                                            approve_signature: userData.signature,
+                                                            remarks,
+                                                            date_received,
+                                                        }),
+                                                    }
+                                                );
 
-                                          if (!response.ok) throw new Error("Failed to endorse request");
+                                                if (!response.ok) throw new Error("Failed to approve request");
 
-                                          setStatus({
-                                          type: "info",
-                                          message: "Leave application endorse successfully.",
-                                          });
-                                          handleCloseModal();
-                                          fetchRequests();
-                                      } catch (err) {
-                                          console.error(err);
-                                          setStatus({ type: "error", message: err.message });
-                                      } finally {
-                                          setIsEndorsing(false);
-                                          setShowLoadingModal(false);
-                                      }
-                                      }}
-                                  >
-                                      {isEndorsing ? "Endorsing..." : "✅ Endorse"}
-                                  </button>
+                                                setStatus({
+                                                    type: "info",
+                                                    message: "Leave application approved successfully.",
+                                                });
 
-                                  <button
-                                      type="button"
-                                      className="admin-reject-btn"
-                                      onClick={() => setShowConfirmDecline(true)}
-                                  >
-                                      ❌ Decline
-                                  </button>
-                              </div>
+                                                handleCloseModal();
+                                                fetchRequests();
+                                            } catch (err) {
+                                                console.error(err);
+                                                setStatus({ type: "error", message: err.message });
+                                            } finally {
+                                                setIsApproving(false);
+                                                setShowLoadingModal(false);
+                                            }
+                                        }}
+                                    >
+                                        {isApproving ? "Approving..." : "✅ Approve"}
+                                    </button>
 
-                              {showConfirmDecline && (
-                                  <div className={`confirm-modal-overlay ${isClosing ? "fade-out" : ""}`}>
-                                      <div className="admin-modal-backdrop">
-                                          <div
-                                              className="admin-modal-panel"
-                                              onClick={(e) => e.stopPropagation()}
-                                          >
-                                              <h3>Confirm Decline</h3>
-                                              <p>Please provide a reason for declining this purchase request:</p>
+                                    <button
+                                        type="button"
+                                        className="admin-reject-btn"
+                                        onClick={() => setShowConfirmDecline(true)}
+                                    >
+                                        ❌ Decline
+                                    </button>
+                                </div>
 
-                                              <textarea
-                                              className="decline-reason-textarea"
-                                              placeholder="Enter reason for decline..."
-                                              name="declined_reason"
-                                              value={declineReason}
-                                              onChange={(e) => setDeclineReason(e.target.value)}
-                                              required
-                                              style={{
-                                                  width: "100%",
-                                                  minHeight: "80px",
-                                                  borderRadius: "6px",
-                                                  padding: "8px",
-                                                  marginTop: "8px",
-                                                  marginBottom: "16px",
-                                                  border: "1px solid #ccc",
-                                                  resize: "vertical",
-                                              }}
-                                              />
+                                {showConfirmDecline && (
+                                    <div className={`confirm-modal-overlay ${isClosing ? "fade-out" : ""}`}>
+                                        <div className="admin-modal-backdrop">
+                                            <div
+                                                className="admin-modal-panel"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <h3>Confirm Decline</h3>
+                                                <p>Please provide a reason for declining this purchase request:</p>
 
-                                              <div
-                                              style={{
-                                                  display: "flex",
-                                                  gap: "12px",
-                                                  justifyContent: "center",
-                                              }}
-                                              >
-                                                  <button
-                                                      className="admin-reject-btn"
-                                                      disabled={!declineReason.trim() || isDeclining} 
-                                                      onClick={async () => {
-                                                          setIsDeclining(true);
-                                                          const formData = new FormData();
-                                                          formData.append(
-                                                          "laf_request_code",
-                                                          modalRequest.laf_request_code
-                                                          );
-                                                          formData.append("status", "Declined");
-                                                          formData.append("declined_reason", declineReason.trim());
+                                                <textarea
+                                                className="decline-reason-textarea"
+                                                placeholder="Enter reason for decline..."
+                                                name="declined_reason"
+                                                value={declineReason}
+                                                onChange={(e) => setDeclineReason(e.target.value)}
+                                                required
+                                                style={{
+                                                    width: "100%",
+                                                    minHeight: "80px",
+                                                    borderRadius: "6px",
+                                                    padding: "8px",
+                                                    marginTop: "8px",
+                                                    marginBottom: "16px",
+                                                    border: "1px solid #ccc",
+                                                    resize: "vertical",
+                                                }}
+                                                />
 
-                                                          setShowLoadingModal(true);
+                                                <div
+                                                style={{
+                                                    display: "flex",
+                                                    gap: "12px",
+                                                    justifyContent: "center",
+                                                }}
+                                                >
+                                                    <button
+                                                        className="admin-reject-btn"
+                                                        disabled={!declineReason.trim() || isDeclining} 
+                                                        onClick={async () => {
+                                                            setIsDeclining(true);
+                                                            const formData = new FormData();
+                                                            formData.append(
+                                                            "laf_request_code",
+                                                            modalRequest.laf_request_code
+                                                            );
+                                                            formData.append("status", "Declined");
+                                                            formData.append("declined_reason", declineReason.trim());
 
-                                                          try {
-                                                          const response = await fetch(
-                                                              `${API_BASE_URL}/api/update_leave_application`,
-                                                              {
-                                                              method: "PUT",
-                                                              body: formData,
-                                                              }
-                                                          );
+                                                            setShowLoadingModal(true);
 
-                                                          if (!response.ok)
-                                                              throw new Error("Failed to decline request");
+                                                            try {
+                                                            const response = await fetch(
+                                                                `${API_BASE_URL}/api/update_leave_application`,
+                                                                {
+                                                                method: "PUT",
+                                                                body: formData,
+                                                                }
+                                                            );
 
-                                                          setStatus({
-                                                              type: "info",
-                                                              message: "Leave application request declined successfully.",
-                                                          });
-                                                          handleCloseModal();
-                                                          fetchRequests();
-                                                          } catch (err) {
-                                                          console.error(err);
-                                                          setStatus({ type: "error", message: err.message });
-                                                          } finally {
-                                                          setIsDeclining(false);
-                                                          setShowConfirmDecline(false);
-                                                          setShowLoadingModal(false);
-                                                          setDeclineReason("");
-                                                          }
-                                                      }}
-                                                      >
-                                                      {isDeclining ? "Declining..." : "Decline"}
-                                                      </button>
+                                                            if (!response.ok)
+                                                                throw new Error("Failed to decline request");
+
+                                                            setStatus({
+                                                                type: "info",
+                                                                message: "Leave application request declined successfully.",
+                                                            });
+                                                            handleCloseModal();
+                                                            fetchRequests();
+                                                            } catch (err) {
+                                                            console.error(err);
+                                                            setStatus({ type: "error", message: err.message });
+                                                            } finally {
+                                                            setIsDeclining(false);
+                                                            setShowConfirmDecline(false);
+                                                            setShowLoadingModal(false);
+                                                            setDeclineReason("");
+                                                            }
+                                                        }}
+                                                        >
+                                                        {isDeclining ? "Declining..." : "Decline"}
+                                                        </button>
 
 
-                                                  <button
-                                                      className="admin-cancel-btn"
-                                                      onClick={() => {
-                                                      setShowConfirmDecline(false);
-                                                      setDeclineReason("");
-                                                      }}
-                                                  >
-                                                      Cancel
-                                                  </button>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  </div>
+                                                    <button
+                                                        className="admin-cancel-btn"
+                                                        onClick={() => {
+                                                        setShowConfirmDecline(false);
+                                                        setDeclineReason("");
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 )}
                             </form>
                         </div>

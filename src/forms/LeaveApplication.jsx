@@ -145,7 +145,6 @@ function LeaveApplication({ onLogout }) {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
-    // ⭐ VALIDATE ONLY WHEN NOT "Others"
     if (formData.leave_type !== "Others") {
       if (requestedDays > availableDays) {
         setMessage({
@@ -202,8 +201,6 @@ function LeaveApplication({ onLogout }) {
           </div>
         </div>
       )}
-
-      {/* -------- SIDEBAR -------- */}
 
       <aside className="pr-sidebar">
         <div className="pr-sidebar-header">

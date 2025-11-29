@@ -3455,18 +3455,21 @@ app.put("/api/update_leave_application", uploadForm.none(), async (req, res) => 
 });
 
 /* -----------------------------------------
-   HR APPROVAL — DEDUCT LEAVE DAYS
+   HR APPROVAL — DEDUCT LEAVE + SAVE APPROVER
 ------------------------------------------ */
 app.put("/api/leave_application/:id/approve", async (req, res) => {
   const { id } = req.params;
+  const { approve_by, approve_signature, remarks, date_received } = req.body;
 
   const client = await pool.connect();
+
   try {
     await client.query("BEGIN");
 
     const result = await client.query(
       `SELECT user_id, leave_type, requested_days 
-       FROM leave_application WHERE id=$1`,
+       FROM leave_application 
+       WHERE id = $1`,
       [id]
     );
 
@@ -3488,13 +3491,20 @@ app.put("/api/leave_application/:id/approve", async (req, res) => {
 
     await client.query(
       `UPDATE leave_application
-       SET status='Approved'
-       WHERE id = $1`,
-      [id]
+       SET 
+          status = 'Approved',
+          approve_by = $1,
+          approve_signature = $2,
+          remarks = $3,
+          date_received = $4,
+          updated_at = NOW()
+       WHERE id = $5`,
+      [approve_by, approve_signature, remarks, date_received, id]
     );
 
     await client.query("COMMIT");
-    res.json({ success: true, message: "Leave approved and leave balance deducted." });
+
+    res.json({ success: true, message: "Leave approved successfully." });
 
   } catch (err) {
     await client.query("ROLLBACK");
@@ -3504,8 +3514,6 @@ app.put("/api/leave_application/:id/approve", async (req, res) => {
     client.release();
   }
 });
-
-
 
 /* ------------------------
    BRANCHES CRUD API

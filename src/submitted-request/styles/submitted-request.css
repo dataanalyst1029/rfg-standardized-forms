@@ -374,6 +374,10 @@
   background-color: rgba(46, 120, 204, 0.95); /* Blue */
 }
 
+.floating-decline-reason.endorsed {
+  background-color: rgba(175, 46, 204, 0.95); /* Purple */
+}
+
 .floating-decline-reason.accomplished {
   background-color: rgba(46, 120, 204, 0.95); /* Blue */
 }
