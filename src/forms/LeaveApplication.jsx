@@ -25,7 +25,7 @@ const initialFormData = {
 
 const NAV_SECTIONS = [
   { id: "pr-main", label: "New Leave Application" },
-  { id: "submitted", label: "View Submitted Requests" }
+  { id: "submitted", label: "Leave Request Reports" }
 ];
 
 function LeaveApplication({ onLogout }) {

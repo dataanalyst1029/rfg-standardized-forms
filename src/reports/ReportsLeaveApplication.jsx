@@ -1,37 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import "../styles/AdminView.css";
-import "../styles/RequestPurchase.css";
-import "../styles/ReportsAudit.css";
-import "../styles/RequestRevolvingFund.css";
 import { API_BASE_URL } from "../config/api.js";
 
-// Pagination options for the table
 const PAGE_SIZES = [5, 10, 20];
 
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // Handle MM/DD/YYYY (U.S. format)
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const [, month, day, year] = usMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Handle YYYY-MM-DD (ISO format)
   const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Fallback — native parse attempt
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
 
 function ReportsLeaveApplication() {
-  // ---------------------- STATE DEFINITIONS ----------------------
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
@@ -40,23 +32,82 @@ function ReportsLeaveApplication() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRequest, setModalRequest] = useState(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // const [startDate, setStartDate] = useState("");
+  // const [endDate, setEndDate] = useState("");
   const storedId = sessionStorage.getItem("id");
   const [userData, setUserData] = useState({ name: "", signature: "" });
   const [isClosing, setIsClosing] = useState(false);
 
-  // ---------------------- DATA FETCHING ----------------------
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const formatDate = (date) => {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(date - tzOffset).toISOString().slice(0, 10);
+    return localISOTime;
+  };
+
+  const [startDate, setStartDate] = useState(formatDate(firstDayOfMonth));
+  const [endDate, setEndDate] = useState(formatDate(today));
+
+  const statusColors = {
+    Declined: 'red',
+    Pending: "orange",
+    Approved: "blue",
+    Received: "purple",
+    Completed: "green",
+    Accomplished: "teal",
+    Endorsed: "purple",
+  };
+
+  const [leaveBalances, setLeaveBalances] = useState({
+    "Vacation Leave": 0,
+    "Sick Leave": 0,
+    "Emergency Leave": 0,
+  });
+
+  useEffect(() => {
+    if (!modalRequest) return;
+
+    const userId = modalRequest.user_id || modalRequest.employee_id;
+
+    if (!userId) {
+      console.warn("❌ No user ID found to load leave balances.");
+      return;
+    }
+
+    const fetchBalances = async () => {
+      const types = ["Vacation Leave", "Sick Leave", "Emergency Leave"];
+      const result = {};
+
+      for (const type of types) {
+        try {
+          const res = await fetch(
+            `${API_BASE_URL}/api/user_leaves/${userId}/${encodeURIComponent(type)}`
+          );
+          const data = await res.json();
+          result[type] = data.leave_days ?? 0;
+        } catch (err) {
+          console.error(`❌ Error loading ${type}:`, err);
+          result[type] = 0;
+        }
+      }
+
+      setLeaveBalances(result);
+    };
+
+    fetchBalances();
+  }, [modalRequest]);
+
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/leave_requests`);
+      const response = await fetch(`${API_BASE_URL}/api/leave_application`);
       if (!response.ok) throw new Error("Failed to fetch leave applications");
       const data = await response.json();
 
-      // Sort newest first
       const sortedData = data.sort((a, b) =>
-        b.form_code.localeCompare(a.form_code)
+        b.laf_request_code.localeCompare(a.laf_request_code)
       );
 
       setRequests(sortedData);
@@ -68,7 +119,6 @@ function ReportsLeaveApplication() {
     }
   };
 
-  // ---------------------- SIDE EFFECTS ----------------------
   useEffect(() => {
     if (!storedId) return;
     fetch(`${API_BASE_URL}/users/${storedId}`)
@@ -91,28 +141,25 @@ function ReportsLeaveApplication() {
     setPage(1);
   }, [search, rowsPerPage, startDate, endDate]);
 
-  // ---------------------- FILTERING LOGIC ----------------------
   const filteredRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
 
     let categorizedRequests = requests;
 
-    // ✅ Start date filter (inclusive)
     if (startDate) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
       categorizedRequests = categorizedRequests.filter((req) => {
-        const reqDate = parseLocalDate(req.received_by_date);
+        const reqDate = parseLocalDate(req.request_date);
         return reqDate && reqDate >= start;
       });
     }
 
-    // ✅ End date filter (inclusive)
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
       categorizedRequests = categorizedRequests.filter((req) => {
-        const reqDate = parseLocalDate(req.received_by_date);
+        const reqDate = parseLocalDate(req.request_date);
         return reqDate && reqDate <= end;
       });
     }
@@ -126,14 +173,13 @@ function ReportsLeaveApplication() {
       return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
     }
 
-    // ✅ Text search
     if (term) {
       const normalizedTerm = term.replace(/[^0-9.]/g, "");
       categorizedRequests = categorizedRequests.filter((req) => {
         const topLevelMatch = 
         [
-          "form_code",
-          "received_by_date",
+          "laf_request_code",
+          "request_date",
           "cal_no",
           "employee_id",
           "name",
@@ -160,7 +206,6 @@ function ReportsLeaveApplication() {
     return categorizedRequests;
   }, [requests, search, startDate, endDate]);
 
-  // ---------------------- PAGINATION ----------------------
   const totalPages = Math.max(
     1,
     Math.ceil(filteredRequests.length / rowsPerPage) || 1
@@ -171,7 +216,6 @@ function ReportsLeaveApplication() {
     return filteredRequests.slice(start, start + rowsPerPage);
   }, [filteredRequests, page, rowsPerPage]);
 
-  // ---------------------- MODAL HANDLERS ----------------------
   const openModal = (request) => {
     setModalRequest(request);
     setModalOpen(true);
@@ -186,10 +230,8 @@ function ReportsLeaveApplication() {
     }, 300);
   };
 
-  // ---------------------- RENDER ----------------------
   return (
     <div className="admin-view">
-      {/* ---------- Toolbar and Filters ---------- */}
       <div className="admin-toolbar">
         <div className="admin-toolbar-title">
           <h2>HR Leave Application Request</h2>
@@ -240,19 +282,16 @@ function ReportsLeaveApplication() {
         </div>
       )}
 
-      {/* ---------- Data Table ---------- */}
       <div className="admin-table-wrapper">
         <table className="admin-table purchase-table">
           <thead>
             <tr>
-              <th style={{ textAlign: "center" }}>Ref. No.</th>
-              <th style={{ textAlign: "center" }}>Date Request</th>
-              <th style={{ textAlign: "center" }}>Employee ID</th>
-              <th style={{ textAlign: "center" }}>Cardholder Name</th>
-              <th style={{ textAlign: "center" }}>Department</th>
-              <th style={{ textAlign: "center" }}>Leave Type</th>
-              <th style={{ textAlign: "center" }}>Status</th>
-              <th style={{ textAlign: "center" }}>Action</th>
+              <th className="text-center">Ref. No.</th>
+              <th className="text-left">Date Request</th>
+              <th className="text-center">Employee ID</th>
+              <th className="text-left">Department</th>
+              <th className="text-left">Leave Type</th>
+              <th className="text-center">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -273,23 +312,25 @@ function ReportsLeaveApplication() {
             ) : (
               visibleRequests.map((req) => (
                 <tr key={req.id}>
-                  <td style={{ textAlign: "center" }}>{req.form_code}</td>
-                  <td style={{ textAlign: "center" }}>
+                  <td style={{ textAlign: "center", cursor: "pointer", color: "blue", textDecoration: "underline" }} onClick={() => openModal(req)} title="View Details">
+                    {req.laf_request_code}
+                  </td>
+                  <td className="text-left">
                     {new Date(req.request_date).toLocaleDateString()}
                   </td>
-                  <td style={{ textAlign: "center" }}>{req.employee_id}</td>
-                  <td style={{ textAlign: "left" }}>{req.requester_name}</td>
-                  <td style={{ textAlign: "center" }}>{req.department}</td>
+                  <td className="text-center">{req.employee_id}</td>
+                  <td className="text-left">{req.department}</td>
                   <td style={{ textAlign: "left" }}>{req.leave_type}</td>
-                  <td style={{ textAlign: "Center" }}>{req.status}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <button
-                      className="admin-primary-btn"
-                      onClick={() => openModal(req)}
-                      title="View Details"
-                    >
-                      🔍
-                    </button>
+                  <td
+                    style={{
+                      textAlign: "center",
+                      color: statusColors[req.status] || "black",
+                      fontWeight: "bold", 
+                    }}
+                  >
+                    <small>
+                      {req.status.toUpperCase()}
+                    </small>
                   </td>
                 </tr>
               ))
@@ -298,7 +339,6 @@ function ReportsLeaveApplication() {
         </table>
       </div>
 
-      {/* ---------- Pagination Controls ---------- */}
       <div className="admin-pagination">
         <span className="admin-pagination-info">
           Showing {visibleRequests.length} of {filteredRequests.length} requests
@@ -343,7 +383,6 @@ function ReportsLeaveApplication() {
         </label>
       </div>
 
-      {/* ---------- Modal for Viewing Request Details (UPDATED) ---------- */}
       {modalOpen && modalRequest && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
           <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
@@ -356,13 +395,31 @@ function ReportsLeaveApplication() {
                 ×
               </button>
 
-              <h2>Leave Application Form - {modalRequest.form_code}</h2>
+              <h2>
+                <small>Reference Number - </small>
+                <small 
+                  style={{
+                    textDecoration: "underline",
+                    color: "#305ab5ff"
+                  }}
+                >
+                  {modalRequest.laf_request_code}
+                </small>{" - "}
+                <small 
+                  style={{ 
+                    color: statusColors[modalRequest.status] || "black",
+                    fontWeight: "bold"
+                  }}
+                >
+                  {modalRequest.status.toUpperCase()}
+                </small>
+              </h2>
 
               <section className="pr-form-section" id="details">
                 <div className="pr-grid-two">
                   <div className="pr-field">
-                    <label className="pr-label" htmlFor="employeeID">
-                      Date:
+                    <label className="pr-label">
+                      Date
                     </label>
                     <input
                       value={new Date(modalRequest.request_date).toLocaleDateString()}
@@ -370,11 +427,14 @@ function ReportsLeaveApplication() {
                       readOnly
                     />
                   </div>
+                  <div className="pr-field">
+                    
+                  </div>
                 </div>
 
                 <div className="pr-grid-two">
                   <div className="pr-field">
-                    <label className="pr-label" htmlFor="employeeID">
+                    <label className="pr-label">
                       Employee ID
                     </label>
                     <input
@@ -384,20 +444,20 @@ function ReportsLeaveApplication() {
                     />
                   </div>
                   <div className="pr-field">
-                    <label className="pr-label" htmlFor="employeeID">
+                    <label className="pr-label">
                       Name
                     </label>
                     <input
-                      value={modalRequest.requester_name}
+                      value={modalRequest.name}
                       className="pr-input"
                       readOnly
                     />
                   </div>
                 </div>
 
-                 <div className="pr-grid-two">
+                <div className="pr-grid-two">
                   <div className="pr-field">
-                    <label className="pr-label" htmlFor="employeeID">
+                    <label className="pr-label">
                       Branch
                     </label>
                     <input
@@ -407,184 +467,178 @@ function ReportsLeaveApplication() {
                     />
                   </div>
                   <div className="pr-field">
-                    <label className="pr-label" htmlFor="employeeID">
-                      Department - Position
+                    <label className="pr-label">
+                      Department
                     </label>
                     <input
-                      value={`${modalRequest.department} - ${modalRequest.position}`}
+                      value={modalRequest.department}
+
+                      // value={`${modalRequest.department} - ${modalRequest.position}`}
                       className="pr-input"
                       readOnly
                     />
                   </div>
                 </div>
-              </section>
-              
-              {/* ----- 2. Leave Details Block (UPDATED TO TABLE) ----- */}
-              <div className="pr-items-card">
-                <h2 
-                  className="pr-section-title pr-section-title--modal" 
-                >
-                  Leave Details
-                </h2>
-                <table className="request-items-table" style={{ border: 'none', width: '100%' }}>
-                  <tbody>
-                    <tr>
-                      <th>Leave Type</th>
-                      <td>{modalRequest.leave_type}</td>
-                      <th>Date Filed</th>
-                      <td>
-                        {modalRequest.request_date ? new Date(modalRequest.request_date).toLocaleDateString() : "--:--:--"}
-                      </td>
-                    </tr>
-                    <tr>
-                      <th>Leave Dates</th>
-                      <td>
-                        {`${new Date(modalRequest.leave_start)?.toLocaleDateString()} - ${new Date(modalRequest.leave_end)?.toLocaleDateString()}`}
-                      </td>
-                      <th>Date Received</th>
-                      <td>
-                        {modalRequest.received_at ? new Date(modalRequest.received_at).toLocaleDateString() : "--:--:--"}
-                      </td>
-                    </tr>
-                    <tr>
-                      <th>Available Days</th>
-                      <td colSpan="3">
-                        {/* Cleaner display for available days */}
-                        <p>
-                          <strong>Vacation:</strong> {modalRequest.available_vacation || 'N/A'}
-                        </p>
-                        <p>
-                          <strong>Sick:</strong> {modalRequest.available_sick || 'N/A'}
-                        </p>
-                        <p>
-                          <strong>Emergency:</strong> {modalRequest.available_emergency || 'N/A'}
-                        </p>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
 
-
-              {/* ----- 3. "Submitted by" Signature Block ----- */}
-              <div className="submit-content">
-                <div className="submit-by-content">
-                  <div>
-                    <span>{modalRequest.requester_name}</span>
-                    <p>Submitted by</p>
-                  </div>
-
-                  <div className="signature-content">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">
+                      Position
+                    </label>
                     <input
-                      className="submit-sign"
-                      type="text"
-                      value={modalRequest.signature}
+                      value={modalRequest.position}
+                      className="pr-input"
                       readOnly
                     />
-                    {modalRequest.signature ? (
-                      <img
-                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.signature}`}
-                        alt="Signature"
-                        className="ca-signature-image"
+                  </div>
+                  <div className="pr-field">
+                  </div>
+                </div>
+              </section>
+
+              <section className="pr-form-section">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                      <label className="pr-label">Leave Type</label>
+                      <input 
+                        value={modalRequest.leave_type}
+                        className="pr-input"
+                        readOnly
                       />
-                    ) : (
-                      <div className="img-sign empty-sign"></div>
+                  </div>
+                  <div className="pr-field">
+                    <label className="pr-label">Leave Date(s)</label>
+                    <input
+                      value={`${new Date(modalRequest.leave_date_from).toLocaleDateString()} - ${new Date(modalRequest.leave_date_to).toLocaleDateString()}`}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                      <label className="pr-label">Remarks</label>
+                      <input
+                        value={modalRequest.remarks}
+                        className="pr-input"
+                        readOnly
+                      />
+                  </div>
+                  <div className="pr-field">
+                    <label classNamer="pr-label">Date Received</label>
+                    <input
+                      value={new Date(modalRequest.date_received).toLocaleDateString()}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                </div>
+
+                <div className="pr-grid-two" style={{marginTop: '2rem'}}>
+                  <div className="pr-field">
+                    <label className="pr-labell">Available Leave Day(s)</label>
+
+                    <ul>
+                      <li>Vacation Leave: {leaveBalances["Vacation Leave"]}</li>
+                      <li>Sick Leave: {leaveBalances["Sick Leave"]}</li>
+                      <li>Emergency Leave: {leaveBalances["Emergency Leave"]}</li>
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              <section className="pr-form-section">
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">Requested by</label>
+                    <input 
+                      value={modalRequest.requested_by}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field receive-signature">
+                    <label className="pr-label">Signature</label>
+                    <input
+                        type="text"
+                        name="requested_signature"
+                        value={modalRequest.requested_signature || ""}
+                        className="pr-input received-signature"
+                        required
+                        readOnly
+                    />
+                    {modalRequest.requested_signature ? (
+                      <img
+                      src={`${API_BASE_URL}/uploads/signatures/${modalRequest.requested_signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                        <p></p>
                     )}
-                    <p>Signature</p>
                   </div>
                 </div>
-              </div>
-
-
-              {/* ----- 4. "Endorsed by" Signature Block (Styled like Approver) ----- */}
-              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                <div className="submit-content">
-                  <div className="submit-by-content"> 
-                    <div>
-                      <label>
-                        <span>
-                          <input
-                            type="text"
-                            name="endorsed_by"
-                            value={modalRequest.endorsed_by || ""}
-                            className="approver" // Added class
-                            readOnly
-                          />
-                        </span>
-                        <p>Endorsed by</p>
-                      </label>
-                    </div>
-                    
-                    <div className="approver-signature">
-                      <label>
-                        <span>
-                          <input
-                            className="submit-sign approver"
-                            type="text"
-                            value={modalRequest.endorsed_signature || ""}
-                            readOnly
-                          />
-                        </span>
-                        {modalRequest.endorsed_signature ? (
-                          <img
-                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.endorsed_signature}`}
-                            alt="Signature"
-                            className="signature-image" // Standardized class
-                          />
-                        ) : (
-                          <div className="img-sign empty-sign"></div>
-                        )}
-                        <p>Signature</p>
-                      </label>
-                    </div>
+                
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">Endorsed by</label>
+                    <input 
+                      value={modalRequest.endorsed_by}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field receive-signature">
+                    <label className="pr-label">Signature</label>
+                    <input
+                        type="text"
+                        name="endorsed_signature"
+                        value={modalRequest.endorsed_signature || ""}
+                        className="pr-input received-signature"
+                        required
+                        readOnly
+                    />
+                    {modalRequest.endorsed_signature ? (
+                      <img
+                      src={`${API_BASE_URL}/uploads/signatures/${modalRequest.endorsed_signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                        <p></p>
+                    )}
                   </div>
                 </div>
-              </form>
 
-              {/* ----- 5. "Approved by" Signature Block (Styled like Approver) ----- */}
-              <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                <div className="submit-content">
-                  <div className="submit-by-content"> 
-                    <div>
-                      <label>
-                        <span>
-                          <input
-                            type="text"
-                            name="approved_by"
-                            value={modalRequest.approved_by || ""}
-                            className="approver" 
-                            readOnly
-                          />
-                        </span>
-                        <p>Approved by(HR)</p>
-                      </label>
-                    </div>
-                    
-                    <div className="approver-signature">
-                      <label>
-                        <span>
-                          <input
-                            className="submit-sign approver"
-                            type="text"
-                            value={modalRequest.approved_signature || ""}
-                            readOnly
-                          />
-                        </span>
-                        {modalRequest.approved_signature ? (
-                          <img
-                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
-                            alt="Signature"
-                            className="signature-image" // Standardized class
-                          />
-                        ) : (
-                          <div className="img-sign empty-sign"></div>
-                        )}
-                        <p>Signature</p>
-                      </label>
-                    </div>
+                <div className="pr-grid-two">
+                  <div className="pr-field">
+                    <label className="pr-label">Approved by</label>
+                    <input 
+                      value={modalRequest.approved_by}
+                      className="pr-input"
+                      readOnly
+                    />
+                  </div>
+                  <div className="pr-field receive-signature">
+                    <label className="pr-label">Signature</label>
+                    <input
+                        type="text"
+                        name="approve_signature"
+                        value={modalRequest.approve_signature || ""}
+                        className="pr-input received-signature"
+                        required
+                        readOnly
+                    />
+                    {modalRequest.approve_signature ? (
+                      <img
+                      src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approve_signature}`}
+                      alt="Signature"
+                      className="img-sign"/>
+                      ) : (
+                        <p></p>
+                    )}
                   </div>
                 </div>
-              </form>
+              </section>
             </div>
           </div>
         </div>

@@ -6,7 +6,7 @@ import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
   { id: "new-request", label: "New Leave Application" },
-  { id: "submitted", label: "View Submitted Requests" }
+  { id: "submitted", label: "Leave Request Reports" }
 ];
 
 function SubmittedLeaveApplication({ onLogout, currentUserId, showAll = false }) {
@@ -223,27 +223,27 @@ function SubmittedLeaveApplication({ onLogout, currentUserId, showAll = false })
                 <div className="table">
                   <table>
                     <tr>
-                      <th>Date Request</th>
-                      <td>{formatDate(selectedRequest.request_date)}</td>
+                      <th><small>Date Request</small></th>
+                      <td><small>{formatDate(selectedRequest.request_date)}</small></td>
                     </tr>
 
                     <tr>
-                      <th>Employee ID</th>
-                      <td>{selectedRequest.employee_id}</td>
-                      <th>Name</th>
-                      <td>{selectedRequest.name}</td>
+                      <th><small>Employee ID</small></th>
+                      <td><small>{selectedRequest.employee_id}</small></td>
+                      <th><small>Name</small></th>
+                      <td><small>{selectedRequest.name}</small></td>
                     </tr>
 
                     <tr>
-                      <th>Branch</th>
-                      <td>{selectedRequest.branch}</td>
-                      <th>Department</th>
-                      <td>{selectedRequest.department}</td>
+                      <th><small>Branch</small></th>
+                      <td><small>{selectedRequest.branch}</small></td>
+                      <th><small>Department</small></th>
+                      <td><small>{selectedRequest.department}</small></td>
                     </tr>
 
                     <tr>
-                      <th>Position</th>
-                      <td>{selectedRequest.position}</td>
+                      <th><small>Position</small></th>
+                      <td><small>{selectedRequest.position}</small></td>
                       <td></td>
                       <td></td>
                     </tr>
@@ -254,13 +254,13 @@ function SubmittedLeaveApplication({ onLogout, currentUserId, showAll = false })
                       <th style={{color: 'transparent', borderTopColor: 'transparent', borderLeftColor: 'transparent', borderRightColor: 'transparent'}}>-</th>
                     </tr>
                     <tr>
-                      <th>Leave Type</th>
-                      <td>{selectedRequest.leave_type}</td>
+                      <th><small>Leave Type</small></th>
+                      <td><small>{selectedRequest.leave_type}</small></td>
 
                       {selectedRequest.leave_type === "Others" ? (
                         <>
-                          <th>Specify Other Leave Type</th>
-                          <td>{selectedRequest.specify_other_leave_type}</td>
+                          <th><small>Specify Other Leave Type</small></th>
+                          <td><small>{selectedRequest.specify_other_leave_type}</small></td>
                         </>
                       ) : (
                         <>
@@ -271,20 +271,21 @@ function SubmittedLeaveApplication({ onLogout, currentUserId, showAll = false })
                     </tr>
 
                     <tr>
-                      <th>Leave Date</th>
-                      <td>
-                        {formatDate(selectedRequest.leave_date_from)} -{" "}
-                        {formatDate(selectedRequest.leave_date_to)}
+                      <th><small>Leave Date</small></th>
+                      <td><small>
+                          {formatDate(selectedRequest.leave_date_from)} -{" "}
+                          {formatDate(selectedRequest.leave_date_to)}
+                        </small>
                       </td>
                       <td></td>
                       <td></td>
                     </tr>
 
                     <tr>
-                      <th>Remarks</th>
-                      <td>{selectedRequest.remarks}</td>
-                      <th>Date Received</th>
-                      <td>{formatDate(selectedRequest.date_received)}</td>
+                      <th><small>Remarks</small></th>
+                      <td><small>{selectedRequest.remarks}</small></td>
+                      <th><small>Date Received</small></th>
+                      <td><small>{formatDate(selectedRequest.date_received)}</small></td>
                     </tr>
 
                     <tr>
@@ -303,18 +304,18 @@ function SubmittedLeaveApplication({ onLogout, currentUserId, showAll = false })
                           }}
                         >
                           <div style={{ display: "flex", justifyContent: "space-between", width: "200px" }}>
-                            <span>Vacation Leave:</span>
-                            <span>{leaveBalances["Vacation Leave"]}</span>
+                            <span><small>Vacation Leave:</small></span>
+                            <span><small>{leaveBalances["Vacation Leave"]}</small></span>
                           </div>
 
                           <div style={{ display: "flex", justifyContent: "space-between", width: "200px" }}>
-                            <span>Sick Leave:</span>
-                            <span>{leaveBalances["Sick Leave"]}</span>
+                            <span><small>Sick Leave:</small></span>
+                            <span><small>{leaveBalances["Sick Leave"]}</small></span>
                           </div>
 
                           <div style={{ display: "flex", justifyContent: "space-between", width: "200px" }}>
-                            <span>Emergency Leave:</span>
-                            <span>{leaveBalances["Emergency Leave"]}</span>
+                            <span><small>Emergency Leave:</small></span>
+                            <span><small>{leaveBalances["Emergency Leave"]}</small></span>
                           </div>
                         </div>
                       </td>
@@ -326,10 +327,11 @@ function SubmittedLeaveApplication({ onLogout, currentUserId, showAll = false })
                       <th style={{color: 'transparent', borderTopColor: 'transparent', borderLeftColor: 'transparent', borderRightColor: 'transparent'}}>-</th>
                     </tr>
                     <tr>
-                      <th>Requested by</th>
-                      <td>{selectedRequest.requested_by}</td>
-                      <th>Signature</th>
+                      <th><small>Requested by</small></th>
+                      <td><small>{selectedRequest.requested_by}</small></td>
+                      <th><small>Signature</small></th>
                       <td className="receive-signature">
+                        <small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.requested_signature} readOnly required/></small>
                         {selectedRequest.requested_signature ? (
                           <img
                             src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.requested_signature}`}
@@ -341,6 +343,43 @@ function SubmittedLeaveApplication({ onLogout, currentUserId, showAll = false })
                         )}
                       </td>
                     </tr>
+                    {(selectedRequest.endorsed_by || selectedRequest.endorsed_signature) && (
+                      <tr>
+                        <th><small>Endorsed by</small></th>
+                        <td><small>{selectedRequest.endorsed_by}</small></td>
+                        <th><small>Signature</small></th>
+                        <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.endorsed_signature} readOnly required/></small>
+                          {selectedRequest.endorsed_signature ? (
+                          <img
+                              src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.endorsed_signature}`}
+                              alt="Signature"
+                              className="img-sign-prf"
+                          />
+                          ) : (
+                          <div className="img-sign-prf empty-sign"></div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+
+                    {(selectedRequest.approve_by || selectedRequest.approve_signature) && (
+                      <tr>
+                        <th><small>Approved by</small></th>
+                        <td><small>{selectedRequest.approve_by}</small></td>
+                        <th><small>Signature</small></th>
+                        <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.approve_signature} readOnly required/></small>
+                          {selectedRequest.approve_signature ? (
+                          <img
+                              src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approve_signature}`}
+                              alt="Signature"
+                              className="img-sign-prf"
+                          />
+                          ) : (
+                          <div className="img-sign-prf empty-sign"></div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
                   </table>
                 </div>
                 
