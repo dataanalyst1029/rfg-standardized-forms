@@ -266,7 +266,7 @@
 
 .pr-textarea {
   resize: vertical;
-  min-height: 120px;
+  min-height: 40px;
 }
 
 .pr-items-card {

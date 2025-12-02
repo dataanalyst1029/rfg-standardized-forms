@@ -706,7 +706,7 @@ function RequestLeaveApplication() {
                         <div className="admin-modal-panel request-modals">
                             <button
                                 className="admin-close-btn"
-                                onClick={handleCloseModal}
+                                onClick={handleCloseModalEndorsed}
                                 aria-label="Close"
                                 >
                                 ×
@@ -943,7 +943,7 @@ function RequestLeaveApplication() {
                                                     message: "Leave application approved successfully.",
                                                 });
 
-                                                handleCloseModal();
+                                                handleCloseModalEndorsed();
                                                 fetchRequests();
                                             } catch (err) {
                                                 console.error(err);
@@ -1033,7 +1033,7 @@ function RequestLeaveApplication() {
                                                                 type: "info",
                                                                 message: "Leave application request declined successfully.",
                                                             });
-                                                            handleCloseModal();
+                                                            handleCloseModalEndorsed();
                                                             fetchRequests();
                                                             } catch (err) {
                                                             console.error(err);

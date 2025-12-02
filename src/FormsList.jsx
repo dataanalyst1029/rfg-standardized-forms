@@ -58,7 +58,7 @@ function FormsList({ onLogout }) {
     "HR Leave Application",
     "Interbranch Transfer Slip",
     "Transmittal Form",
-    "Credit Card Acknowledgement Receipt",
+    // "Credit Card Acknowledgement Receipt",
   ];
 
   useEffect(() => {
@@ -275,7 +275,7 @@ function FormsList({ onLogout }) {
               (form) =>
                 !(
                   formData.role === "user" &&
-                  (form === "Reimbursement Form" || form === "Cash Advance Liquidation Form" || form === "CA Receipt Form")
+                  (form === "Reimbursement Form" || form === "Cash Advance Liquidation Form" || form === "CA Receipt Form" || form === "Interbranch Transfer Slip")
                 )
             )
             .map((form) => (

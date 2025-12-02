@@ -10,6 +10,7 @@ const emptyForm = {
   employee_id: "",
   name: "",
   email: "",
+  branch: "",
   role: "",
   password: "",
 };
@@ -21,12 +22,32 @@ function ManageUsers() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [status, setStatus] = useState(null);
+  const [branches, setBranches] = useState([]);
+  const [departments, setDepartments] = useState([]);
 
   const [form, setForm] = useState(emptyForm);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create"); 
 
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const fetchBranches = async () => {
+    const res = await fetch(`${API_BASE_URL}/api/branches`);
+    const data = await res.json();
+    setBranches(data);
+  };
+
+  const fetchDepartments = async () => {
+    const res = await fetch(`${API_BASE_URL}/api/departments`);
+    const data = await res.json();
+    setDepartments(data);
+  };
+
+  useEffect(() => {
+    fetchBranches();
+    fetchDepartments();
+  }, []);
+
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -86,10 +107,18 @@ function ManageUsers() {
   };
 
   const openEditModal = (user) => {
-    setForm({ ...user, password: "" });
+    const branch = branches.find(b => b.branch_name === user.branch);
+    const department = departments.find(d => d.department_name === user.department);
+
+    setForm({
+      ...user,
+      password: ""
+    });
+
     setModalMode("edit");
     setModalOpen(true);
   };
+
 
   const closeModal = () => {
     setModalOpen(false);
@@ -108,6 +137,7 @@ function ManageUsers() {
       !form.employee_id ||
       !form.name ||
       !form.email ||
+      !form.branch ||
       !form.role ||
       (modalMode === "create" && !form.password)
     ) {
@@ -241,6 +271,8 @@ function ManageUsers() {
               <th>Employee ID</th>
               <th>Name</th>
               <th>Email</th>
+              <th>Branch</th>
+              <th>Department</th>
               <th>Role</th>
               <th>Actions</th>
             </tr>
@@ -266,6 +298,8 @@ function ManageUsers() {
                   <td data-label="Employee ID">{user.employee_id}</td>
                   <td data-label="Name">{user.name}</td>
                   <td data-label="Email">{user.email}</td>
+                  <td data-label="Branch">{user.branch}</td>
+                  <td data-label="Department">{user.department}</td>
                   <td data-label="Role">
                     <span className="admin-badge user-role-badge">
                       {user.role ? user.role.toUpperCase() : "N/A"}
@@ -375,6 +409,41 @@ function ManageUsers() {
                 onChange={handleFormChange}
                 required
               />
+              <select
+                name="branch"
+                value={form.branch}
+                onChange={(e) => setForm({ ...form, branch: e.target.value, department: "" })}
+                required
+              >
+                <option value="" disabled>Select Branch</option>
+
+                {branches.map((b) => (
+                  <option key={b.id} value={b.branch_name}>
+                    {b.branch_name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                name="department"
+                value={form.department}
+                onChange={(e) => setForm({ ...form, department: e.target.value })}
+                required
+                disabled={!form.branch}
+              >
+                <option value="">
+                  {form.branch ? "Select Department" : "Select a branch first"}
+                </option>
+
+                {departments
+                  .filter((d) => d.branch_name === form.branch)
+                  .map((dept) => (
+                    <option key={dept.id} value={dept.department_name}>
+                      {dept.department_name}
+                    </option>
+                  ))}
+              </select>
+
               <input
                 type="password"
                 name="password"

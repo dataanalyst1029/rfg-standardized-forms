@@ -256,7 +256,7 @@ app.post("/api/login", async (req, res) => {
 
 app.get("/api/users", async (req, res) => {
   try {
-    const result = await pool.query("SELECT id, employee_id, name, email, role FROM users ORDER BY id ASC");
+    const result = await pool.query("SELECT id, employee_id, name, email, branch, department, role FROM users ORDER BY id ASC");
     res.json(result.rows);
   } catch (err) {
     console.error("Error fetching users:", err);
@@ -280,7 +280,7 @@ app.get("/users/:id", async (req, res) => {
 
 
 app.post("/api/users", async (req, res) => {
-  const { employee_id, name, email, role, password } = req.body;
+  const { employee_id, name, email, branch, department, role, password } = req.body;
 
   if (!name || !email || !employee_id) {
     return res.status(400).json({ message: "Employee ID, name, and email are required" });
@@ -300,10 +300,10 @@ app.post("/api/users", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password || "123456", 10);
 
     const result = await pool.query(
-      `INSERT INTO users (employee_id, name, email, role, password)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, employee_id, name, email, role`,
-      [employee_id, name, email, role, hashedPassword]
+      `INSERT INTO users (employee_id, name, email, branch, department, role, password)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, employee_id, name, email, branch, department, role`,
+      [employee_id, name, email, branch, department, role, hashedPassword]
     );
 
     res.status(201).json(result.rows[0]);
@@ -315,18 +315,18 @@ app.post("/api/users", async (req, res) => {
 
 app.put("/api/users/:id", async (req, res) => {
   const { id } = req.params;
-  const { employee_id, name, email, role, password } = req.body;
+  const { employee_id, name, email, branch, department, role, password } = req.body;
 
   try {
-    let query = `UPDATE users SET employee_id=$1, name=$2, email=$3, role=$4`;
-    const params = [employee_id, name, email, role];
+    let query = `UPDATE users SET employee_id=$1, name=$2, email=$3, branch=$4, department=$5, role=$6`;
+    const params = [employee_id, name, email, branch, department, role];
 
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
-      query += `, password=$5 WHERE id=$6 RETURNING id, employee_id, name, email, role`;
+      query += `, password=$7 WHERE id=$8 RETURNING id, employee_id, name, email, branch, department, role`;
       params.push(hashedPassword, id);
     } else {
-      query += ` WHERE id=$5 RETURNING id, employee_id, name, email, role`;
+      query += ` WHERE id=$5 RETURNING id, employee_id, name, email, branch, department, role`;
       params.push(id);
     }
 

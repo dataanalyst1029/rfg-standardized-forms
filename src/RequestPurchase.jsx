@@ -202,7 +202,7 @@ function RequestPurchase() {
                 </div>
             )}
 
-            {userRole.toLowerCase() === "approve" && (
+            {userRole?.toLowerCase() === "approve" && userAccess?.includes("Purchase Request") && (
                 <div className="admin-table-wrapper">
                     <table className="admin-table purchase-table">
                     <thead>
@@ -213,12 +213,12 @@ function RequestPurchase() {
                         <th style={{ textAlign: "left" }}>Branch</th>
                         <th style={{ textAlign: "left" }}>Department</th>
                         <th style={{ textAlign: "left" }}>Purpose</th>
-                        <th style={{ textAlign: "center" }}>Status</th>
+                        {/* <th style={{ textAlign: "center" }}>Status</th> */}
                         <th style={{ textAlign: "center" }}>Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {loading ? (
+                         {loading ? (
                         <tr>
                             <td colSpan={8} className="admin-empty-state">
                             Loading purchase requests...
@@ -245,9 +245,9 @@ function RequestPurchase() {
                             <td style={{ textAlign: "left" }}>{req.branch}</td>
                             <td style={{ textAlign: "left" }}>{req.department}</td>
                             <td style={{ textAlign: "left" }}>{req.purpose}</td>
-                            <td style={{ textAlign: "center" }}>
+                            {/* <td style={{ textAlign: "center" }}>
                                 {req.status.toUpperCase()}
-                            </td>
+                            </td> */}
                             <td style={{ textAlign: "center" }}>
                                 <button
                                 className="admin-primary-btn"
@@ -265,7 +265,7 @@ function RequestPurchase() {
                 </div>
             )}
 
-            {userRole.toLowerCase() === "accounting" && (
+            {userRole?.toLowerCase() === "accounting" && userAccess?.includes("Purchase Request") && (
                 <div className="admin-table-wrapper">
                     <table className="admin-table purchase-table">
                     <thead>
@@ -284,7 +284,7 @@ function RequestPurchase() {
                         {loading ? (
                         <tr>
                             <td colSpan={8} className="admin-empty-state">
-                            Loading payment requests...
+                            Loading purchase requests...
                             </td>
                         </tr>
                         ) : receivedRequests.length === 0 ? (
@@ -384,7 +384,7 @@ function RequestPurchase() {
                                 ×
                             </button>
 
-                            <h2><small>Reference Number - </small><small style={{textDecoration: 'underline', color: '#305ab5ff'}}>{modalRequest.purchase_request_code}</small></h2>
+                            <h2><small className="ref-no">Reference Number - </small><small style={{textDecoration: 'underline', color: '#305ab5ff'}}>{modalRequest.purchase_request_code}</small></h2>
 
                             <section className="pr-form-section" id="details">
                                 <div className="pr-grid-two">
@@ -449,7 +449,7 @@ function RequestPurchase() {
                                         </label>
                                         <textarea
                                         value={modalRequest.purpose}
-                                        className="pr-input"
+                                        className="pr-textarea"
                                         readOnly
                                         />
                                     </div>
@@ -484,23 +484,23 @@ function RequestPurchase() {
                                 <section className="pr-form-section" id="details">
                                     <div className="pr-grid-two">
                                         <div className="pr-field">
-                                            <label className="car-reference-value">Approved by:</label>
+                                            <label className="pr-label">Approved by</label>
                                             <input
                                                 type="text"
                                                 name="approved_by"
                                                 value={userData.name || ""}
-                                                className="car-input"
+                                                className="pr-input"
                                                 readOnly
                                                 />
                                         </div>
 
                                         <div className="pr-field receive-signature">
-                                            <label className="car-reference-value">Signature</label>
+                                            <label className="pr-label">Signature</label>
                                             <input
                                                 type="text"
                                                 name="approved_signature"
                                                 value={userData.signature || ""}
-                                                className="car-input received-signature"
+                                                className="pr-input received-signature"
                                                 required
                                                 readOnly
                                             />
@@ -712,7 +712,7 @@ function RequestPurchase() {
                                 ×
                             </button>
 
-                            <h2>{modalRequest.purchase_request_code}</h2>
+                            <h2><small className="ref-no">Reference Number - </small><small style={{textDecoration: 'underline', color: '#305ab5ff'}}>{modalRequest.purchase_request_code}</small></h2>
 
                             <section className="pr-form-section" id="details">
                                 <div className="pr-grid-two">
@@ -777,7 +777,7 @@ function RequestPurchase() {
                                         </label>
                                         <textarea
                                         value={modalRequest.purpose}
-                                        className="pr-input"
+                                        className="pr-textarea"
                                         readOnly
                                         />
                                     </div>
@@ -806,6 +806,38 @@ function RequestPurchase() {
                                     ) : (
                                     <p>—</p>
                                 )}
+                            </section>
+
+                            <section className="pr-form-section">
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label">Approved by</label>
+                                        <input
+                                            value={modalRequest.approved_by || ""}
+                                            className="pr-input"
+                                            readOnly
+                                        />
+                                    </div>
+                                    <div className="pr-field receive-signature">
+                                        <label className="pr-label">Signature</label>
+                                        <input
+                                            type="text"
+                                            name="approved_signature"
+                                            value={modalRequest.approved_signature || ""}
+                                            className="pr-input received-signature"
+                                            required
+                                            readOnly
+                                        />
+                                            {modalRequest.approved_signature ? (
+                                            <img
+                                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
+                                            alt="Signature"
+                                            className="img-sign"/>
+                                            ) : (
+                                            <p>No signature available</p>
+                                        )}
+                                    </div>
+                                </div>
                             </section>
 
                             <form className="request-footer-form-accounting" onSubmit={(e) => e.preventDefault()}>

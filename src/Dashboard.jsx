@@ -1170,7 +1170,7 @@ function Dashboard({ role, name, onLogout }) {
                                 Interbranch Transfer Slip
                               </button>
                             )}
-                            {userAccess.includes("Credit Card Acknowledgement Receipt") && (
+                            {/* {userAccess.includes("Credit Card Acknowledgement Receipt") && (
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
@@ -1180,7 +1180,7 @@ function Dashboard({ role, name, onLogout }) {
                               >
                                 Credit Card Acknowledgement Receipt
                               </button>
-                            )}
+                            )} */}
                             {userAccess.includes("Transmittal Form") && (
                               <button
                                 type="button"
@@ -1366,7 +1366,7 @@ function Dashboard({ role, name, onLogout }) {
                                 </button>
                               )}
 
-                              {(role === "admin" || userAccess.includes("Credit Card Acknowledgement Receipt")) && (
+                              {/* {(role === "admin" || userAccess.includes("Credit Card Acknowledgement Receipt")) && (
                                 <button
                                   type="button"
                                   className={`sidebar-item sidebar-item-nested${
@@ -1376,7 +1376,7 @@ function Dashboard({ role, name, onLogout }) {
                                 >
                                   Credit Card Acknowledgement Receipt
                                 </button>
-                              )}
+                              )} */}
 
                               {(role === "admin" || userAccess.includes("Transmittal Form")) && (
                                 <button
