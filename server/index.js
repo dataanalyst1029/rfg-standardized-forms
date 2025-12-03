@@ -256,7 +256,7 @@ app.post("/api/login", async (req, res) => {
 
 app.get("/api/users", async (req, res) => {
   try {
-    const result = await pool.query("SELECT id, employee_id, name, email, branch, department, role FROM users ORDER BY id ASC");
+    const result = await pool.query("SELECT * FROM users ORDER BY id ASC");
     res.json(result.rows);
   } catch (err) {
     console.error("Error fetching users:", err);
@@ -280,7 +280,7 @@ app.get("/users/:id", async (req, res) => {
 
 
 app.post("/api/users", async (req, res) => {
-  const { employee_id, name, email, branch, department, role, password } = req.body;
+  const { employee_id, name, email, branch, department, location, role, password } = req.body;
 
   if (!name || !email || !employee_id) {
     return res.status(400).json({ message: "Employee ID, name, and email are required" });
@@ -300,10 +300,10 @@ app.post("/api/users", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password || "123456", 10);
 
     const result = await pool.query(
-      `INSERT INTO users (employee_id, name, email, branch, department, role, password)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, employee_id, name, email, branch, department, role`,
-      [employee_id, name, email, branch, department, role, hashedPassword]
+      `INSERT INTO users (employee_id, name, email, branch, department, location, role, password)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, employee_id, name, email, branch, department, location, role`,
+      [employee_id, name, email, branch, department, location, role, hashedPassword]
     );
 
     res.status(201).json(result.rows[0]);
@@ -315,19 +315,54 @@ app.post("/api/users", async (req, res) => {
 
 app.put("/api/users/:id", async (req, res) => {
   const { id } = req.params;
-  const { employee_id, name, email, branch, department, role, password } = req.body;
+  const { employee_id, name, email, branch, department, location, role, password } = req.body;
 
   try {
-    let query = `UPDATE users SET employee_id=$1, name=$2, email=$3, branch=$4, department=$5, role=$6`;
-    const params = [employee_id, name, email, branch, department, role];
+    let query;
+    let params;
 
     if (password) {
+      // USER UPDATES PASSWORD
       const hashedPassword = await bcrypt.hash(password, 10);
-      query += `, password=$7 WHERE id=$8 RETURNING id, employee_id, name, email, branch, department, role`;
-      params.push(hashedPassword, id);
+
+      query = `
+        UPDATE users 
+        SET employee_id=$1, name=$2, email=$3, branch=$4, department=$5, location=$6, role=$7, password=$8
+        WHERE id=$9
+        RETURNING id, employee_id, name, email, branch, department, location, role
+      `;
+
+      params = [
+        employee_id,
+        name,
+        email,
+        branch,
+        department,
+        location,
+        role,
+        hashedPassword,
+        id
+      ];
+
     } else {
-      query += ` WHERE id=$5 RETURNING id, employee_id, name, email, branch, department, role`;
-      params.push(id);
+      // USER DOES NOT UPDATE PASSWORD
+      query = `
+        UPDATE users 
+        SET employee_id=$1, name=$2, email=$3, branch=$4, department=$5, location=$6, role=$7
+        WHERE id=$8
+        RETURNING id, employee_id, name, email, branch, department, location, role
+      `;
+
+      params = [
+        employee_id,
+        name,
+        email,
+        branch,
+        department,
+        location,
+        role,
+        id
+      ];
     }
 
     const result = await pool.query(query, params);
@@ -342,7 +377,6 @@ app.put("/api/users/:id", async (req, res) => {
     res.status(500).json({ message: "Server error updating user" });
   }
 });
-
 
 app.delete("/api/users/:id", async (req, res) => {
   const { id } = req.params;
@@ -3512,6 +3546,181 @@ app.put("/api/leave_application/:id/approve", async (req, res) => {
     res.status(500).json({ message: "Server error approving leave" });
   } finally {
     client.release();
+  }
+});
+
+
+/* ------------------------
+   INTERBRANCH TRANSFER SLIP REQUEST API
+------------------------ */
+app.get("/api/interbranch_transfer/next-code", async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const result = await pool.query(
+      `SELECT its_request_code
+       FROM interbranch_transfer
+       WHERE its_request_code LIKE $1
+       ORDER BY its_request_code DESC
+       LIMIT 1`,
+      [`ITS-${year}-%`]
+    );
+
+    let nextCode;
+    if (result.rows.length > 0) {
+      const lastCode = result.rows[0].its_request_code;
+      const lastNum = parseInt(lastCode.split("-")[2], 10);
+      const nextNum = String(lastNum + 1).padStart(6, "0");
+      nextCode = `ITS-${year}-${nextNum}`;
+    } else {
+      nextCode = `ITS-${year}-000001`;
+    }
+
+    res.json({ nextCode });
+  } catch (err) {
+    console.error("❌ Error generating next CA receipt code:", err);
+    res.status(500).json({ message: "Server error generating next code" });
+  }
+});
+
+
+app.post("/api/interbranch_transfer", async (req, res) => {
+  const {
+    its_request_code,
+    request_date,
+    employee_id,
+    name,
+    branch,
+    department,
+    date_needed,
+    work_description,
+    asset_tag,
+    requested_by,
+    request_signature,
+    user_id,
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const existing = await client.query(
+      "SELECT id FROM interbranch_transfer WHERE its_request_code = $1",
+      [its_request_code]
+    );
+    if (existing.rows.length > 0) {
+      await client.query("ROLLBACK");
+      return res
+        .status(400)
+        .json({ message: `Interbranch Request code ${its_request_code} already exists.` });
+    }
+
+    await client.query(
+      `INSERT INTO interbranch_transfer (
+        its_request_code, 
+        request_date, 
+        employee_id, 
+        name, 
+        branch, 
+        department, 
+        date_needed,
+        work_description,
+        asset_tag,
+        requested_by, 
+        request_signature, 
+        user_id
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      [
+        its_request_code,
+        request_date || new Date(),
+        employee_id,
+        name,
+        branch,
+        department,
+        date_needed,
+        work_description,
+        asset_tag,
+        requested_by,
+        request_signature,
+        user_id,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: `✅ Maintenance / Repair request ${its_request_code} saved successfully!`,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("❌ Error saving maintenance / repair request:", err);
+    res.status(500).json({ message: "Server error saving maintenance / repair request" });
+  } finally {
+    client.release();
+  }
+});
+
+
+/* ------------------------
+   UPDATE MAINTENANCE / REPAIR REQUEST
+------------------------ */
+app.put("/api/update_maintenance_repair_request", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      its_request_code,
+      approved_by,
+      approved_signature,
+      status,
+      declined_reason,
+    } = req.body;
+
+    if (!its_request_code) {
+      return res.status(400).json({ message: "its_request_code is required." });
+    }
+
+    let query = `
+      UPDATE maintenance_repair_request
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Approved") {
+      query += `,
+        approved_by = $${paramIndex++},
+        approved_signature = $${paramIndex++}
+      `;
+      values.push(approved_by, approved_signature);
+    }
+
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE its_request_code = $${paramIndex} RETURNING *`;
+    values.push(its_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Maintenance / Repair request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Maintenance repair request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating maintenance / repair request:", err);
+    res.status(500).json({ message: "Server error updating maintenance / repair request." });
   }
 });
 

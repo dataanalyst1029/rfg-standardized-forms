@@ -11,6 +11,7 @@ const emptyForm = {
   name: "",
   email: "",
   branch: "",
+  location: "",
   role: "",
   password: "",
 };
@@ -30,6 +31,8 @@ function ManageUsers() {
   const [modalMode, setModalMode] = useState("create"); 
 
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const [showLocationSelect, setShowLocationSelect] = useState(false);
 
   const fetchBranches = async () => {
     const res = await fetch(`${API_BASE_URL}/api/branches`);
@@ -469,6 +472,34 @@ function ManageUsers() {
                 <option value="staff">Staff</option>
                 <option value="user">User</option>
               </select>
+
+              {!showLocationSelect && (
+                <button
+                  type="button"
+                  className="admin-primary-btn"
+                  onClick={() => setShowLocationSelect(true)}
+                  style={{ marginBottom: "8px" }}
+                >
+                  Select Location for Branch Controller
+                </button>
+              )}
+
+              {showLocationSelect && (
+                <select
+                  name="location"
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  required
+                >
+                  <option value="">Select Location</option>
+
+                  {[...new Set(branches.map((b) => b.location))].map((loc, index) => (
+                    <option key={index} value={loc}>
+                      {loc}
+                    </option>
+                  ))}
+                </select>
+              )}
 
               <div className="admin-modal-footer">
                 <button type="button" className="admin-ghost-btn" onClick={closeModal}>

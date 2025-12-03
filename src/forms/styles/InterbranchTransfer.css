@@ -1,103 +1,13 @@
-.its-fieldset {
-  border: none;
-  margin: 0;
+.vehicle-options {
   display: flex;
   flex-direction: column;
-  gap: 1.3rem;
-  padding-top: 1.5rem;
+  gap: 6px;
+  margin-top: 4px;
 }
 
-.its-radio-option {
-  display: flex;
-  flex-grow: 0;
-}
-
-.its-radio-input {
-  opacity: 0;
-  position: absolute;
-  width: 0;
-  height: 0;
-}
-
-.its-radio-label {
-  display: inline-flex;
-  align-items: center;
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  background-color: #ffffff;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-  color: #374151;
-}
-
-.its-radio-control {
-  display: inline-block;
-  width: 1.25em;
-  height: 1.25em;
-  margin-right: 0.5rem;
-  border: 2px solid #888;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-  background-color: #fff;
-}
-
-/* --- "Other" Row Specifics --- */
-.its-radio-option--other {
+.vehicle-option {
   display: flex;
   align-items: center;
+  gap: 8px;
+  font-size: 14px;
 }
-
-/* FIXED: Changed .pr-radio-label to .its-radio-label */
-.its-radio-option--other .its-radio-label {
-  width: auto;
-  flex-shrink: 0;
-}
-
-.its-radio-option--other .pr-input {
-  flex-grow: 1;
-}
-
-/* --- CHECKED STATE (FIXED) --- */
-
-/* FIXED: Changed .pr-radio-label to .its-radio-label */
-.its-radio-input:checked + .its-radio-label {
-  border-color: #007bff;
-  background-color: #f0f7ff;
-  color: #0056b3;
-}
-
-/* FIXED: Changed .pr-radio-label and .pr-radio-control to .its- */
-.its-radio-input:checked + .its-radio-label .its-radio-control {
-  border-color: #007bff;
-  background-color: #007bff;
-  box-shadow: inset 0 0 0 3px #fff;
-}
-
-/* --- DISABLED STATE (FIXED) --- */
-
-/* FIXED: Changed .pr-radio-label to .its-radio-label */
-.its-radio-input:disabled + .its-radio-label {
-  background-color: #f9fafb;
-  color: #9ca3af;
-  cursor: not-allowed;
-  border-color: #e5e7eb;
-}
-
-/* FIXED: Changed .pr-radio-label and .pr-radio-control to .its- */
-.its-radio-input:disabled + .its-radio-label .its-radio-control {
-  border-color: #e5e7eb;
-  background-color: #e5e7eb;
-}
-
-.its-date-input{
-    margin-bottom: 1.5rem;
-    width: 12rem;
-}
-
-.its-input-margin{
-  margin-bottom: 1rem;
-}
-
