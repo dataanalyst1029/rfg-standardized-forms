@@ -8,16 +8,20 @@ const initialFormData = {
   request_date: new Date().toISOString().split("T")[0],
   user_id: "",
   employee_id: "",
-  name: "",
-  location: "",
-  department: "",
   date_transferred: new Date().toISOString().split("T")[0],
-  expected_delivery_date: new Date().toISOString().split("T")[0],
-  work_description: "",
+  from_branch: "",
+  to_branch: "",
+  address_from: "",
+  address_to: "",
+  aoc: "",
+  vehicle_use: "",
   specify_if_others: "",
-  asset_tag: "",
-  requested_by: "",
-  request_signature: "",
+  vehicle_no: "",
+  driver_name: "",
+  driver_contact_no: "",
+  expected_delivery_date: new Date().toISOString().split("T")[0],
+  prepared_by: "",
+  prepared_signature: "",
 };
 
 const NAV_SECTIONS = [
@@ -66,12 +70,13 @@ function InterBranchTransferSlip({ onLogout }) {
         setFormData((prev) => ({
           ...prev,
           user_id: storedId,
-          requested_by: data.name || "",
-          request_signature: data.signature || "",
+          prepared_by: data.name || "",
+          prepared_signature: data.signature || "", 
           employee_id: data.employee_id || "",
-          name: data.name || "",
+          // name: data.name || "",
+          aoc: data.name || "",
           location: data.location || "",
-          department: data.department || "",
+          // department: data.department || "",
         }));
       })
       .catch((err) => console.error("Error fetching user data:", err));
@@ -178,16 +183,18 @@ function InterBranchTransferSlip({ onLogout }) {
       const res = await fetch(`${API_BASE_URL}/api/interbranch_transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          items: sanitizedItems, 
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to submit request");
 
       setMessage({ type: "success", text: "Interbranch transfer slip submitted successfully!" });
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      setTimeout(() => window.location.reload(), 2000);
+
     } catch (error) {
       setMessage({ type: "error", text: error.message });
       setTimeout(() => setMessage(null), 3000);
@@ -195,6 +202,7 @@ function InterBranchTransferSlip({ onLogout }) {
       setIsSubmitting(false);
     }
   };
+
 
   const handleNavigate = (sectionId) => {
     if (sectionId === "submitted") {
@@ -424,11 +432,9 @@ function InterBranchTransferSlip({ onLogout }) {
                     type="text"
                     id="aoc"
                     name="aoc"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="pr-input"
-                    required
+                    value={formData.aoc}
                     readOnly
+                    className="pr-input"
                   />
                 </div>
                 <div className="pr-field">
@@ -438,15 +444,13 @@ function InterBranchTransferSlip({ onLogout }) {
             </section>
 
             <section className="pr-items-card" id="items">
-              <div className="pr-section responsive">
-                <h2 className="pr-items-title">Line items</h2>
-                <p className="pr-section-subtitle">
-                  List each item you need transferred.
-                </p>
-                <button type="button" className="pr-items-add" onClick={addItemRow}>
-                  Add item
-                </button>
-              </div>
+              <div className="pr-items-header">
+              <p className="pr-section-subtitle">
+              </p>
+              <button type="button" className="pr-items-add" onClick={addItemRow}>
+                Add item
+              </button>
+            </div>
 
               <div className="table-wrapper">
                 <table className="pr-items-table">
@@ -476,7 +480,7 @@ function InterBranchTransferSlip({ onLogout }) {
                               name="item_code"
                               value={item.item_code}
                               onChange={(e) => handleItemChange(index, e)}
-                              className="car-input"
+                              className="pr-input"
                               required
                             />
                           </td>
@@ -487,7 +491,7 @@ function InterBranchTransferSlip({ onLogout }) {
                               name="item_description"
                               value={item.item_description}
                               onChange={(e) => handleItemChange(index, e)}
-                              className="car-input"
+                              className="pr-input"
                               required
                             />
                           </td>
@@ -499,29 +503,37 @@ function InterBranchTransferSlip({ onLogout }) {
                               name="quantity"
                               value={item.quantity}
                               onChange={(e) => handleItemChange(index, e)}
-                              className="car-input"
+                              className="pr-input"
                               required
                             />
                           </td>
 
                           <td>
-                            <input
-                              type="text"
+                            <select
                               name="uom"
                               value={item.uom}
                               onChange={(e) => handleItemChange(index, e)}
-                              className="car-input"
+                              className="pr-input"
                               required
-                            />
+                            >
+                              <option value="">Select UOM</option>
+                              <option value="piece">PIECE</option>
+                              <option value="box">BOX</option>
+                              <option value="gallon">GALLON</option>
+                              <option value="kilogram">KILOGRAM</option>
+                              <option value="gram">GRAM</option>
+                              <option value="litre">LITRE</option>
+                              <option value="pack">PACK</option>
+                            </select>
                           </td>
 
                           <td>
-                            <input
-                              type="text"
+                            <textarea
                               name="remarks"
                               value={item.remarks}
                               onChange={(e) => handleItemChange(index, e)}
-                              className="car-input"
+                              className="pr-textarea"
+                              required
                             />
                           </td>
 
@@ -631,6 +643,7 @@ function InterBranchTransferSlip({ onLogout }) {
                       id="driver-name"
                       name="driver_name"
                       value={formData.driver_name}
+                      onChange={handleChange}
                       className="pr-input"
                       required
                     />
@@ -639,8 +652,9 @@ function InterBranchTransferSlip({ onLogout }) {
                     <input 
                       type="text"
                       id="driver-contact"
-                      name="driver_contact"
-                      value={formData.driver_contact}
+                      name="driver_contact_no"
+                      value={formData.driver_contact_no}
+                      onChange={handleChange}
                       className="pr-input"
                       required
                     />
@@ -651,6 +665,7 @@ function InterBranchTransferSlip({ onLogout }) {
                       id="expected-delivery"
                       name="expected_delivery_date"
                       value={formData.expected_delivery_date}
+                      onChange={handleChange}
                       className="pr-input"
                       required
                     />
@@ -662,20 +677,33 @@ function InterBranchTransferSlip({ onLogout }) {
             <section className="car-form-section" id="signature">
               <div className="pr-grid-two">
                 <div className="pr-field">
-                  <label className="car-reference-value">Request by:</label>
-                  <input type="text" name="requested_by" className="car-input" value={userData.name || ""} required readOnly/>
+                  <label className="car-reference-value">Prepare by</label>
+                  <input
+                    type="text"
+                    name="prepared_by"
+                    className="pr-input"
+                    value={formData.prepared_by}
+                    readOnly
+                  />
                 </div>
 
                 <div className="pr-field receive-signature">
                   <label className="car-reference-value">Signature</label>
-                  <input type="text" name="request_signature" className="car-input received-signature" value={userData.signature || ""} readOnly />
+                  <input
+                    type="text"
+                    name="prepared_signature"
+                    className="pr-input received-signature"
+                    value={formData.prepared_signature}
+                    readOnly
+                  />
+
                   {userData.signature ? (
                     <img
                       src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
                       alt="Signature"
                       className="img-sign"/>
                       ) : (
-                          <p>No signature available</p>
+                        <p>No signature available</p>
                     )}
                 </div>
               </div>

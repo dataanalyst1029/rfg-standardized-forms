@@ -457,9 +457,14 @@ function App() {
             user ? (
               <SubmittedInterbranchTransferSlip onLogout={handleLogout} currentUserId={user.id} />
             ) : (
-              <Navigate to="/forms/interbranch-transfer-slip" replace />
+              <Navigate to="/" replace />
             )
           }
+        />
+
+        <Route
+          path="/submitted-interbranch-transfer-slip"
+          element={<Navigate to="/forms/submitted-interbranch-transfer-slip" replace />}
         />
 
         <Route

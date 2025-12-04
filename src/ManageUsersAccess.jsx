@@ -468,6 +468,7 @@ function ManageUsersAccess() {
                 <option value="HR Approve">HR Approve</option>
                 <option value="Accomplish">Accomplish</option>
                 <option value="Accounting">Accounting</option>
+                <option value="Dispatch">Dispatch</option>
               </select>
 
               <div className="admin-modal-footer">

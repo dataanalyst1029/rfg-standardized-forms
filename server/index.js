@@ -731,10 +731,6 @@ app.get("/api/dashboard/summary", async (req, res) => {
   }
 });
 
-
-
-
-
 /* ------------------------
    PURCHASE REQUESTS
 ------------------------ */
@@ -3551,17 +3547,18 @@ app.put("/api/leave_application/:id/approve", async (req, res) => {
 
 
 /* ------------------------
-   INTERBRANCH TRANSFER SLIP REQUEST API
+  API INTERBRANCH TRANSFER SLIP REQUESTS
 ------------------------ */
+
 app.get("/api/interbranch_transfer/next-code", async (req, res) => {
   try {
     const year = new Date().getFullYear();
 
     const result = await pool.query(
-      `SELECT its_request_code
-       FROM interbranch_transfer
-       WHERE its_request_code LIKE $1
-       ORDER BY its_request_code DESC
+      `SELECT its_request_code 
+       FROM interbranch_transfer 
+       WHERE its_request_code LIKE $1 
+       ORDER BY its_request_code DESC 
        LIMIT 1`,
       [`ITS-${year}-%`]
     );
@@ -3569,7 +3566,7 @@ app.get("/api/interbranch_transfer/next-code", async (req, res) => {
     let nextCode;
     if (result.rows.length > 0) {
       const lastCode = result.rows[0].its_request_code;
-      const lastNum = parseInt(lastCode.split("-")[2], 10);
+      const lastNum = parseInt(lastCode.split("-")[2]);
       const nextNum = String(lastNum + 1).padStart(6, "0");
       nextCode = `ITS-${year}-${nextNum}`;
     } else {
@@ -3578,95 +3575,139 @@ app.get("/api/interbranch_transfer/next-code", async (req, res) => {
 
     res.json({ nextCode });
   } catch (err) {
-    console.error("❌ Error generating next CA receipt code:", err);
+    console.error("❌ Error generating next purchase request code:", err);
     res.status(500).json({ message: "Server error generating next code" });
   }
 });
-
 
 app.post("/api/interbranch_transfer", async (req, res) => {
   const {
     its_request_code,
     request_date,
     employee_id,
-    name,
-    branch,
-    department,
-    date_needed,
-    work_description,
-    asset_tag,
-    requested_by,
-    request_signature,
+    date_transferred,
+    from_branch,
+    to_branch,
+    address_from,
+    address_to,
+    aoc,
+    vehicle_use,
+    specify_if_others,
+    vehicle_no,
+    driver_name,
+    driver_contact_no,
+    expected_delivery_date,
+    prepared_by,
+    prepared_signature,
     user_id,
+    items = [],
   } = req.body;
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    const existing = await client.query(
-      "SELECT id FROM interbranch_transfer WHERE its_request_code = $1",
-      [its_request_code]
-    );
-    if (existing.rows.length > 0) {
-      await client.query("ROLLBACK");
-      return res
-        .status(400)
-        .json({ message: `Interbranch Request code ${its_request_code} already exists.` });
-    }
-
-    await client.query(
-      `INSERT INTO interbranch_transfer (
-        its_request_code, 
-        request_date, 
-        employee_id, 
-        name, 
-        branch, 
-        department, 
-        date_needed,
-        work_description,
-        asset_tag,
-        requested_by, 
-        request_signature, 
-        user_id
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+    const result = await client.query(
+      `INSERT INTO interbranch_transfer
+       (its_request_code, request_date, employee_id, date_transferred, from_branch, to_branch, address_from, address_to, aoc, vehicle_use, specify_if_others, vehicle_no, driver_name, driver_contact_no, expected_delivery_date, prepared_by, prepared_signature, user_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+       RETURNING id`,
       [
         its_request_code,
         request_date || new Date(),
         employee_id,
-        name,
-        branch,
-        department,
-        date_needed,
-        work_description,
-        asset_tag,
-        requested_by,
-        request_signature,
-        user_id,
+        date_transferred,
+        from_branch,
+        to_branch,
+        address_from,
+        address_to,
+        aoc,
+        vehicle_use,
+        specify_if_others,
+        vehicle_no,
+        driver_name,
+        driver_contact_no,
+        expected_delivery_date,
+        prepared_by,
+        prepared_signature,
+        user_id, 
       ]
     );
+
+    const requestId = result.rows[0]?.id;
+    if (!requestId) throw new Error("Failed to get interbranch transfer ID");
+
+    for (const item of items) {
+      if (!item.item_code || !item.item_description || !item.quantity || !item.uom || !item.remarks) continue;
+      await client.query(
+        `INSERT INTO interbranch_transfer_item (request_id, item_code, item_description, quantity, uom, remarks)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [requestId, item.item_code, item.item_description, item.quantity, item.uom, item.remarks.trim()]
+      );
+    }
 
     await client.query("COMMIT");
 
     res.status(201).json({
       success: true,
-      message: `✅ Maintenance / Repair request ${its_request_code} saved successfully!`,
+      message: `Interbranch Transfer ${its_request_code} saved successfully!`,
     });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("❌ Error saving maintenance / repair request:", err);
-    res.status(500).json({ message: "Server error saving maintenance / repair request" });
+    console.error("❌ Error saving interbranch transfer request:", err);
+    res.status(500).json({ message: "Server error saving interbranch transfer request" });
   } finally {
     client.release();
   }
 });
 
 
+app.get("/api/interbranch_transfer", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT its.*, json_agg(json_build_object('id', itsi.id, 'item_code', itsi.item_code, 'item_description', itsi.item_description, 'quantity', itsi.quantity, 'uom', itsi.uom, 'remarks', itsi.remarks)) AS items
+      FROM interbranch_transfer its
+      LEFT JOIN interbranch_transfer_item itsi ON its.id = itsi.request_id
+      GROUP BY its.id
+      ORDER BY its.created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching interbranch transfer requests:", err);
+    res.status(500).json({ message: "Server error fetching interbranch transfer requests" });
+  }
+});
+
+app.get("/api/interbranch_transfer_item", async (req, res) => {
+  const { request_id } = req.query;
+
+  try {
+    let query = `
+      SELECT id, request_id, item_code, item_description, quantity, uom, remarks
+      FROM interbranch_transfer_item
+    `;
+    const params = [];
+
+    if (request_id) {
+      query += " WHERE request_id = $1";
+      params.push(request_id);
+    }
+
+    query += " ORDER BY id ASC";
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching interbranch transfer request items:", err);
+    res.status(500).json({ message: "Server error fetching interbranch transfer request items" });
+  }
+});
+
 /* ------------------------
-   UPDATE MAINTENANCE / REPAIR REQUEST
+   UPDATE INTERBRANCH TRANSFER REQUEST
 ------------------------ */
-app.put("/api/update_maintenance_repair_request", uploadForm.none(), async (req, res) => {
+
+app.put("/api/update_interbranch_transfer_request", uploadForm.none(), async (req, res) => {
   try {
     const {
       its_request_code,
@@ -3677,11 +3718,11 @@ app.put("/api/update_maintenance_repair_request", uploadForm.none(), async (req,
     } = req.body;
 
     if (!its_request_code) {
-      return res.status(400).json({ message: "its_request_code is required." });
+      return res.status(400).json({ message: "Reference number is required." });
     }
 
     let query = `
-      UPDATE maintenance_repair_request
+      UPDATE interbranch_transfer
       SET status = $1,
           updated_at = NOW()
     `;
@@ -3691,6 +3732,7 @@ app.put("/api/update_maintenance_repair_request", uploadForm.none(), async (req,
 
     if (status === "Approved") {
       query += `,
+        date_approved = NOW(),
         approved_by = $${paramIndex++},
         approved_signature = $${paramIndex++}
       `;
@@ -3710,19 +3752,147 @@ app.put("/api/update_maintenance_repair_request", uploadForm.none(), async (req,
     const result = await pool.query(query, values);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Maintenance / Repair request not found." });
+      return res.status(404).json({ message: "Interbranch transfer request not found." });
     }
 
     res.json({
       success: true,
-      message: "Maintenance repair request updated successfully.",
+      message: "Interbranch transfer request updated successfully.",
       data: result.rows[0],
     });
   } catch (err) {
-    console.error("❌ Error updating maintenance / repair request:", err);
-    res.status(500).json({ message: "Server error updating maintenance / repair request." });
+    console.error("❌ Error updating interbranch transfer request:", err);
+    res.status(500).json({ message: "Server error updating interbranch transfer request." });
   }
 });
+
+
+/* ------------------------
+   DISPATCHING INTERBRANCH TRANSFER REQUEST
+------------------------ */
+
+app.put("/api/dispatch_interbranch_transfer_request", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      its_request_code,
+      dispatched_by,
+      dispatched_signature,
+      status,
+      declined_reason,
+    } = req.body;
+
+    if (!its_request_code) {
+      return res.status(400).json({ message: "Reference number is required." });
+    }
+
+    let query = `
+      UPDATE interbranch_transfer
+      SET status = $1,
+          updated_at = NOW()
+    `;
+
+    const values = [status];
+    let paramIndex = 2;
+
+    if (status === "Approved") {
+      query += `,
+        dispatched_date = NOW(),
+        dispatched_by = $${paramIndex++},
+        dispatched_signature = $${paramIndex++}
+      `;
+      values.push(dispatched_by, dispatched_signature);
+    }
+
+    if (status === "Declined") {
+      query += `,
+        declined_reason = $${paramIndex++}
+      `;
+      values.push(declined_reason || "");
+    }
+
+    query += ` WHERE its_request_code = $${paramIndex} RETURNING *`;
+    values.push(its_request_code);
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Interbranch transfer request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Interbranch transfer request updated successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating interbranch transfer request:", err);
+    res.status(500).json({ message: "Server error updating interbranch transfer request." });
+  }
+});
+
+/* ------------------------
+   CONFIRM RECEIVING INTERBRANCH TRANSFER REQUEST
+------------------------ */
+
+app.put("/api/receive_interbranch_transfer_request", uploadForm.none(), async (req, res) => {
+  try {
+    const {
+      its_request_code,
+      received_by,
+      received_signature,
+      shortage_items,
+      shortage_reason,
+      overage_items,
+      overage_reason,
+    } = req.body;
+
+    if (!its_request_code) {
+      return res.status(400).json({ message: "Reference number is required." });
+    }
+
+    const query = `
+      UPDATE interbranch_transfer
+      SET 
+        status = 'Received',
+        date_request = NOW(),
+        received_by = $1,
+        received_signature = $2,
+        shortage_items = $3,
+        shortage_reason = $4,
+        overage_items = $5,
+        overage_reason = $6,
+        updated_at = NOW()
+      WHERE its_request_code = $7
+      RETURNING *
+    `;
+
+    const values = [
+      received_by,
+      received_signature,
+      shortage_items,          
+      shortage_reason || "",
+      overage_items,             
+      overage_reason || "",
+      its_request_code,
+    ];
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Interbranch transfer request not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Interbranch transfer successfully marked as RECEIVED.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error confirming receive:", err);
+    res.status(500).json({ message: "Server error confirming receive." });
+  }
+});
+
 
 /* ------------------------
    BRANCHES CRUD API
@@ -4298,485 +4468,485 @@ app.put("/api/transmittals/status", async (req, res) => {
   }
 });
 
-/* ------------------------
-   INTERBRANCH TRANSFER SLIP API
------------------------- */
+// /* ------------------------
+//    INTERBRANCH TRANSFER SLIP API
+// ------------------------ */
 
-app.get("/api/interbranch_transfer_slip/next-code", async (req, res) => {  // Generate next available payment request code
-  try {
-    const year = new Date().getFullYear();  // Get current year for code prefix
+// app.get("/api/interbranch_transfer_slip/next-code", async (req, res) => {  // Generate next available payment request code
+//   try {
+//     const year = new Date().getFullYear();  // Get current year for code prefix
 
-    const result = await pool.query(  // Query latest code that matches current year
-      `SELECT form_code 
-       FROM interbranch_transfer_slip 
-       WHERE form_code LIKE $1 
-       ORDER BY form_code DESC 
-       LIMIT 1`,
-      [`ITS-${year}-%`]  // Pattern for current year’s codes
-    );
+//     const result = await pool.query(  // Query latest code that matches current year
+//       `SELECT form_code 
+//        FROM interbranch_transfer_slip 
+//        WHERE form_code LIKE $1 
+//        ORDER BY form_code DESC 
+//        LIMIT 1`,
+//       [`ITS-${year}-%`]  // Pattern for current year’s codes
+//     );
 
-    let nextCode;  // Variable to store generated code
-    if (result.rows.length > 0) {  // If a record exists for this year
-      const lastCode = result.rows[0].form_code;  // Get latest code
-      const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
-      const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
-      nextCode = `ITS-${year}-${nextNum}`;  // Construct next code
-    } else {
-      nextCode = `ITS-${year}-000001`;  // If none found, start from 000001
-    }
+//     let nextCode;  // Variable to store generated code
+//     if (result.rows.length > 0) {  // If a record exists for this year
+//       const lastCode = result.rows[0].form_code;  // Get latest code
+//       const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
+//       const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
+//       nextCode = `ITS-${year}-${nextNum}`;  // Construct next code
+//     } else {
+//       nextCode = `ITS-${year}-000001`;  // If none found, start from 000001
+//     }
 
-    res.json({ nextCode });  // Return next code to client
-  } catch (err) {
-    console.error("❌ Error generating next interbranch transfer slip code:", err);  // Log error
-    res.status(500).json({ message: "Server error generating next code" });  // Send error response
-  }
-});
+//     res.json({ nextCode });  // Return next code to client
+//   } catch (err) {
+//     console.error("❌ Error generating next interbranch transfer slip code:", err);  // Log error
+//     res.status(500).json({ message: "Server error generating next code" });  // Send error response
+//   }
+// });
 
-app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new interbranch transfer slip
-  const {
-    form_code,
-    user_id,
-    employee_id,
-    date_transferred,
-    from_branch,
-    from_address,
-    from_area_ops_controller,
-    to_branch,
-    to_address,
-    to_area_ops_controller,
-    dispatch_method,
-    vehicle_no,
-    driver_name,
-    driver_contact,
-    expected_date,
-    prepared_by,
-    prepared_date,
-    prepared_signature,
+// app.post("/api/interbranch_transfer_slip", async (req, res) => {  // Create new interbranch transfer slip
+//   const {
+//     form_code,
+//     user_id,
+//     employee_id,
+//     date_transferred,
+//     from_branch,
+//     from_address,
+//     from_area_ops_controller,
+//     to_branch,
+//     to_address,
+//     to_area_ops_controller,
+//     dispatch_method,
+//     vehicle_no,
+//     driver_name,
+//     driver_contact,
+//     expected_date,
+//     prepared_by,
+//     prepared_date,
+//     prepared_signature,
 
-    items = [],  // Default to empty array if no items
-  } = req.body;
+//     items = [],  // Default to empty array if no items
+//   } = req.body;
 
-  const client = await pool.connect();  // Get DB client for transaction
-  try {
-    await client.query("BEGIN");  // Start transaction
+//   const client = await pool.connect();  // Get DB client for transaction
+//   try {
+//     await client.query("BEGIN");  // Start transaction
 
-    const result = await client.query(  // Insert main request record
-      `INSERT INTO interbranch_transfer_slip
-      (form_code, user_id, employee_id, date_transferred, from_branch, from_address, from_area_ops_controller, to_branch, to_address, to_area_ops_controller, dispatch_method, vehicle_no, driver_name, driver_contact, expected_date, prepared_by, prepared_date, prepared_signature)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
-      RETURNING id`,
-      [
-        form_code,
-        user_id,
-        employee_id,
-        date_transferred,
-        from_branch,
-        from_address,
-        from_area_ops_controller,
-        to_branch,
-        to_address,
-        to_area_ops_controller,
-        dispatch_method,
-        vehicle_no,
-        driver_name,
-        driver_contact,
-        expected_date,
-        prepared_by || null,
-        prepared_date || null,
-        prepared_signature || null,
-      ]
-    );
+//     const result = await client.query(  // Insert main request record
+//       `INSERT INTO interbranch_transfer_slip
+//       (form_code, user_id, employee_id, date_transferred, from_branch, from_address, from_area_ops_controller, to_branch, to_address, to_area_ops_controller, dispatch_method, vehicle_no, driver_name, driver_contact, expected_date, prepared_by, prepared_date, prepared_signature)
+//       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+//       RETURNING id`,
+//       [
+//         form_code,
+//         user_id,
+//         employee_id,
+//         date_transferred,
+//         from_branch,
+//         from_address,
+//         from_area_ops_controller,
+//         to_branch,
+//         to_address,
+//         to_area_ops_controller,
+//         dispatch_method,
+//         vehicle_no,
+//         driver_name,
+//         driver_contact,
+//         expected_date,
+//         prepared_by || null,
+//         prepared_date || null,
+//         prepared_signature || null,
+//       ]
+//     );
 
-    const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
-    if (!requestId) throw new Error("Failed to get interbranch transfer slip ID");  // Validate presence of ID
+//     const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
+//     if (!requestId) throw new Error("Failed to get interbranch transfer slip ID");  // Validate presence of ID
 
-    if (items.length > 0) {
-      const values = [];
-      const placeholders = [];
+//     if (items.length > 0) {
+//       const values = [];
+//       const placeholders = [];
 
-      items.forEach((item, i) => {
-        const base = i * 6;
-        placeholders.push(
-          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`
-        );
-        values.push(
-          requestId,
-          item.item_code || null,
-          item.item_description || null,
-          item.qty || null,
-          item.unit_measure || null,
-          item.remarks || null
-        );
-      });
+//       items.forEach((item, i) => {
+//         const base = i * 6;
+//         placeholders.push(
+//           `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`
+//         );
+//         values.push(
+//           requestId,
+//           item.item_code || null,
+//           item.item_description || null,
+//           item.qty || null,
+//           item.unit_measure || null,
+//           item.remarks || null
+//         );
+//       });
 
-      await client.query(
-        `INSERT INTO interbranch_transfer_slip_items
-        (request_id, item_code, item_description, qty, unit_measure, remarks)
-        VALUES ${placeholders.join(",")}`,
-        values
-      );
-    }
+//       await client.query(
+//         `INSERT INTO interbranch_transfer_slip_items
+//         (request_id, item_code, item_description, qty, unit_measure, remarks)
+//         VALUES ${placeholders.join(",")}`,
+//         values
+//       );
+//     }
 
-    await client.query("COMMIT");  // Commit transaction
+//     await client.query("COMMIT");  // Commit transaction
 
-    res.status(201).json({
-      success: true,
-      message: `Interbranch Transfer Slip ${form_code} saved successfully!`,  // Success message
-    });
-  } catch (err) {
-    await client.query("ROLLBACK");  // Rollback on failure
-    console.error("❌ Error saving interbranch transfer slip:", err);
-    res.status(500).json({ message: "Server error saving interbranch transfer slip" });  // Send error response
-  } finally {
-    client.release();  // Release DB client
-  }
-});
+//     res.status(201).json({
+//       success: true,
+//       message: `Interbranch Transfer Slip ${form_code} saved successfully!`,  // Success message
+//     });
+//   } catch (err) {
+//     await client.query("ROLLBACK");  // Rollback on failure
+//     console.error("❌ Error saving interbranch transfer slip:", err);
+//     res.status(500).json({ message: "Server error saving interbranch transfer slip" });  // Send error response
+//   } finally {
+//     client.release();  // Release DB client
+//   }
+// });
 
-app.get("/api/interbranch_transfer_slip", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT its.*,
-        json_agg(
-          json_build_object(
-            'id', itsi.id, 
-            'item_code', itsi.item_code, 
-            'item_description', itsi.item_description, 
-            'qty', itsi.qty,
-            'unit_measure', itsi.unit_measure, 
-            'remarks', itsi.remarks
-          )
-        ) FILTER (WHERE itsi.id IS NOT NULL) AS items
-      FROM interbranch_transfer_slip its
-      LEFT JOIN interbranch_transfer_slip_items itsi ON its.id = itsi.request_id
-      GROUP BY its.id
-      ORDER BY its.created_at DESC;
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Error fetching interbranch transfer slips:", err);
-    res.status(500).json({ message: "Server error fetching interbranch transfer slips" });
-  }
-});
+// app.get("/api/interbranch_transfer_slip", async (req, res) => {
+//   try {
+//     const result = await pool.query(`
+//       SELECT its.*,
+//         json_agg(
+//           json_build_object(
+//             'id', itsi.id, 
+//             'item_code', itsi.item_code, 
+//             'item_description', itsi.item_description, 
+//             'qty', itsi.qty,
+//             'unit_measure', itsi.unit_measure, 
+//             'remarks', itsi.remarks
+//           )
+//         ) FILTER (WHERE itsi.id IS NOT NULL) AS items
+//       FROM interbranch_transfer_slip its
+//       LEFT JOIN interbranch_transfer_slip_items itsi ON its.id = itsi.request_id
+//       GROUP BY its.id
+//       ORDER BY its.created_at DESC;
+//     `);
+//     res.json(result.rows);
+//   } catch (err) {
+//     console.error("❌ Error fetching interbranch transfer slips:", err);
+//     res.status(500).json({ message: "Server error fetching interbranch transfer slips" });
+//   }
+// });
 
-app.get("/api/interbranch_transfer_slip_items", async (req, res) => {
-  const { request_id } = req.query;
+// app.get("/api/interbranch_transfer_slip_items", async (req, res) => {
+//   const { request_id } = req.query;
 
-  if (!request_id) {
-    return res.status(400).json({ message: "request_id is required" });
-  }
+//   if (!request_id) {
+//     return res.status(400).json({ message: "request_id is required" });
+//   }
 
-  try {
-    const result = await pool.query(
-      `SELECT *
-       FROM interbranch_transfer_slip_items
-       WHERE request_id = $1
-       ORDER BY id ASC`,
-      [request_id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Error fetching interbranch transfer slip items:", err);
-    res.status(500).json({ message: "Server error fetching interbranch transfer slip items" });
-  }
-});
+//   try {
+//     const result = await pool.query(
+//       `SELECT *
+//        FROM interbranch_transfer_slip_items
+//        WHERE request_id = $1
+//        ORDER BY id ASC`,
+//       [request_id]
+//     );
+//     res.json(result.rows);
+//   } catch (err) {
+//     console.error("❌ Error fetching interbranch transfer slip items:", err);
+//     res.status(500).json({ message: "Server error fetching interbranch transfer slip items" });
+//   }
+// });
 
-/* -------------------------
-   CREDIT CARD RECEIPT API
---------------------------- */
-app.get("/api/credit_card_acknowledgement_receipt/next-code", async (req, res) => {  // Generate next available credit card receipt code
-  try {
-    const year = new Date().getFullYear();  // Get current year for code prefix
+// /* -------------------------
+//    CREDIT CARD RECEIPT API
+// --------------------------- */
+// app.get("/api/credit_card_acknowledgement_receipt/next-code", async (req, res) => {  // Generate next available credit card receipt code
+//   try {
+//     const year = new Date().getFullYear();  // Get current year for code prefix
 
-    const result = await pool.query(  // Query latest code that matches current year
-      `SELECT form_code 
-       FROM credit_card_acknowledgement_receipt 
-       WHERE form_code LIKE $1 
-       ORDER BY form_code DESC 
-       LIMIT 1`,
-      [`CCA-${year}-%`]  // Pattern for current year’s codes
-    );
+//     const result = await pool.query(  // Query latest code that matches current year
+//       `SELECT form_code 
+//        FROM credit_card_acknowledgement_receipt 
+//        WHERE form_code LIKE $1 
+//        ORDER BY form_code DESC 
+//        LIMIT 1`,
+//       [`CCA-${year}-%`]  // Pattern for current year’s codes
+//     );
 
-    let nextCode;  // Variable to store generated code
-    if (result.rows.length > 0) {  // If a record exists for this year
-      const lastCode = result.rows[0].form_code;  // Get latest code
-      const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
-      const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
-      nextCode = `CCA-${year}-${nextNum}`;  // Construct next code
-    } else {
-      nextCode = `CCA-${year}-000001`;  // If none found, start from 000001
-    }
+//     let nextCode;  // Variable to store generated code
+//     if (result.rows.length > 0) {  // If a record exists for this year
+//       const lastCode = result.rows[0].form_code;  // Get latest code
+//       const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
+//       const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
+//       nextCode = `CCA-${year}-${nextNum}`;  // Construct next code
+//     } else {
+//       nextCode = `CCA-${year}-000001`;  // If none found, start from 000001
+//     }
 
-    res.json({ nextCode });  // Return next code to client
-  } catch (err) {
-    console.error("❌ Error generating next credit card acknowledgement receipt form code:", err);  // Log error
-    res.status(500).json({ message: "Server error generating next code" });  // Send error response
-  }
-});
+//     res.json({ nextCode });  // Return next code to client
+//   } catch (err) {
+//     console.error("❌ Error generating next credit card acknowledgement receipt form code:", err);  // Log error
+//     res.status(500).json({ message: "Server error generating next code" });  // Send error response
+//   }
+// });
 
-app.post("/api/credit_card_acknowledgement_receipt", async (req, res) => {  // Create new credit card acknowledgement receipt
-  const {
-    form_code,
-    status,
-    cardholder_name,
-    employee_id,
-    department,
-    position,
-    bank,
-    issuer,
-    card_number,
-    date_received,
-    received_by_name,
-    received_by_date,
-    received_by_signature,
-    issued_by_name,
-    issued_by_date,
-    issued_by_signature,
+// app.post("/api/credit_card_acknowledgement_receipt", async (req, res) => {  // Create new credit card acknowledgement receipt
+//   const {
+//     form_code,
+//     status,
+//     cardholder_name,
+//     employee_id,
+//     department,
+//     position,
+//     bank,
+//     issuer,
+//     card_number,
+//     date_received,
+//     received_by_name,
+//     received_by_date,
+//     received_by_signature,
+//     issued_by_name,
+//     issued_by_date,
+//     issued_by_signature,
 
-    items = [],  // Default to empty array if no items
-  } = req.body;
+//     items = [],  // Default to empty array if no items
+//   } = req.body;
 
-  const client = await pool.connect();  // Get DB client for transaction  
-  try {
-    await client.query("BEGIN");  // Start transaction
+//   const client = await pool.connect();  // Get DB client for transaction  
+//   try {
+//     await client.query("BEGIN");  // Start transaction
 
-    const result = await client.query(  // Insert main request record
-      `INSERT INTO credit_card_acknowledgement_receipt
-      (form_code, cardholder_name, employee_id, department, position, bank, issuer, card_number, date_received, received_by_name, received_by_date, received_by_signature)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-      RETURNING id`,
-      [
-        form_code,
-        cardholder_name,
-        employee_id,
-        department,
-        position,
-        bank,
-        issuer,
-        card_number,
-        date_received,
-        received_by_name,
-        received_by_date,
-        received_by_signature
-      ]
-    );
+//     const result = await client.query(  // Insert main request record
+//       `INSERT INTO credit_card_acknowledgement_receipt
+//       (form_code, cardholder_name, employee_id, department, position, bank, issuer, card_number, date_received, received_by_name, received_by_date, received_by_signature)
+//       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+//       RETURNING id`,
+//       [
+//         form_code,
+//         cardholder_name,
+//         employee_id,
+//         department,
+//         position,
+//         bank,
+//         issuer,
+//         card_number,
+//         date_received,
+//         received_by_name,
+//         received_by_date,
+//         received_by_signature
+//       ]
+//     );
 
-    const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
-    if (!requestId) throw new Error("Failed to get credit card acknowledgement receipt ID");  // Validate presence of ID
+//     const requestId = parseInt(result.rows[0]?.id || req.body.request_id, 10);  // Get inserted request ID
+//     if (!requestId) throw new Error("Failed to get credit card acknowledgement receipt ID");  // Validate presence of ID
 
-    await client.query("COMMIT");  // Commit transaction
+//     await client.query("COMMIT");  // Commit transaction
 
-    res.status(201).json({
-      success: true,
-      message: `Credit Card Acknowledgement Receipt ${form_code} saved successfully!`,  // Success message
-    });
-  } catch (err) {
-    await client.query("ROLLBACK");  // Rollback on failure
-    console.error("❌ Error saving credit card acknowledgement receipt:", err);
-    res.status(500).json({ message: "Server error saving credit card acknowledgement receipt" });  // Send error response
-  } finally {
-    client.release();  // Release DB client
-  }
-});
+//     res.status(201).json({
+//       success: true,
+//       message: `Credit Card Acknowledgement Receipt ${form_code} saved successfully!`,  // Success message
+//     });
+//   } catch (err) {
+//     await client.query("ROLLBACK");  // Rollback on failure
+//     console.error("❌ Error saving credit card acknowledgement receipt:", err);
+//     res.status(500).json({ message: "Server error saving credit card acknowledgement receipt" });  // Send error response
+//   } finally {
+//     client.release();  // Release DB client
+//   }
+// });
 
-app.get("/api/credit_card_acknowledgement_receipt", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT *
-      FROM credit_card_acknowledgement_receipt
-      ORDER BY created_at DESC;
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Error fetching credit card acknowledgement receipts:", err);
-    res.status(500).json({ message: "Server error fetching credit card acknowledgement receipts" });
-  }
-});
+// app.get("/api/credit_card_acknowledgement_receipt", async (req, res) => {
+//   try {
+//     const result = await pool.query(`
+//       SELECT *
+//       FROM credit_card_acknowledgement_receipt
+//       ORDER BY created_at DESC;
+//     `);
+//     res.json(result.rows);
+//   } catch (err) {
+//     console.error("❌ Error fetching credit card acknowledgement receipts:", err);
+//     res.status(500).json({ message: "Server error fetching credit card acknowledgement receipts" });
+//   }
+// });
 
-/* ------------------------
-   HR OVERTIME APPROVAL API
------------------------- */
-app.get("/api/overtime_requests/next-code", async (req, res) => {  // Generate next available credit card receipt code
-  try {
-    const year = new Date().getFullYear();  // Get current year for code prefix
+// /* ------------------------
+//    HR OVERTIME APPROVAL API
+// ------------------------ */
+// app.get("/api/overtime_requests/next-code", async (req, res) => {  // Generate next available credit card receipt code
+//   try {
+//     const year = new Date().getFullYear();  // Get current year for code prefix
 
-    const result = await pool.query(  // Query latest code that matches current year
-      `SELECT form_code 
-       FROM overtime_requests 
-       WHERE form_code LIKE $1 
-       ORDER BY form_code DESC 
-       LIMIT 1`,
-      [`OAR-${year}-%`]  // Pattern for current year’s codes
-    );
+//     const result = await pool.query(  // Query latest code that matches current year
+//       `SELECT form_code 
+//        FROM overtime_requests 
+//        WHERE form_code LIKE $1 
+//        ORDER BY form_code DESC 
+//        LIMIT 1`,
+//       [`OAR-${year}-%`]  // Pattern for current year’s codes
+//     );
 
-    let nextCode;  // Variable to store generated code
-    if (result.rows.length > 0) {  // If a record exists for this year
-      const lastCode = result.rows[0].form_code;  // Get latest code
-      const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
-      const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
-      nextCode = `OAR-${year}-${nextNum}`;  // Construct next code
-    } else {
-      nextCode = `OAR-${year}-000001`;  // If none found, start from 000001
-    }
+//     let nextCode;  // Variable to store generated code
+//     if (result.rows.length > 0) {  // If a record exists for this year
+//       const lastCode = result.rows[0].form_code;  // Get latest code
+//       const lastNum = parseInt(lastCode.split("-")[2]);  // Extract numeric part
+//       const nextNum = String(lastNum + 1).padStart(6, "0");  // Increment and pad to 6 digits
+//       nextCode = `OAR-${year}-${nextNum}`;  // Construct next code
+//     } else {
+//       nextCode = `OAR-${year}-000001`;  // If none found, start from 000001
+//     }
 
-    res.json({ nextCode });  // Return next code to client
-  } catch (err) {
-    console.error("❌ Error generating next overtime approval form code:", err);  // Log error
-    res.status(500).json({ message: "Server error generating next code" });  // Send error response
-  }
-});
+//     res.json({ nextCode });  // Return next code to client
+//   } catch (err) {
+//     console.error("❌ Error generating next overtime approval form code:", err);  // Log error
+//     res.status(500).json({ message: "Server error generating next code" });  // Send error response
+//   }
+// });
 
-app.post("/api/overtime_requests", async (req, res) => {
-  const {
-    form_code,
-    requester_name,
-    branch,
-    department,
-    employee_id,
-    request_date,
-    signature,
-    total_hours, // Make sure client sends this
-    submitted_by,
-    cutoff_start,
-    cutoff_end,
+// app.post("/api/overtime_requests", async (req, res) => {
+//   const {
+//     form_code,
+//     requester_name,
+//     branch,
+//     department,
+//     employee_id,
+//     request_date,
+//     signature,
+//     total_hours, // Make sure client sends this
+//     submitted_by,
+//     cutoff_start,
+//     cutoff_end,
 
-    // 1. This is the array of multiple entries from the client
-    entries = [], 
-  } = req.body;
+//     // 1. This is the array of multiple entries from the client
+//     entries = [], 
+//   } = req.body;
 
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN"); // Start transaction
+//   const client = await pool.connect();
+//   try {
+//     await client.query("BEGIN"); // Start transaction
 
-    // 2. Insert the main request
-    const result = await client.query(
-      `INSERT INTO overtime_requests
-       (form_code, requester_name, branch, department, employee_id, request_date, signature, total_hours, submitted_by, submitted_at, cutoff_start, cutoff_end)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-       RETURNING id`,
-      [
-        form_code,
-        requester_name,
-        branch,
-        department,
-        employee_id,
-        request_date,
-        signature,
-        total_hours,
-        submitted_by,
-        new Date(), // Set timestamp on server
-        cutoff_start,
-        cutoff_end,
-      ]
-    );
+//     // 2. Insert the main request
+//     const result = await client.query(
+//       `INSERT INTO overtime_requests
+//        (form_code, requester_name, branch, department, employee_id, request_date, signature, total_hours, submitted_by, submitted_at, cutoff_start, cutoff_end)
+//        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+//        RETURNING id`,
+//       [
+//         form_code,
+//         requester_name,
+//         branch,
+//         department,
+//         employee_id,
+//         request_date,
+//         signature,
+//         total_hours,
+//         submitted_by,
+//         new Date(), // Set timestamp on server
+//         cutoff_start,
+//         cutoff_end,
+//       ]
+//     );
 
-    const requestId = parseInt(result.rows[0]?.id, 10);
-    if (!requestId) throw new Error("Failed to get overtime approval request ID");
+//     const requestId = parseInt(result.rows[0]?.id, 10);
+//     if (!requestId) throw new Error("Failed to get overtime approval request ID");
 
-    // 3. Check if there are any entries to save
-    if (entries.length > 0) {
-      const values = [];
-      const placeholders = [];
+//     // 3. Check if there are any entries to save
+//     if (entries.length > 0) {
+//       const values = [];
+//       const placeholders = [];
 
-      // 4. Loop over EACH entry to build placeholders and values
-      entries.forEach((entry, i) => {
-        const base = i * 6; // 6 columns per entry
+//       // 4. Loop over EACH entry to build placeholders and values
+//       entries.forEach((entry, i) => {
+//         const base = i * 6; // 6 columns per entry
         
-        // Build: ($1, $2, $3, $4, $5, $6), ($7, $8, ...), etc.
-        placeholders.push(
-          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`
-        );
+//         // Build: ($1, $2, $3, $4, $5, $6), ($7, $8, ...), etc.
+//         placeholders.push(
+//           `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`
+//         );
 
-        // 5. Push this entry's values INSIDE the loop
-        values.push(
-          requestId,             // $${base + 1}
-          entry.ot_date || null, // $${base + 2}
-          entry.time_from || null, // $${base + 3}
-          entry.time_to || null, // $${base + 4}
-          entry.purpose || null, // $${base + 5}
-          entry.hours || 0       // $${base + 6}
-        );
-      });
+//         // 5. Push this entry's values INSIDE the loop
+//         values.push(
+//           requestId,             // $${base + 1}
+//           entry.ot_date || null, // $${base + 2}
+//           entry.time_from || null, // $${base + 3}
+//           entry.time_to || null, // $${base + 4}
+//           entry.purpose || null, // $${base + 5}
+//           entry.hours || 0       // $${base + 6}
+//         );
+//       });
 
-      // 6. Build the final bulk INSERT query
-      // (Assuming your table is 'overtime_entries')
-      const entriesQuery = `
-        INSERT INTO overtime_entries (request_id, ot_date, time_from, time_to, purpose, hours)
-        VALUES ${placeholders.join(", ")}
-      `;
+//       // 6. Build the final bulk INSERT query
+//       // (Assuming your table is 'overtime_entries')
+//       const entriesQuery = `
+//         INSERT INTO overtime_entries (request_id, ot_date, time_from, time_to, purpose, hours)
+//         VALUES ${placeholders.join(", ")}
+//       `;
 
-      // 7. Run the query ONCE to insert all entries
-      await client.query(entriesQuery, values);
-    }
+//       // 7. Run the query ONCE to insert all entries
+//       await client.query(entriesQuery, values);
+//     }
 
-    await client.query("COMMIT"); // All good, commit changes
+//     await client.query("COMMIT"); // All good, commit changes
 
-    res.status(201).json({
-      success: true,
-      message: `Overtime Approval Request ${form_code} saved successfully!`,
-      request: {
-        id: requestId,
-        form_code: form_code,
-        status: 'submitted', // Or your default status
-        ...req.body
-      }
-    });
+//     res.status(201).json({
+//       success: true,
+//       message: `Overtime Approval Request ${form_code} saved successfully!`,
+//       request: {
+//         id: requestId,
+//         form_code: form_code,
+//         status: 'submitted', // Or your default status
+//         ...req.body
+//       }
+//     });
 
-  } catch (err) {
-    await client.query("ROLLBACK"); // Something failed, undo
-    console.error("❌ Error saving overtime approval request:", err);
-    res.status(500).json({ message: "Server error saving overtime approval request" });
-  } finally {
-    client.release();
-  }
-});
+//   } catch (err) {
+//     await client.query("ROLLBACK"); // Something failed, undo
+//     console.error("❌ Error saving overtime approval request:", err);
+//     res.status(500).json({ message: "Server error saving overtime approval request" });
+//   } finally {
+//     client.release();
+//   }
+// });
 
-app.get("/api/overtime_requests", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT oar.*,
-        json_agg(
-          json_build_object(
-            'id', oare.id, 
-            'ot_date', oare.ot_date, 
-            'time_from', oare.time_from, 
-            'time_to', oare.time_to,
-            'purpose', oare.purpose, 
-            'hours', oare.hours
-          )
-        ) FILTER (WHERE oare.id IS NOT NULL) AS entries
-      FROM overtime_requests oar
-      LEFT JOIN overtime_entries oare ON oar.id = oare.request_id
-      GROUP BY oar.id
-      ORDER BY oar.created_at DESC;
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Error fetching overtime application requests:", err);
-    res.status(500).json({ message: "Server error fetching overtime application requests" });
-  }
-});
+// app.get("/api/overtime_requests", async (req, res) => {
+//   try {
+//     const result = await pool.query(`
+//       SELECT oar.*,
+//         json_agg(
+//           json_build_object(
+//             'id', oare.id, 
+//             'ot_date', oare.ot_date, 
+//             'time_from', oare.time_from, 
+//             'time_to', oare.time_to,
+//             'purpose', oare.purpose, 
+//             'hours', oare.hours
+//           )
+//         ) FILTER (WHERE oare.id IS NOT NULL) AS entries
+//       FROM overtime_requests oar
+//       LEFT JOIN overtime_entries oare ON oar.id = oare.request_id
+//       GROUP BY oar.id
+//       ORDER BY oar.created_at DESC;
+//     `);
+//     res.json(result.rows);
+//   } catch (err) {
+//     console.error("❌ Error fetching overtime application requests:", err);
+//     res.status(500).json({ message: "Server error fetching overtime application requests" });
+//   }
+// });
 
-app.get("/api/overtime_entries", async (req, res) => {
-  const { request_id } = req.query;
+// app.get("/api/overtime_entries", async (req, res) => {
+//   const { request_id } = req.query;
 
-  if (!request_id) {
-    return res.status(400).json({ message: "request_id is required" });
-  }
+//   if (!request_id) {
+//     return res.status(400).json({ message: "request_id is required" });
+//   }
 
-  try {
-    const result = await pool.query(
-      `SELECT *
-       FROM overtime_entries
-       WHERE request_id = $1
-       ORDER BY id ASC`,
-      [request_id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Error fetching overtime application entries:", err);
-    res.status(500).json({ message: "Server error fetching overtime application entries" });
-  }
-});
+//   try {
+//     const result = await pool.query(
+//       `SELECT *
+//        FROM overtime_entries
+//        WHERE request_id = $1
+//        ORDER BY id ASC`,
+//       [request_id]
+//     );
+//     res.json(result.rows);
+//   } catch (err) {
+//     console.error("❌ Error fetching overtime application entries:", err);
+//     res.status(500).json({ message: "Server error fetching overtime application entries" });
+//   }
+// });
 
 /* ------------------------
    START SERVER

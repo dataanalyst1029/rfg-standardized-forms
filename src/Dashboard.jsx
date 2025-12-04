@@ -17,6 +17,7 @@ import RequestPayment from "./RequestPayment";
 import RequestMaintenanceRepair from "./RequestMaintenanceRepair";
 import RequestOvertimeApproval from "./RequestOvertimeApproval.jsx";
 import RequestLeaveApplication from "./RequestLeaveApplication.jsx";
+import RequestInterbranchTransfer from "./RequestInterbranchTransfer.jsx";
 import RequestTransmittalList from "./RequestTransmittalList.jsx";
 import UserSettings from "./UserSettings.jsx";
 import FormsList from "./FormsList.jsx";
@@ -499,6 +500,13 @@ function renderActiveView(view, extraProps = {}) {
       return (
         <div className="dashboard-content dashboard-content--flush">
           <RequestLeaveApplication />
+        </div>
+      );
+
+    case "interbranch-transfer-request":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <RequestInterbranchTransfer />
         </div>
       );
 
@@ -1163,9 +1171,9 @@ function Dashboard({ role, name, onLogout }) {
                               <button
                                 type="button"
                                 className={`sidebar-item sidebar-item-nested${
-                                  activeView === "interbranch-transfer-slip" ? " underline-active" : ""
+                                  activeView === "interbranch-transfer-request" ? " underline-active" : ""
                                 }`}
-                                onClick={() => handleMenuClick("interbranch-transfer-slip")}
+                                onClick={() => handleMenuClick("interbranch-transfer-request")}
                               >
                                 Interbranch Transfer Slip
                               </button>

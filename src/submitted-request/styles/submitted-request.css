@@ -378,6 +378,10 @@
   background-color: rgba(175, 46, 204, 0.95); /* Purple */
 }
 
+.floating-decline-reason.dispatched {
+  background-color: rgba(175, 46, 204, 0.95); /* Purple */
+}
+
 .floating-decline-reason.accomplished {
   background-color: rgba(46, 120, 204, 0.95); /* Blue */
 }
@@ -548,4 +552,62 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-box {
+  background: #fff;
+  width: 600px;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+}
+
+.modal-header {
+  background: #000;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
+
+.modal-body {
+  padding: 15px;
+}
+
+.modal-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.modal-body textarea {
+  width: 95%;
+  min-height: 60px;
+  margin-top: 5px;
+  padding: 8px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px;
+}
+
+.confirm-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  cursor: pointer;
 }

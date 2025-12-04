@@ -1,700 +1,231 @@
-import { useEffect, useMemo, useState } from "react"; // 1. useRef removed
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../config/api.js";
-// import "./styles/submitted-request.css";
-// import "./styles/submitted-cash-advance.css";
-import "./styles/submitted-interbranch-transfer.css";
+import { useNavigate } from "react-router-dom";
+import "./styles/submitted-overtime.css";
 import rfgLogo from "../assets/rfg_logo.png";
 
 const NAV_SECTIONS = [
-  { id: "submitted", label: "Submitted Transfers" },
-  { id: "new-request", label: "New Interbranch Transfer" },
+  { id: "new-request", label: "New Interbranch Transfer Request" },
+  { id: "submitted", label: "Interbranch Transfer Slip Reports" },
 ];
 
-// --- MODIFIED ---
-const formatDate = (value) => {
-  if (!value) return ""; // Was "-", now ""
-  // Check if value is already just a date 'YYYY-MM-DD'
-  if (typeof value === "string" && value.length === 10 && value.includes("-")) {
-    const parts = value.split("-");
-    if (parts.length === 3) {
-      const date = new Date(parts[0], parts[1] - 1, parts[2]);
-      if (!Number.isNaN(date.getTime())) {
-        return date.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
-      }
-    }
-  }
+function SubmittedInterbranch({ onLogout, currentUserId, showAll = false }) {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedRequestCode, setSelectedRequestCode] = useState("");
+  const [items, setItems] = useState([]);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const cardRef = useRef(null);
+  const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [isFloatingVisible, setIsFloatingVisible] = useState(true);
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    const normalized = String(value).replace(" ", "T").replace(/\//g, "-");
-    const fallback = new Date(normalized);
-    if (Number.isNaN(fallback.getTime())) {
-      return value;
-    }
-    return fallback.toLocaleDateString("en-US", {
+  const [receiveForm, setReceiveForm] = useState({
+    shortage: null,
+    overage: null, 
+    shortage_reason: "",
+    overage_reason: "",
+  });
+
+
+  useEffect(() => {
+    setIsFloatingVisible(true);
+  }, [selectedRequestCode]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "—";
+    const normalized = dateValue.replace(" ", "T").replace(/\//g, "-");
+    const parsedDate = new Date(normalized);
+    if (isNaN(parsedDate)) return dateValue;
+    return parsedDate.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
-  }
-  return parsed.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-};
-// --- END MODIFICATION ---
+  };
 
-const displayText = (value, fallback = "-") => {
-  if (value === null || value === undefined) {
-    return fallback;
-  }
-  const stringValue = typeof value === "string" ? value.trim() : String(value);
-  return stringValue ? stringValue : fallback;
-};
-
-function SubmittedInterbranchTransferSlip({
-  onLogout,
-  currentUserId,
-  showAll = false,
-}) {
-  const navigate = useNavigate();
-  const storedUser = useMemo(
-    () => JSON.parse(sessionStorage.getItem("user") || "{}"),
-    [],
-  );
-
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedCode, setSelectedCode] = useState("");
-  const [items, setItems] = useState([]);
-  const [loadingItems, setLoadingItems] = useState(false);
-  // 2. const cardRef = useRef(null); removed
-
-  const effectiveUserId = showAll
-    ? null
-    : currentUserId || storedUser.id || null;
-  const effectiveRole = storedUser.role || "";
+  const storedId = sessionStorage.getItem("id");
+  const [userData, setUserData] = useState({ name: "", signature: "" });
 
   useEffect(() => {
     const fetchRequests = async () => {
-      setLoading(true);
-      setError(null);
-
       try {
-        const params = new URLSearchParams();
-        if (effectiveRole) {
-          params.append("role", effectiveRole);
+        const res = await fetch(`${API_BASE_URL}/api/interbranch_transfer`);
+        if (!res.ok) throw new Error("Failed to fetch submitted requests");
+        const data = await res.json();
+
+        const hydrated = data.map((req) => ({
+          ...req,
+          submitted_by: req.user_id,
+        }));
+
+        if (showAll) {
+          setRequests(hydrated);
+        } else {
+          const userRequests = hydrated.filter(
+            (req) => Number(req.submitted_by) === Number(currentUserId)
+          );
+          setRequests(userRequests);
         }
-        if (effectiveUserId) {
-          params.append("userId", effectiveUserId);
-        }
-
-        const query = params.toString();
-        const response = await fetch(
-          `${API_BASE_URL}/api/interbranch_transfer_slip${
-            query ? `?${query}` : ""
-          }`,
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch submitted transfer slips.");
-        }
-
-        const data = await response.json();
-        const list = Array.isArray(data) ? data : [];
-
-        const filtered = effectiveUserId
-          ? list.filter(
-              (request) =>
-                String(request.prepared_by).toLowerCase() ===
-                String(storedUser.name).toLowerCase(),
-            )
-          : list;
-
-        setRequests(filtered);
-        setSelectedCode((prev) => {
-          if (prev && filtered.some((request) => request.form_code === prev)) {
-            return prev;
-          }
-          return "";
-        });
       } catch (err) {
-        console.error("Error fetching transfer slips", err);
-        setError(err.message || "Unable to load submitted transfer slips.");
-        setRequests([]);
-        setSelectedCode("");
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchRequests();
-  }, [effectiveRole, effectiveUserId, showAll, storedUser.name]);
+  }, [currentUserId, showAll]);
+
+  useEffect(() => {
+    if (!storedId) return;
+
+    fetch(`${API_BASE_URL}/users/${storedId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setUserData(data);
+        setReceiveInputs({
+          received_by: data.name || "",
+          received_signature: data.signature || "",
+        });
+      })
+      .catch((err) => console.error("Error fetching user data:", err));
+  }, [storedId]);
 
   useEffect(() => {
     const selected = requests.find(
-      (request) => request.form_code === selectedCode,
+      (req) => req.its_request_code === selectedRequestCode
     );
 
-    if (!selected || !selectedCode) {
+    if (!selected) {
       setItems([]);
       return;
     }
 
-    setLoadingItems(true);
-    // Fetch items from the dedicated endpoint
     const fetchItems = async () => {
       try {
+        setLoadingItems(true);
         const res = await fetch(
-          `${API_BASE_URL}/api/interbranch_transfer_slip_items?request_id=${selected.id}`,
+          `${API_BASE_URL}/api/interbranch_transfer_item?request_id=${selected.id}`
         );
         if (!res.ok) throw new Error("Failed to fetch items");
-        const itemData = await res.json();
-        setItems(Array.isArray(itemData) ? itemData : []);
-      } catch (itemError) {
-        console.error("Error fetching items:", itemError);
-        setItems([]); // Set empty on error
+
+        const data = await res.json();
+        setItems(data);
+      } catch (err) {
+        console.error("Error fetching items:", err);
+        setItems([]);
       } finally {
         setLoadingItems(false);
       }
     };
 
     fetchItems();
-  }, [selectedCode, requests]);
-
-  const selectedRequest = requests.find(
-    (request) => request.form_code === selectedCode,
-  );
-
-  const hasItems = items.length > 0 && items[0] && items[0].id;
-  const displayItems = hasItems
-    ? items
-    : Array.from({ length: 5 }, (_, index) => ({
-        id: `placeholder-${index}`,
-        __placeholder: true,
-      }));
-
-  // --- MODIFIED: Changed fallbacks from text to "" ---
-  const preparedByValue = displayText(selectedRequest?.prepared_by, ""); // Was "N/A"
-  const preparedDateValue = formatDate(selectedRequest?.prepared_date);
-  const preparedSignatureValue = selectedRequest?.prepared_signature;
-
-  const approvedByValue = displayText(
-    selectedRequest?.approved_by,
-    "", // Was "Awaiting approval"
-  );
-  const approvedDateValue = formatDate(selectedRequest?.approved_date);
-  const approvedSignatureValue = selectedRequest?.approved_signature;
-
-  const dispatchedByValue = displayText(
-    selectedRequest?.dispatched_by,
-    "", // Was "Pending dispatch"
-  );
-  const dispatchedDateValue = formatDate(selectedRequest?.dispatched_date);
-  const dispatchedSignatureValue = selectedRequest?.dispatched_signature;
-
-  const receivedByValue = displayText(
-    selectedRequest?.received_by,
-    "", // Was "Pending acknowledgement"
-  );
-  const receivedDateValue = formatDate(selectedRequest?.received_date);
-  const receivedSignatureValue = selectedRequest?.received_signature;
-  // --- END MODIFICATION ---
-
-  const handleSelectChange = (event) => {
-    setSelectedCode(event.target.value);
-  };
+  }, [selectedRequestCode, requests]);
 
   const handleNavigate = (sectionId) => {
-    if (sectionId === "new-request") {
-      navigate("/forms/interbranch-transfer-slip");
-    }
+    if (sectionId === "new-request") navigate("/forms/interbranch-transfer-slip");
   };
 
-  const handleResolvedLogout = () => {
-    if (onLogout) {
-      onLogout();
-      return;
-    }
-    sessionStorage.removeItem("user");
-    navigate("/");
+  const handleSelectChange = (e) => {
+    setSelectedRequestCode(e.target.value);
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleReceive = async (request) => {
+  const handleReceive = async (data) => {
     try {
-      if (!request?.id) {
-        alert("Missing request ID. Cannot update status.");
-        console.error("Missing request ID:", request);
-        return;
-      }
+      const formData = new FormData();
 
-      const confirmReceive = window.confirm(
-        `Mark ${request.form_code} as Received?`,
-      );
-      if (!confirmReceive) return;
+      formData.append("its_request_code", data.its_request_code);
+      formData.append("received_by", userData.name);
+      formData.append("received_signature", userData.signature);
 
-      console.log("Updating transfer slip:", request.id);
+      formData.append("shortage_items", data.shortage);
+      formData.append("shortage_reason", data.shortage_reason || "");
 
-      // Get current user details to sign as the receiver
-      const userRes = await fetch(
-        `${API_BASE_URL}/api/users/${effectiveUserId}`,
-      );
-      if (!userRes.ok) throw new Error("Failed to fetch user data");
-      const userData = await userRes.json();
+      formData.append("overage_items", data.overage);
+      formData.append("overage_reason", data.overage_reason || "");
 
-      const payload = {
-        status: "Received",
-        received_by: userData.name,
-        received_signature: userData.signature,
-        received_date: new Date().toISOString(), // Set received date to now
-      };
-
-      // Update request on backend
       const res = await fetch(
-        `${API_BASE_URL}/api/interbranch_transfer_slip/${request.id}`,
+        `${API_BASE_URL}/api/receive_interbranch_transfer_request`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
+          body: formData,
+        }
       );
 
-      let data = {};
-      try {
-        data = await res.json();
-      } catch {
-        console.warn("Non-JSON response from backend");
-      }
+      const result = await res.json();
 
       if (!res.ok) {
-        console.error("Backend response error:", data);
-        alert(`Failed to update status: ${data.error || "Unknown error"}`);
+        alert(result.message || "Failed to confirm receive.");
         return;
       }
 
-      alert(`Transfer Slip ${request.form_code} marked as Received ✅`);
+      alert("✅ Successfully received!");
 
-      // Update UI instantly
+      // Update UI instantly without refresh
       setRequests((prev) =>
-        prev.map((r) => (r.id === request.id ? { ...r, ...payload } : r)),
+        prev.map((req) =>
+          req.its_request_code === data.its_request_code
+            ? { ...req, ...result.data }
+            : req
+        )
       );
+
+      setShowReceiveModal(false);
+
     } catch (err) {
-      console.error("Error receiving transfer slip:", err);
-      alert("Error updating status. Check console for details.");
+      console.error("Receive error:", err);
+      alert("Server error while receiving.");
     }
   };
-  // --- END FEATURE ---
 
-  // --- FEATURE: Added loading spinner (matches Payment Request) ---
-  if (loading) {
-    // Assumes .loading-container and .spinner styles are available globally
-    // (from submitted-request.css or similar)
-    return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <span>Loading submitted transfer slips…</span>
-      </div>
-    );
-  }
-  // --- END FEATURE ---
 
-  const renderBody = () => {
-    if (error) {
-      return <p className="pr-error-message">{error}</p>;
-    }
+  const selectedRequest = requests.find(
+    (req) => req.its_request_code === selectedRequestCode
+  );
 
-    if (requests.length === 0) {
-      return <p>No submitted interbranch transfer slips found.</p>;
-    }
-
-    return (
-      <>
-        <div className="dropdown-section" style={{ marginBottom: "1.5rem" }}>
-          <label htmlFor="itsRequestSelect">Select Reference No: </label>
-          <select
-            id="itsRequestSelect"
-            value={selectedCode}
-            onChange={handleSelectChange}
-            className="pr-input"
-          >
-            <option value="" disabled>
-              -- Choose Reference Number --
-            </option>
-            {requests.map((request) => (
-              <option key={request.form_code} value={request.form_code}>
-                {request.form_code} (From: {request.from_branch} | To:{" "}
-                {request.to_branch})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {selectedRequest && (
-          // 3. 'ref={cardRef}' removed from the div below
-          <div className="its-request-card">
-            <header className="request-header">
-              <div className="header-brand">
-                <img
-                  src={rfgLogo}
-                  alt="Ribshack Food Group"
-                  className="header-logo"
-                />
-              </div>
-              <div className="header-request-code">
-                <i className="request-code">{selectedRequest.form_code}</i>
-              </div>
-            </header>
-
-            <div className="its-grid-two" style={{ marginTop: "1rem" }}>
-              <div>
-                <table className="its-info-table">
-                  <tbody>
-                    <tr>
-                      <th>Date transferred</th>
-                      <td>{formatDate(selectedRequest.date_transferred)}</td>
-                    </tr>
-                    <tr>
-                      <th>FROM (Branch Name)</th>
-                      <td>{displayText(selectedRequest.from_branch)}</td>
-                    </tr>
-                    <tr>
-                      <th>Address</th>
-                      <td>{displayText(selectedRequest.from_address)}</td>
-                    </tr>
-                    <tr>
-                      <th>Area Operations Controller</th>
-                      <td>
-                        {displayText(
-                          selectedRequest.from_area_ops_controller,
-                        )}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div>
-                <table className="its-info-table">
-                  <tbody>
-                    <tr>
-                      <th>Date received</th>
-                      <td>{formatDate(selectedRequest.date_received)}</td>
-                    </tr>
-                    <tr>
-                      <th>TO (Branch Name)</th>
-                      <td>{displayText(selectedRequest.to_branch)}</td>
-                    </tr>
-                    <tr>
-                      <th>Address</th>
-                      <td>{displayText(selectedRequest.to_address)}</td>
-                    </tr>
-                    <tr>
-                      <th>Area Operations Controller</th>
-                      <td>
-                        {displayText(selectedRequest.to_area_ops_controller)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div
-              className="its-transport-header"
-              style={{ marginTop: "1.5rem" }}
-            >
-              TRANSFER DETAILS
-            </div>
-            {/* --- MODIFIED: Added loading state for items --- */}
-            {loadingItems ? (
-              <p style={{ textAlign: "center", padding: "1rem" }}>
-                Loading items...
-              </p>
-            ) : (
-              <table className="its-items-table" style={{ marginTop: 0 }}>
-                <thead>
-                  <tr>
-                    <th>Item Code</th>
-                    <th>Item Description</th>
-                    <th className="text-center">Qty</th>
-                    <th>Unit of Measure</th>
-                    <th>Remarks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayItems.map((item) => {
-                    const isPlaceholder = Boolean(item.__placeholder);
-                    return (
-                      <tr key={item.id}>
-                        <td>
-                          {isPlaceholder
-                            ? "\u00a0"
-                            : displayText(item.item_code, "")}
-                        </td>
-                        <td>
-                          {isPlaceholder
-                            ? "\u00a0"
-                            : displayText(item.item_description, "")}
-                        </td>
-                        <td className="text-center">
-                          {isPlaceholder
-                            ? "\u00a0"
-                            : displayText(item.qty, "")}
-                        </td>
-                        <td>
-                          {isPlaceholder
-                            ? "\u00a0"
-                            : displayText(item.unit_measure, "")}
-                        </td>
-                        <td>
-                          {isPlaceholder
-                            ? "\u00a0"
-                            : displayText(item.remarks, "")}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-            {/* --- END MODIFICATION --- */}
-
-            <p className="its-footnote">
-              *Kindly indicate in the above table the item codes, description,
-              quantity, and units of shortage/overage items
-            </p>
-
-            <div className="its-grid-two">
-              <div
-                className="its-transport-header"
-                style={{ gridColumn: "1 / -1" }}
-              >
-                Mode of transport
-              </div>
-              <div>
-                <table className="its-info-table">
-                  <tbody>
-                    <tr>
-                      <th>
-                        [
-                        {selectedRequest.dispatch_method === "Company Vehicle"
-                          ? "X"
-                          : " "}
-                        ] Company Vehicle <br />
-                        [
-                        {selectedRequest.dispatch_method === "Courier"
-                          ? "X"
-                          : " "}
-                        ] Courier <br />
-                        [
-                        {selectedRequest.dispatch_method ===
-                        "Third-party transport"
-                          ? "X"
-                          : " "}
-                        ] Third-party transport <br />
-                        [
-                        {selectedRequest.dispatch_method !==
-                          "Company Vehicle" &&
-                        selectedRequest.dispatch_method !== "Courier" &&
-                        selectedRequest.dispatch_method !==
-                          "Third-party transport"
-                          ? "X"
-                          : " "}
-                        ] Other:{" "}
-                        {selectedRequest.dispatch_method !==
-                          "Company Vehicle" &&
-                        selectedRequest.dispatch_method !== "Courier" &&
-                        selectedRequest.dispatch_method !==
-                          "Third-party transport"
-                          ? displayText(selectedRequest.dispatch_method)
-                          : "____"}
-                      </th>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div>
-                <table className="its-transport-table">
-                  <tbody>
-                    <tr>
-                      <th>Vehicle No</th>
-                      <td>{displayText(selectedRequest.vehicle_no)}</td>
-                    </tr>
-                    <tr>
-                      <th>Driver Name</th>
-                      <td>{displayText(selectedRequest.driver_name)}</td>
-                    </tr>
-                    <tr>
-                      <th>Driver Contact No</th>
-                      <td>{displayText(selectedRequest.driver_contact)}</td>
-                    </tr>
-                    <tr>
-                      <th>Expected Delivery Date</th>
-                      <td>{formatDate(selectedRequest.expected_date)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <table className="its-sig-table">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Name</th>
-                  <th>Signature</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <th>Prepared by</th>
-                  <td>{preparedByValue}</td>
-                  <td className="sig-box">
-                    {preparedSignatureValue ? (
-                      <img
-                        src={`${API_BASE_URL}/uploads/signatures/${preparedSignatureValue}`}
-                        alt="Prepared signature"
-                        className="signature-img"
-                      />
-                    ) : null}
-                  </td>
-                  <td>{preparedDateValue}</td>
-                </tr>
-                <tr>
-                  <th>Approved by</th>
-                  <td>{approvedByValue}</td>
-                  <td className="sig-box">
-                    {approvedSignatureValue ? (
-                      <img
-                        src={`${API_BASE_URL}/uploads/signatures/${approvedSignatureValue}`}
-                        alt="Approved signature"
-                        className="signature-img"
-                      />
-                    ) : null}
-                  </td>
-                  <td>{approvedDateValue}</td>
-                </tr>
-                <tr>
-                  <th>Dispatched by</th>
-                  <td>{dispatchedByValue}</td>
-                  <td className="sig-box">
-                    {dispatchedSignatureValue ? (
-                      <img
-                        src={`${API_BASE_URL}/uploads/signatures/${dispatchedSignatureValue}`}
-                        alt="Dispatched signature"
-                        className="signature-img"
-                      />
-                    ) : null}
-                  </td>
-                  <td>{dispatchedDateValue}</td>
-                </tr>
-                <tr>
-                  <th>Received by</th>
-                  <td>{receivedByValue}</td>
-                  <td className="sig-box" style={{ width: "30%" }}>
-                    {receivedSignatureValue ? (
-                      <img
-                        src={`${API_BASE_URL}/uploads/signatures/${receivedSignatureValue}`}
-                        alt="Received signature"
-                        className="signature-img"
-                      />
-                    ) : null}
-                  </td>
-                  <td style={{ width: "20%" }}>{receivedDateValue}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div className="its-receiving-section">
-              <div className="its-transport-header">
-                RECEIVING BRANCH USE ONLY
-              </div>
-              <div className="its-receiving-content">
-                <div className="its-receiving-col">
-                  <p>
-                    Is there a shortage in the items delivered? <br />
-                    Yes [ {selectedRequest?.is_shortage ? "X" : " "} ]
-                  </p>
-                  <div className="reason">
-                    If yes, please specify reason: <br />
-                    {displayText(selectedRequest?.short_reason, "")}
-                  </div>
-                </div>
-                <div className="its-receiving-col">
-                  <p>
-                    Is there an overage in the items delivered? <br />
-                    Yes [ {selectedRequest?.is_overage ? "X" : " "} ]
-                  </p>
-                  <div className="reason">
-                    If yes, please specify reason: <br />
-                    {displayText(selectedRequest?.over_reason, "")}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* --- FEATURE: Added Status Display (matches Payment Request) --- */}
-            {/* This assumes your API provides 'status' and 'declined_reason' fields */}
-            {(selectedRequest.status || selectedRequest.declined_reason) && (
-              <div
-                className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}
-              >
-                <div className="floating-decline-content">
-                  {selectedRequest.status && (
-                    <p className="status-text">
-                      <strong>Status:</strong> {selectedRequest.status}
-                    </p>
-                  )}
-                  {selectedRequest.declined_reason && (
-                    <>
-                      <strong>Declined Reason:</strong>
-                      <p>{selectedRequest.declined_reason}</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {selectedRequest.status === "Approved" && (
-              <button
-                className="floating-receive-btn"
-                onClick={() => handleReceive({ ...selectedRequest })}
-                disabled={selectedRequest.status === "Received"}
-              >
-                {selectedRequest.status === "Received"
-                  ? "✅ Received"
-                  : "Receive"}
-              </button>
-            )}
-            {/* --- END FEATURE --- */}
-          </div>
-        )}
-      </>
-    );
-  };
+  if (loading)
+  return (
+    <div className="loading-container">
+      <div className="spinner"></div>
+      <span>Loading submitted interbranch transfer request…</span>
+    </div>
+  );
 
   return (
     <div className="pr-layout">
-      <aside className="pr-sidebar">
+      {isMobileView && (
+        <button
+          className="burger-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          ☰
+        </button>
+      )}
+
+      <aside className={`pr-sidebar ${isMobileView ? (isMobileMenuOpen ? "open" : "closed") : ""}`}>
         <div className="pr-sidebar-header">
           <h2
             onClick={() => navigate("/forms-list")}
             style={{ cursor: "pointer", color: "#007bff" }}
+            title="Back to Forms Library"
           >
-            Interbranch Transfer
+            Interbranch Tranfer Request
           </h2>
-          <span>Submitted</span>
+          <span className="pr-subtitle">Standardized form</span>
         </div>
 
         <nav className="pr-sidebar-nav">
@@ -712,13 +243,9 @@ function SubmittedInterbranchTransferSlip({
 
         <div className="pr-sidebar-footer">
           <span className="pr-sidebar-meta">
-            Review your transfer slip submissions.
+            View your submitted interbranch transfer request.
           </span>
-          <button
-            type="button"
-            className="pr-sidebar-logout"
-            onClick={handleResolvedLogout}
-          >
+          <button type="button" className="pr-sidebar-logout" onClick={onLogout}>
             Sign out
           </button>
         </div>
@@ -727,25 +254,386 @@ function SubmittedInterbranchTransferSlip({
       <main className="pr-main">
         <header className="pr-topbar">
           <div>
-            <h1>Submitted Interbranch Transfer Slips</h1>
+            <h1>Submitted Interbranch Transfer Request</h1>
             <p className="pr-topbar-meta">
-              Select a reference number to view the request details.
+              Select a reference number to view details.
             </p>
           </div>
 
           {selectedRequest && (
-            // --- MODIFIED: onClick now uses the simplified print function ---
-            <button onClick={handlePrint} className="print-btn">
+            <button className="print-btn" onClick={() => window.print()}>
               🖨️ Print
             </button>
-            // --- END MODIFICATION ---
           )}
+
         </header>
 
-        <div className="submitted-requests-container">{renderBody()}</div>
+        <div className="submitted-requests-container">
+          {requests.length === 0 ? (
+            <p>No submitted requests found.</p>
+            ) : (
+            <>
+              <div className="dropdown-section">
+                <label htmlFor="requestSelect">Select Reference No: </label>
+                <select
+                  id="requestSelect"
+                  value={selectedRequestCode}
+                  onChange={handleSelectChange}
+                  className="pr-input"
+                >
+                  <option value="" disabled>-- Choose Reference Number --</option>
+                  {requests.map((req) => (
+                    <option
+                      key={req.its_request_code}
+                      value={req.its_request_code}
+                    >
+                      {req.its_request_code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedRequest && (
+                <div
+                  className="submitted-oar-request-card"
+                  ref={cardRef}
+                  style={{ marginTop: "1rem" }} >
+
+                  <div class="record-request">
+                    <header className="request-header">
+                      <div class="header-brand">
+                        <img src={rfgLogo} alt="Ribshack Food Group" className="header-logo" />
+                      </div>
+                      <div className="header-request-code">
+                        <i className="request-code">{selectedRequest.its_request_code}</i>
+                      </div>
+                    </header>
+
+                    <div className="table">
+                      <p hidden>ID: {selectedRequest.id}</p>
+                      <table>
+                        <tr>
+                          <th><small>Date Transferred</small></th>
+                          <td><small>{formatDate(selectedRequest.date_transferred)}</small></td>
+                        </tr>
+                        <tr>
+                          <th><small>FROM (Branch Name)</small></th>
+                          <td><small>{selectedRequest.from_branch}</small></td>
+                          <th><small>TO (Branch Name)</small></th>
+                          <td><small>{selectedRequest.to_branch}</small></td>
+                          
+                        </tr>
+                        <tr>
+                          <th><small>Address</small></th>
+                          <td><small>{selectedRequest.address_from}</small></td>
+                          <th><small>Address</small></th>
+                          <td><small>{selectedRequest.address_to}</small></td>
+                        </tr>
+                        <tr>
+                            <th><small>Area Operations Controller (AOC)</small></th>
+                            <td colSpan={4}><small>{formatDate(selectedRequest.aoc)}</small></td>
+                        </tr>
+                      </table>
+                    </div>
+                    <div>
+                      {loadingItems ? (
+                        <p>Loading items…</p>
+                        ) : items.length === 0 ? (
+                          <p>No items found for this request.</p>
+                        ) : (
+                          <table className="p-items-table">
+                          <thead>
+                            <tr>
+                              {/* <th className="text-left" style={{background: 'transparent'}}><small>Overtime Hours Rendered</small></th> */}
+                            </tr>
+                            <tr>
+                              <th><small>Item Code</small></th>
+                              <th><small>Item Description</small></th>
+                              <th><small>Quantity</small></th>
+                              <th><small>UoM</small></th>
+                              <th className="text-left"><small>Remarks</small></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((item) => (
+                              <tr key={item.id}>
+                                <td className="text-center"><small>{item.item_code}</small></td>
+                                <td className="text-center"><small>{item.item_description}</small></td>
+                                <td className="text-center"><small>{item.quantity}</small></td>
+                                <td className="text-center"><small>{item.uom}</small></td>
+                                <td className="text-left"><small>{item.remarks}</small></td>
+                              </tr>
+                            ))}
+                            <tr>
+                              <th colSpan={3} style={{border: '1px solid #e0e0e0ff', color: '#959595ff'}}><small>Total</small></th>
+                              <th style={{border: '1px solid #e0e0e0ff', color: '#959595ff'}}><small>{selectedRequest.total_hours}</small></th>
+                              <th style={{border: '1px solid #e0e0e0ff', color: '#959595ff'}}></th>
+                            </tr>
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+
+                    <div className="table" style={{marginTop: '1rem'}}>
+                      <table>
+                        <tr>
+                          <th><small>Vehicle Use</small></th>
+                          <td><small>{formatDate(selectedRequest.vehicle_use)}</small></td>
+                          <th><small>Specify if Others</small></th>
+                          <td><small>{selectedRequest.specify_if_others}</small></td>
+                        </tr>
+                        <tr>
+                          <td colSpan={4}><small className="pr-label">Mode of Transport</small></td>
+                        </tr>
+                        <tr>
+                          <th><small>Vehicle No</small></th>
+                          <td><small>{selectedRequest.vehicle_no}</small></td>
+                          <th><small>Driver Name</small></th>
+                          <td><small>{selectedRequest.driver_name}</small></td>
+                        </tr>
+                        <tr>
+                          <th><small>Driver Contact No</small></th>
+                          <td><small>{selectedRequest.driver_contact_no}</small></td>
+                          <th><small>Expected Delivery Date</small></th>
+                          <td><small>{formatDate(selectedRequest.expected_delivery_date)}</small></td>
+                        </tr>
+                        <tr>
+                          <th style={{color: 'transparent', borderTopColor: 'transparent', borderLeftColor: 'transparent', borderRightColor: 'transparent'}}>-</th>
+                          <th style={{color: 'transparent', borderTopColor: 'transparent', borderLeftColor: 'transparent', borderRightColor: 'transparent'}}>-</th>
+                          <th style={{color: 'transparent', borderTopColor: 'transparent', borderLeftColor: 'transparent', borderRightColor: 'transparent'}}>-</th>
+                          <th style={{color: 'transparent', borderTopColor: 'transparent', borderLeftColor: 'transparent', borderRightColor: 'transparent'}}>-</th>
+                        </tr>
+                        <tr>
+                          <th><small>Prepared by</small></th>
+                          <td><small>{selectedRequest.prepared_by}</small></td>
+                          <th><small>Signature</small></th>
+                          <td style={{borderBottom: '0px', borderLeft: '0px', borderRight: '0px', borderTop: '0px'}} className="receive-signature"><small style={{border: "transparent", color: "transparent"}}>{selectedRequest.prepared_signature}</small>
+                            {selectedRequest.prepared_signature ? (
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.prepared_signature}`}
+                                alt="Signature"
+                                className="img-sign-prf"
+                            />
+                            ) : (
+                            <div className="img-sign-prf empty-sign"></div>
+                            )}
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <th><small>Approved by</small></th>
+                          <td><small>{selectedRequest.approved_by}</small></td>
+                          <th><small>Signature</small></th>
+                          <td style={{borderBottom: '0px', borderLeft: '0px', borderRight: '0px'}} className="receive-signature"><small style={{border: "transparent", color: "transparent"}}>{selectedRequest.approved_signature}</small>
+                            {selectedRequest.approved_signature ? (
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.approved_signature}`}
+                                alt="Signature"
+                                className="img-sign-prf"
+                            />
+                            ) : (
+                            <div className="img-sign-prf empty-sign"></div>
+                            )}
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <th><small>Dispatched by</small></th>
+                          <td><small>{selectedRequest.dispatched_by}</small></td>
+                          <th><small>Signature</small></th>
+                          <td style={{borderBottom: '0px', borderLeft: '0px', borderRight: '0px'}} className="receive-signature"><small style={{border: "transparent", color: "transparent"}}>{selectedRequest.dispatched_signature}</small>
+                            {selectedRequest.dispatched_signature ? (
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.dispatched_signature}`}
+                                alt="Signature"
+                                className="img-sign-prf"
+                            />
+                            ) : (
+                            <div className="img-sign-prf empty-sign"></div>
+                            )}
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <th><small>Received by</small></th>
+                          <td><small>{selectedRequest.received_by}</small></td>
+                          <th><small>Signature</small></th>
+                          <td style={{borderBottom: '0px', borderLeft: '0px', borderRight: '0px'}} className="receive-signature"><small style={{border: "transparent", color: "transparent"}}>{selectedRequest.received_signature}</small>
+                            {selectedRequest.received_signature ? (
+                            <img
+                                src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.received_signature}`}
+                                alt="Signature"
+                                className="img-sign-prf"
+                            />
+                            ) : (
+                            <div className="img-sign-prf empty-sign"></div>
+                            )}
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                    
+                    {(selectedRequest.status || selectedRequest.declined_reason) && isFloatingVisible && (
+                      <div className={`floating-decline-reason ${selectedRequest.status?.toLowerCase()}`}>
+                        <button
+                            onClick={() => setIsFloatingVisible(false)}
+                            style={{
+                              position: "absolute",
+                              top: "0px",
+                              right: "3px",
+                              border: "none",
+                              background: "transparent",
+                              fontSize: "18px",
+                              fontWeight: "bold",
+                              cursor: "pointer",
+                              color: "#6d6d6dff"
+                            }}
+                            aria-label="Close"
+                          >
+                            ×
+                          </button>
+                        <div className="floating-decline-content" style={{ position: "relative" }}>
+                          {selectedRequest.status && (
+                            <p className="status-text">
+                              <strong>Status:</strong> {selectedRequest.status}
+                            </p>
+                          )}
+                          {selectedRequest.declined_reason && (
+                            <>
+                              <strong>Declined Reason:</strong>
+                              <p>{selectedRequest.declined_reason}</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {selectedRequest.status === "Dispatched" && (
+                    <button
+                      className="floating-receive-btn"
+                      onClick={() => setShowReceiveModal(true)}
+                    >
+                      Receive
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </main>
+      {showReceiveModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+
+            <div className="modal-header">
+              <strong>RECEIVING BRANCH USE ONLY</strong>
+            </div>
+
+            <div className="modal-body">
+
+              {/* SHORTAGE */}
+              <div className="modal-row">
+                <span>Is there a shortage in the items delivered?</span>
+
+                <label>
+                  <input
+                    type="radio"
+                    checked={receiveForm.shortage === true}
+                    onChange={() =>
+                      setReceiveForm(prev => ({ ...prev, shortage: true }))
+                    }
+                  />
+                  Yes
+                </label>
+
+                <label>
+                  <input
+                    type="radio"
+                    checked={receiveForm.shortage === false}
+                    onChange={() =>
+                      setReceiveForm(prev => ({ ...prev, shortage: false }))
+                    }
+                  />
+                  No
+                </label>
+              </div>
+
+              {receiveForm.shortage === true && (
+                <textarea
+                  placeholder="If yes, please specify reason..."
+                  value={receiveForm.shortage_reason}
+                  onChange={(e) =>
+                    setReceiveForm(prev => ({
+                      ...prev,
+                      shortage_reason: e.target.value,
+                    }))
+                  }
+                  className="pr-textarea"
+                />
+              )}
+
+              <hr />
+
+              {/* OVERAGE */}
+              <div className="modal-row">
+                <span>Is there an overage in the items delivered?</span>
+
+                <label>
+                  <input
+                    type="radio"
+                    checked={receiveForm.overage === true}
+                    onChange={() =>
+                      setReceiveForm(prev => ({ ...prev, overage: true }))
+                    }
+                  />
+                  Yes
+                </label>
+
+                <label>
+                  <input
+                    type="radio"
+                    checked={receiveForm.overage === false}
+                    onChange={() =>
+                      setReceiveForm(prev => ({ ...prev, overage: false }))
+                    }
+                  />
+                  No
+                </label>
+              </div>
+
+              {receiveForm.overage === true && (
+                <textarea
+                  placeholder="If yes, please specify reason..."
+                  value={receiveForm.overage_reason}
+                  onChange={(e) =>
+                    setReceiveForm(prev => ({
+                      ...prev,
+                      overage_reason: e.target.value,
+                    }))
+                  }
+
+                  className="pr-textarea"
+                />
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button onClick={() => setShowReceiveModal(false)}>Cancel</button>
+
+              <button
+                className="confirm-btn"
+                onClick={() => handleReceive({ ...selectedRequest, ...receiveForm })}
+              >
+                Confirm Receive
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export default SubmittedInterbranchTransferSlip;
+export default SubmittedInterbranch;
