@@ -1,36 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import "../styles/AdminView.css";
-import "../styles/RequestPurchase.css";
-import "../styles/ReportsAudit.css";
 import { API_BASE_URL } from "../config/api.js";
 
-// Pagination options for the table
 const PAGE_SIZES = [5, 10, 20];
 
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // Handle MM/DD/YYYY (U.S. format)
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const [, month, day, year] = usMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Handle YYYY-MM-DD (ISO format)
   const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch.map(Number);
     return new Date(year, month - 1, day);
   }
 
-  // Fallback — native parse attempt
   const fallback = new Date(dateStr);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
 
 function ReportsInterbranchTransferSlip() {
-  // ---------------------- STATE DEFINITIONS ----------------------
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
@@ -39,23 +32,43 @@ function ReportsInterbranchTransferSlip() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRequest, setModalRequest] = useState(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // const [startDate, setStartDate] = useState("");
+  // const [endDate, setEndDate] = useState("");
   const storedId = sessionStorage.getItem("id");
   const [userData, setUserData] = useState({ name: "", signature: "" });
   const [isClosing, setIsClosing] = useState(false);
 
-  // ---------------------- DATA FETCHING ----------------------
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const formatDate = (date) => {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(date - tzOffset).toISOString().slice(0, 10);
+    return localISOTime;
+  };
+
+  const [startDate, setStartDate] = useState(formatDate(firstDayOfMonth));
+  const [endDate, setEndDate] = useState(formatDate(today));
+
+  const statusColors = {
+    Declined: 'red',
+    Pending: "orange",
+    Approved: "blue",
+    Received: "purple",
+    Completed: "green",
+    Accomplished: "teal",
+    Endorsed: "purple",
+  };
+
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/interbranch_transfer_slip`);
+      const response = await fetch(`${API_BASE_URL}/api/interbranch_transfer`);
       if (!response.ok) throw new Error("Failed to fetch interbranch transfer slips");
       const data = await response.json();
 
-      // Sort newest first
       const sortedData = data.sort((a, b) =>
-        b.form_code.localeCompare(a.form_code)
+        b.its_request_code.localeCompare(a.its_request_code)
       );
 
       setRequests(sortedData);
@@ -67,7 +80,6 @@ function ReportsInterbranchTransferSlip() {
     }
   };
 
-  // ---------------------- SIDE EFFECTS ----------------------
   useEffect(() => {
     if (!storedId) return;
     fetch(`${API_BASE_URL}/users/${storedId}`)
@@ -90,48 +102,42 @@ function ReportsInterbranchTransferSlip() {
     setPage(1);
   }, [search, rowsPerPage, startDate, endDate]);
 
-  // ---------------------- FILTERING LOGIC ----------------------
   const filteredRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
 
     let categorizedRequests = requests;
 
-    // ✅ Start date filter (inclusive)
     if (startDate) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
       categorizedRequests = categorizedRequests.filter((req) => {
-        const reqDate = parseLocalDate(req.prepared_date);
+        const reqDate = parseLocalDate(req.request_date);
         return reqDate && reqDate >= start;
       });
     }
 
-    // ✅ End date filter (inclusive)
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
       categorizedRequests = categorizedRequests.filter((req) => {
-        const reqDate = parseLocalDate(req.prepared_date);
+        const reqDate = parseLocalDate(req.request_date);
         return reqDate && reqDate <= end;
       });
     }
     
     const checkDate = (dateStr) => {
       if (!dateStr) return false;
-      // 1. Check raw string
       if (dateStr.toLowerCase().includes(term)) return true;
-      // 2. Check formatted string
       const dateObj = parseLocalDate(dateStr);
       return dateObj && dateObj.toLocaleDateString('en-US').includes(term);
     }
 
-    // ✅ Text search
     if (term) {
       categorizedRequests = categorizedRequests.filter((req) => {
         const topLevelMatch =
         [
-          "form_code",
-          "prepared_date",
+          "its_request_code",
+          "request_date",
           "prepared_by",
           "from_branch",
           "to_branch",
@@ -144,14 +150,13 @@ function ReportsInterbranchTransferSlip() {
         if (topLevelMatch) return true;
 
         const dateMatch = [
-          req.prepared_date,
+          req.request_date,
           req.date_transferred,
           req.date_received
         ].some(checkDate); 
 
         if (dateMatch) return true;
 
-        // 2. Check nested item details
         const itemMatch = (req.items || []).some(item =>
           item.item_code?.toLowerCase().includes(term) ||
           item.item_description?.toLowerCase().includes(term)
@@ -165,7 +170,6 @@ function ReportsInterbranchTransferSlip() {
     return categorizedRequests;
   }, [requests, search, startDate, endDate]);
 
-  // ---------------------- PAGINATION ----------------------
   const totalPages = Math.max(
     1,
     Math.ceil(filteredRequests.length / rowsPerPage) || 1
@@ -176,7 +180,6 @@ function ReportsInterbranchTransferSlip() {
     return filteredRequests.slice(start, start + rowsPerPage);
   }, [filteredRequests, page, rowsPerPage]);
 
-  // ---------------------- MODAL HANDLERS ----------------------
   const openModal = (request) => {
     setModalRequest(request);
     setModalOpen(true);
@@ -191,10 +194,8 @@ function ReportsInterbranchTransferSlip() {
     }, 300);
   };
 
-  // ---------------------- RENDER ----------------------
   return (
     <div className="admin-view">
-      {/* ---------- Toolbar and Filters ---------- */}
       <div className="admin-toolbar">
         <div className="admin-toolbar-title">
           <h2>Interbranch Transfer Slip</h2>
@@ -244,18 +245,15 @@ function ReportsInterbranchTransferSlip() {
         </div>
       )}
 
-      {/* ---------- Data Table ---------- */}
       <div className="admin-table-wrapper">
         <table className="admin-table purchase-table">
           <thead>
             <tr>
-              <th style={{ textAlign: "center" }}>Ref. No.</th>
-              <th style={{ textAlign: "center" }}>Date Request</th>
-              <th style={{ textAlign: "center" }}>Prepared By</th>
-              <th style={{ textAlign: "center" }}>From Branch</th>
-              <th style={{ textAlign: "center" }}>To Branch</th>
-              <th style={{ textAlign: "center" }}>Status</th>
-              <th style={{ textAlign: "center" }}>Action</th>
+              <th className="text-center">Ref. No.</th>
+              <th className="text-center">Date Request</th>
+              <th>Prepared By</th>
+              <th>From Branch</th>
+              <th className="text-center">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -276,22 +274,24 @@ function ReportsInterbranchTransferSlip() {
             ) : (
               visibleRequests.map((req) => (
                 <tr key={req.id}>
-                  <td style={{ textAlign: "center" }}>{req.form_code}</td>
-                  <td style={{ textAlign: "center" }}>
-                    {new Date(req.prepared_date).toLocaleDateString()}
+                  <td style={{ textAlign: "center", cursor: "pointer", color: "blue", textDecoration: "underline" }} onClick={() => openModal(req)} title="View Details">
+                    {req.its_request_code}
+                  </td>
+                  <td className="text-center">
+                    {new Date(req.request_date).toLocaleDateString()}
                   </td>
                   <td style={{ textAlign: "left" }}>{req.prepared_by}</td>
-                  <td style={{ textAlign: "left" }}>{req.from_branch}</td>
-                  <td style={{ textAlign: "left" }}>{req.to_branch}</td>
-                  <td style={{ textAlign: "Center" }}>{req.status}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <button
-                      className="admin-primary-btn"
-                      onClick={() => openModal(req)}
-                      title="View Details"
-                    >
-                      🔍
-                    </button>
+                  <td style={{ textAlign: "left" }}>{req.from_branch} - {req.to_branch}</td>
+                  <td
+                    style={{
+                      textAlign: "center",
+                      color: statusColors[req.status] || "black",
+                      fontWeight: "bold", 
+                    }}
+                  >
+                    <small>
+                      {req.status.toUpperCase()}
+                    </small>
                   </td>
                 </tr>
               ))
@@ -300,7 +300,6 @@ function ReportsInterbranchTransferSlip() {
         </table>
       </div>
 
-      {/* ---------- Pagination Controls ---------- */}
       <div className="admin-pagination">
         <span className="admin-pagination-info">
           Showing {visibleRequests.length} of {filteredRequests.length} requests
@@ -345,7 +344,6 @@ function ReportsInterbranchTransferSlip() {
         </label>
       </div>
 
-      {/* ---------- Modal for Viewing Request Details (STYLES UPDATED) ---------- */}
       {modalOpen && modalRequest && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
           <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
@@ -358,7 +356,25 @@ function ReportsInterbranchTransferSlip() {
                 ×
               </button>
 
-              <h2>Interbranch Transfer Slip - {modalRequest.form_code}</h2>
+              <h2>
+                <small>Reference Number - </small>
+                <small 
+                  style={{
+                    textDecoration: "underline",
+                    color: "#305ab5ff"
+                  }}
+                >
+                  {modalRequest.its_request_code}
+                </small>{" - "}
+                <small 
+                  style={{ 
+                    color: statusColors[modalRequest.status] || "black",
+                    fontWeight: "bold"
+                  }}
+                >
+                  {modalRequest.status.toUpperCase()}
+                </small>
+              </h2>
               <section className="pr-form-section" id="details">
                 <div className="pr-grid-two">
                   <div className="pr-field">
@@ -366,7 +382,7 @@ function ReportsInterbranchTransferSlip() {
                       Date:
                     </label>
                     <input
-                      value={new Date(modalRequest.prepared_date).toLocaleDateString()}
+                      value={new Date(modalRequest.request_date).toLocaleDateString()}
                       className="pr-input"
                       readOnly
                     />
@@ -397,13 +413,11 @@ function ReportsInterbranchTransferSlip() {
                 </div>
               </section>
 
-              {/* ----- 2. Transfer & Dispatch Details Card ----- */}
               <section className="pr-form-section">
                 <h2 className="pr-section-title pr-section-title--modal">
                   Transfer Details
                 </h2>
                 
-                {/* From / To Grid */}
                 <table className="request-items-table request-items-table--modal-details">
                    <tbody>
                       <tr className="modal-table-row--border-bottom">
@@ -443,7 +457,6 @@ function ReportsInterbranchTransferSlip() {
                 </table>
               </section>
 
-              {/* ----- 3. Items Table (RE-ORDERED) ----- */}
               <div className="pr-items-card pr-items-card--modal">
                  <h2 className="pr-section-title pr-section-title--modal">
                   Items
@@ -477,7 +490,6 @@ function ReportsInterbranchTransferSlip() {
                 )}
               </div>
 
-              {/* ----- 4. Signatures ----- */}
               <div className="submit-content">
                 <div className="submit-by-content">
                   <div>

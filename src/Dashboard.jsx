@@ -189,6 +189,8 @@ const getInitialView = () => {
       "reports-payment",
       "reports-maintenance-request",
       "reports-overtime-approval",
+      "reports-leave-application",
+      "reports-interbranch-transfer-slip",
       "approved-requests",
       "leave-information",
       "leave-types",
@@ -814,6 +816,8 @@ function Dashboard({ role, name, onLogout }) {
           "reports-payment",
           "reports-maintenance-request",
           "reports-overtime-approval",
+          "reports-leave-application",
+          "reports-interbranch-transfer-slip",
           "approved-requests",
         ].includes(stored)
       ) {

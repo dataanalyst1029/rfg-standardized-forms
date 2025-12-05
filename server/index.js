@@ -3854,7 +3854,7 @@ app.put("/api/receive_interbranch_transfer_request", uploadForm.none(), async (r
       UPDATE interbranch_transfer
       SET 
         status = 'Received',
-        date_request = NOW(),
+        date_received = NOW(),
         received_by = $1,
         received_signature = $2,
         shortage_items = $3,
