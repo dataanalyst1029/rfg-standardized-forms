@@ -1,6 +1,6 @@
 .receive-signature {
   position: relative;
-  display: flex;
+  /* display: flex; */
   flex-direction: column;
   align-items: left;
 }

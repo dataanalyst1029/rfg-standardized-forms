@@ -447,12 +447,12 @@ function RevolvingFundRequest({ onLogout }) {
         </header>
 
         <form onSubmit={handleSubmit}>
-          <section className="car-form-section" id="details">
-            <h2 className="prf-section-title">Custodian Details</h2>
+          <section className="pr-form-section" id="details">
+            <h2 className="pr-section-title">Custodian Details</h2>
 
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="custodian">
+                <label className="pr-label" htmlFor="custodian">
                   Custodian
                 </label>
                 <input
@@ -460,7 +460,7 @@ function RevolvingFundRequest({ onLogout }) {
                   name="custodian"
                   value={userData.name}
                   onChange={handleChange}
-                  className="car-input"
+                  className="pr-input"
                   placeholder="Full name"
                   readOnly
                   required
@@ -470,7 +470,7 @@ function RevolvingFundRequest({ onLogout }) {
                   id="requestById"
                   name="user_id"
                   value={formData.user_id} 
-                  className="car-input"
+                  className="pr-input"
                   placeholder="User ID"
                   required
                   readOnly
@@ -479,14 +479,14 @@ function RevolvingFundRequest({ onLogout }) {
                 
 
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="employeeId">
+                <label className="pr-label" htmlFor="employeeId">
                   Employee Id
                 </label>
                 <input
                   id="employeeId"
                   name="employee_id"
                   value={formData.employee_id}
-                  className="car-input"
+                  className="pr-input"
                   placeholder="Employee ID"
                   required
                   readOnly
@@ -495,12 +495,12 @@ function RevolvingFundRequest({ onLogout }) {
             </div>
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="branch">Branch</label>
+                <label className="pr-label" htmlFor="branch">Branch</label>
                 <input
                   id="branch"
                   name="branch"
                   value={formData.branch}
-                  className="car-input"
+                  className="pr-input"
                   placeholder="Branch"
                   required
                   readOnly
@@ -509,12 +509,12 @@ function RevolvingFundRequest({ onLogout }) {
 
 
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="department">Department</label>
+                <label className="pr-label" htmlFor="department">Department</label>
                 <input
                   id="department"
                   name="department"
                   value={formData.department}
-                  className="car-input"
+                  className="pr-input"
                   placeholder="Department"
                   required
                   readOnly
@@ -523,16 +523,16 @@ function RevolvingFundRequest({ onLogout }) {
             </div>
           </section>
 
-          <section className="car-form-section" id="replenishment">
+          <section className="pr-form-section" id="replenishment">
             <h2 className="prf-section-title">Replenishment Details</h2>
 
             <div className="replenishment-field">
               <div className="replenishment-input-wrapper">
                 <label htmlFor="replenishment-amount">
-                  <label className="car-reference-label" htmlFor="replenishment">Amount for Replenishment</label>
+                  <label className="pr-label" htmlFor="replenishment">Amount for Replenishment</label>
                   <input
                     id="replenishment-amount"
-                    className="car-input"
+                    className="pr-input"
                     type="text"
                     name="replenish_amount"
                     value={
@@ -589,7 +589,7 @@ function RevolvingFundRequest({ onLogout }) {
                                 value={item.replenish_date}
                                 onChange={(event) => handleItemChange(index, event)}
 
-                                className="car-input td-input"
+                                className="pr-input td-input"
                                 placeholder="Date"
                                 required
                               />
@@ -601,7 +601,7 @@ function RevolvingFundRequest({ onLogout }) {
                                 name="voucher_no"
                                 value={item.voucher_no}
                                 onChange={(event) => handleItemChange(index, event)}
-                                className="car-input td-input"
+                                className="pr-input td-input"
                                 placeholder="Enter Voucher No."
                               />
                             </td>
@@ -611,7 +611,7 @@ function RevolvingFundRequest({ onLogout }) {
                                 name="or_ref_no"
                                 value={item.or_ref_no}
                                 onChange={(event) => handleItemChange(index, event)}
-                                className="car-input td-input"
+                                className="pr-input td-input"
                                 placeholder="Enter OR ref. no."
                               />
                             </td>
@@ -632,7 +632,7 @@ function RevolvingFundRequest({ onLogout }) {
 
                                   handleItemChange(index, { target: { name: "amount", value } });
                                 }}
-                                className="car-input td-input"
+                                className="pr-input td-input"
                                 placeholder="Enter amount"
                                 required
                               />
@@ -644,7 +644,7 @@ function RevolvingFundRequest({ onLogout }) {
                                 name="exp_cat"
                                 value={item.exp_cat}
                                 onChange={(event) => handleItemChange(index, event)}
-                                className="car-input td-input"
+                                className="pr-input td-input"
                                 placeholder="Enter Expense Category"
                                 required
                               />
@@ -655,7 +655,7 @@ function RevolvingFundRequest({ onLogout }) {
                                 name="gl_account"
                                 value={item.gl_account}
                                 onChange={(event) => handleItemChange(index, event)}
-                                className="car-input td-input"
+                                className="pr-input td-input"
                                 placeholder="Enter GL Account"
                                 required
                               />
@@ -663,7 +663,7 @@ function RevolvingFundRequest({ onLogout }) {
                             <td>
                               <textarea
                                 name="remarks"
-                                className="car-input"
+                                className="pr-input"
                                 value={item.remarks || ""}
                                 onChange={(event) => handleItemChange(index, event)}
                                 rows={1}
@@ -699,7 +699,7 @@ function RevolvingFundRequest({ onLogout }) {
               </div>
               <div className="replenishment-cash-onhand">
                 <label htmlFor="revolving-fund-amount">
-                  <p className="car-reference-label">Petty Cash/Revolving Fund Amount</p>
+                  <p className="pr-label">Petty Cash/Revolving Fund Amount</p>
                   <input
                     id="revolving-fund-amount"
                     type="text"
@@ -734,7 +734,7 @@ function RevolvingFundRequest({ onLogout }) {
 
 
                 <label htmlFor="total-expense">
-                  <p className="car-reference-label">Less: Total Expenses per vouchers</p>
+                  <p className="pr-label">Less: Total Expenses per vouchers</p>
                   <input
                     id="total-expense"
                     type="text"
@@ -752,7 +752,7 @@ function RevolvingFundRequest({ onLogout }) {
                 </label>
 
                 <label htmlFor="cash-onhand">
-                  <p className="car-reference-label">Cash on Hand</p>
+                  <p className="pr-label">Cash on Hand</p>
                   <input
                     id="cash-onhand"
                     type="text"
@@ -770,18 +770,18 @@ function RevolvingFundRequest({ onLogout }) {
               </div>
             </div>
           </section>
-          <section className="car-form-section" id="signature">
+          <section className="pr-form-section" id="signature">
               <h2 className="prf-section-title">Signature Details</h2>
 
               <div className="pr-grid-two">
                 <div className="pr-field">
-                  <label className="car-reference-label">Submitted by</label>
-                  <input type="text" name="submitted_by" className="car-input" value={userData.name || ""} required readOnly/>
+                  <label className="pr-label">Submitted by</label>
+                  <input type="text" name="submitted_by" className="pr-input" value={userData.name || ""} required readOnly/>
                 </div>
 
                 <div className="pr-field receive-signature">
-                  <label className="car-reference-label">Signature</label>
-                  <input type="text" name="submitter_signature" className="car-input received-signature" value={userData.signature || ""} readOnly />
+                  <label className="pr-label">Signature</label>
+                  <input type="text" name="submitter_signature" className="pr-input received-signature" value={userData.signature || ""} readOnly />
                   {userData.signature ? (
                     <img
                       src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}

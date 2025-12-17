@@ -266,7 +266,7 @@
 
 .pr-textarea {
   resize: vertical;
-  min-height: 40px;
+  min-height: 20px;
 }
 
 .pr-items-card {
@@ -356,13 +356,12 @@
   }
 }
 
-
 .pr-items-table td {
   width: 100%;
   border-collapse: collapse;
   border: 1px solid var(--color-border);
-  border-radius: 0.9rem;
   overflow: hidden;
+  background: var(--color-surface);
 }
 
 .pr-items-table thead {
@@ -595,6 +594,7 @@
   transition: transform 0.3s ease;
   flex-direction: column;
   height: 100vh;
+  z-index: 999;
 }
 
 .pr-sidebar-header {

@@ -276,13 +276,13 @@ function InterBranchTransferSlip({ onLogout }) {
             </p>
           </div>
 
-          <div className="car-reference-card">
-            <span className="pr-label">Reference code</span>
-            <span className="car-reference-value">
+          <div className="pr-reference-card">
+            <span className="pr-reference-label">Reference code</span>
+            <span className="pr-reference-value">
               {formData.its_request_code || "—"}
             </span>
-            <span className="pr-label">Request date</span>
-            <span className="car-reference-value">
+            <span className="pr-reference-label">Request date</span>
+            <span className="pr-reference-value">
               {new Date(formData.request_date).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
@@ -293,7 +293,7 @@ function InterBranchTransferSlip({ onLogout }) {
         </header>
 
         <form onSubmit={handleSubmit} className="cash-receipt-form">
-            <section className="car-form-section" id="details">
+            <section className="pr-form-section" id="details">
               <div className="pr-grid-two">
                   <div className="pr-field">
                       <input
@@ -558,7 +558,7 @@ function InterBranchTransferSlip({ onLogout }) {
             </section>
 
 
-            <section className="car-form-section" id="details">
+            <section className="pr-form-section" id="details">
               <div className="pr-grid-two">
                 <div className="pr-field">
                   <label className="pr-label"><strong>Please select whichever is available</strong></label>
@@ -674,10 +674,10 @@ function InterBranchTransferSlip({ onLogout }) {
             </section>
 
 
-            <section className="car-form-section" id="signature">
+            <section className="pr-form-section" id="signature">
               <div className="pr-grid-two">
                 <div className="pr-field">
-                  <label className="car-reference-value">Prepare by</label>
+                  <label className="pr-label">Prepare by</label>
                   <input
                     type="text"
                     name="prepared_by"
@@ -688,7 +688,7 @@ function InterBranchTransferSlip({ onLogout }) {
                 </div>
 
                 <div className="pr-field receive-signature">
-                  <label className="car-reference-value">Signature</label>
+                  <label className="pr-label">Signature</label>
                   <input
                     type="text"
                     name="prepared_signature"

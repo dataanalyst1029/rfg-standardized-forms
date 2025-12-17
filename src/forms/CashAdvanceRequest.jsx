@@ -671,7 +671,7 @@ function CashAdvanceRequest({ onLogout }) {
                 name="purpose"
                 value={formData.purpose}
                 onChange={handleChange}
-                className="cabr-textarea"
+                className="pr-textarea"
                 placeholder="Purpose of the cash advance budget request"
                 rows={4}
                 required
@@ -684,10 +684,10 @@ function CashAdvanceRequest({ onLogout }) {
 
               <div className="pr-grid-two">
                 <div className="pr-field">
-                  <label className="car-reference-value">Requested by</label>
+                  <label className="pr-label">Requested by</label>
                   <input type="text"
                     name="requested_by" 
-                    className="car-input" 
+                    className="pr-input" 
                     value={userData.name || ""} 
                     onChange={handleChange}
                     required 
@@ -696,10 +696,10 @@ function CashAdvanceRequest({ onLogout }) {
                 </div>
 
                 <div className="pr-field receive-signature">
-                  <label className="car-reference-value">Signature</label>
+                  <label className="pr-label">Signature</label>
                   <input type="text" 
                   name="request_signature" 
-                  className="car-input received-signature" 
+                  className="pr-input received-signature" 
                   value={userData.signature || ""} 
                   onChange={handleChange}
                   required

@@ -378,7 +378,16 @@ function SubmittedPurchaseRequests({ onLogout, currentUserId, showAll = false })
                           <th><small>Submitted by</small></th>
                           <td><small>{selectedRequest.submitted_by}</small></td>
                           <th><small>Signature</small></th>
-                          <td className="receive-signature"><small><input className="prf-input requests-signature" style={{border: "transparent", color: "transparent"}} value={selectedRequest.submitter_signature} readOnly required/></small>
+                          <td className="receive-signature">
+                            <small>
+                              <input
+                                className="prf-input requests-signature"
+                                style={{border: "transparent", color: "transparent"}}
+                                value={selectedRequest.submitter_signature}
+                                readOnly
+                                required
+                              />
+                            </small>
                             {selectedRequest.submitter_signature ? (
                             <img
                                 src={`${API_BASE_URL}/uploads/signatures/${selectedRequest.submitter_signature}`}

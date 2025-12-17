@@ -247,12 +247,12 @@ function LeaveApplication({ onLogout }) {
             </p>
           </div>
 
-          <div className="car-reference-card">
-            <span className="car-reference-label">Reference code</span>
-            <span className="pr-label">{formData.laf_request_code}</span>
+          <div className="pr-reference-card">
+            <span className="pr-reference-label">Reference code</span>
+            <span className="pr-reference-value">{formData.laf_request_code}</span>
 
-            <span className="car-reference-label">Request date</span>
-            <span className="pr-label">
+            <span className="pr-reference-label">Request date</span>
+            <span className="pr-reference-value">
               {new Date(formData.request_date).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
@@ -264,8 +264,9 @@ function LeaveApplication({ onLogout }) {
 
         {/* -------- FORM -------- */}
 
-        <form onSubmit={handleSubmit} className="cash-receipt-form">
-          <section className="car-form-section">
+        {/* <form onSubmit={handleSubmit} className="cash-receipt-form"> */}
+        <form onSubmit={handleSubmit}>
+          <section className="pr-form-section">
             <h2 className="pr-section-title">Requestor Details</h2>
 
             <div className="pr-grid-two">
@@ -310,7 +311,7 @@ function LeaveApplication({ onLogout }) {
 
           {/* -------- LEAVE DATE -------- */}
 
-          <section className="car-form-section">
+          <section className="pr-form-section">
             <label className="pr-label">Leave Date</label>
 
             <div className="pr-grid-two">
@@ -385,16 +386,16 @@ function LeaveApplication({ onLogout }) {
             </div>
           </section>
 
-          <section className="car-form-section">
+          <section className="pr-form-section">
             <div className="pr-grid-two">
               <div className="pr-field">
                 <label className="pr-label">Requested by:</label>
-                <input value={userData.name} className="car-input" readOnly />
+                <input value={userData.name} className="pr-input" readOnly />
               </div>
 
               <div className="pr-field receive-signature">
                 <label className="pr-label">Signature</label>
-                <input value={userData.signature || ""} className="car-input received-signature" readOnly />
+                <input value={userData.signature || ""} className="pr-input received-signature" readOnly />
 
                 {userData.signature ? (
                   <img
@@ -409,7 +410,7 @@ function LeaveApplication({ onLogout }) {
             </div>
           </section>
 
-          <section className="car-form-section">
+          <section className="pr-form-section">
             <div style={{ border: "1px solid #ccc", borderRadius: "15px" }}>
               <ul>
                 <li><strong>Vacation Leave:</strong> Must be filed 7 days before leave date.</li>

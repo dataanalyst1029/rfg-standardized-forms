@@ -669,7 +669,7 @@ function OvertimeApproval({ onLogout }) {
                   <label className="pr-label">Requested by</label>
                   <input type="text"
                     name="requested_by" 
-                    className="car-input" 
+                    className="pr-input" 
                     value={userData.name || ""} 
                     onChange={handleChange}
                     required 
@@ -681,7 +681,7 @@ function OvertimeApproval({ onLogout }) {
                   <label className="pr-label">Signature</label>
                   <input type="text" 
                   name="requested_signature" 
-                  className="car-input received-signature" 
+                  className="pr-input received-signature" 
                   value={userData.signature || ""} 
                   onChange={handleChange}
                   required

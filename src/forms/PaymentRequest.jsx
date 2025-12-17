@@ -393,13 +393,13 @@ function PaymentRequest({ onLogout }) {
             </p>
           </div>
 
-          <div className="car-reference-card">
-            <span className="car-reference-label">Reference code</span>
-            <span className="car-reference-value">
+          <div className="pr-reference-card">
+            <span className="pr-label">Reference code</span>
+            <span className="pr-reference-value">
               {formData.prf_request_code || "—"}
             </span>
-            <span className="car-reference-label">Request date</span>
-            <span className="car-reference-value">
+            <span className="pr-label">Request date</span>
+            <span className="pr-reference-value">
               {new Date(formData.request_date).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
@@ -410,23 +410,23 @@ function PaymentRequest({ onLogout }) {
         </header>
 
         <form onSubmit={handleSubmit}>
-          <section className="car-form-section" id="details">
+          <section className="pr-form-section" id="details">
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="employeeID">
+                <label className="pr-label" htmlFor="employeeID">
                   Employee ID
                 </label>
                 <input
                   id="employeeID"
                   name="employee_id"
                   value={userData.employee_id}
-                  className="car-input"
+                  className="pr-input"
                   readOnly
                   required
                 />
               </div>
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="name">
+                <label className="pr-label" htmlFor="name">
                   Name
                 </label>
                 <input
@@ -434,7 +434,7 @@ function PaymentRequest({ onLogout }) {
                   name="name"
                   value={userData.name}
                   onChange={handleChange}
-                  className="car-input"
+                  className="pr-input"
                   placeholder="Full name"
                   readOnly
                   required
@@ -444,7 +444,7 @@ function PaymentRequest({ onLogout }) {
                   id="requestById"
                   name="user_id"
                   value={formData.user_id} 
-                  className="car-input"
+                  className="pr-input"
                   placeholder="User ID"
                   readOnly
                 />
@@ -452,13 +452,13 @@ function PaymentRequest({ onLogout }) {
             </div>
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="branch">Branch</label>
+                <label className="pr-label" htmlFor="branch">Branch</label>
                 <input
                   id="branch"
                   name="branch"
                   value={userData.branch}
                   onChange={handleChange}
-                  className="car-input"
+                  className="pr-input"
                   placeholder="Branch"
                   readOnly
                   required
@@ -467,13 +467,13 @@ function PaymentRequest({ onLogout }) {
 
 
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="department">Department</label>
+                <label className="pr-label" htmlFor="department">Department</label>
                 <input
                   id="department"
                   name="department"
                   value={userData.department}
                   onChange={handleChange}
-                  className="car-input"
+                  className="pr-input"
                   placeholder="Department"
                   readOnly
                   required
@@ -483,32 +483,32 @@ function PaymentRequest({ onLogout }) {
             </div>
           </section>
 
-          <section className="car-form-section" id="vendor-supplier-information">
-            <h2 className="prf-section-title">Vendor / Supplier Information</h2>
+          <section className="pr-form-section" id="vendor-supplier-information">
+            <h2 className="pr-section-title">Vendor / Supplier Information</h2>
             {/* <p className="pr-section-subtitle">
               Identify the payee and relevant references for this payment.
             </p> */}
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="payee-name">Vendor/Supplier (Payee's Name)</label>
+                <label className="pr-label" htmlFor="payee-name">Vendor/Supplier (Payee's Name)</label>
                 <input
                   type="text"
                   name="vendor_supplier"
                   value={formData.vendor_supplier}
                   onChange={handleChange}
-                  className="car-input"
+                  className="pr-input"
                   required
                 />
               </div>
 
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="pr-number">PR Number (if applicable)</label>
+                <label className="pr-label" htmlFor="pr-number">PR Number (if applicable)</label>
                 <input
                   type="text"
                   name="pr_number"
                   value={formData.pr_number}
                   onChange={handleChange}
-                  className="car-input"
+                  className="pr-input"
                   required
                 />
               </div>
@@ -516,25 +516,25 @@ function PaymentRequest({ onLogout }) {
 
             <div className="pr-grid-two">
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="date-needed">Date Needed</label>
+                <label className="pr-label" htmlFor="date-needed">Date Needed</label>
                 <input
                   type="date"
                   name="date_needed"
                   value={formData.date_needed}
                   onChange={handleChange}
-                  className="car-input"
+                  className="pr-input"
                   required
                 />
               </div>
 
               <div className="pr-field">
-                <label className="car-reference-label" htmlFor="pr-number">Purpose</label>
+                <label className="pr-label" htmlFor="pr-number">Purpose</label>
                 <textarea
                   id="purposeText"
                   name="purpose"
                   value={formData.purpose}
                   onChange={handleChange}
-                  className="car-textarea"
+                  className="pr-textarea"
                   placeholder="Purpose of the payment request"
                   rows={1}
                   required
@@ -543,7 +543,7 @@ function PaymentRequest({ onLogout }) {
             </div>
           </section>
 
-          <section className="car-form-section" id="items">
+          <section className="pr-form-section" id="items">
             <div className="pr-items-header">
               <p className="pr-section-subtitle">
               </p>
@@ -581,7 +581,7 @@ function PaymentRequest({ onLogout }) {
                             name="item"
                             value={item.item}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="car-input"
+                            className="pr-input"
                             required
                           />
                         </td>
@@ -593,7 +593,7 @@ function PaymentRequest({ onLogout }) {
                             min="1"
                             value={item.quantity}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="car-input"
+                            className="pr-input"
                             required
                           />
                         </td>
@@ -604,7 +604,7 @@ function PaymentRequest({ onLogout }) {
                             min="1"
                             value={item.unit_price}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="car-input"
+                            className="pr-input"
                             required
                           />
                         </td>
@@ -615,7 +615,7 @@ function PaymentRequest({ onLogout }) {
                             name="amount"
                             value={item.amount}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="car-input"
+                            className="pr-input"
                             required
                           />
                         </td>
@@ -625,7 +625,7 @@ function PaymentRequest({ onLogout }) {
                             name="expense_charges"
                             value={item.expense_charges}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="car-input"
+                            className="pr-input"
                             required
                           />
                         </td>
@@ -635,7 +635,7 @@ function PaymentRequest({ onLogout }) {
                             name="location"
                             value={item.location}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="car-input"
+                            className="pr-input"
                             required
                           />
                         </td>
@@ -666,18 +666,18 @@ function PaymentRequest({ onLogout }) {
             </div>
           </section>
 
-          <section className="car-form-section" id="signature">
-              <h2 className="prf-section-title">Signature Details</h2>
+          <section className="pr-form-section" id="signature">
+              <h2 className="pr-section-title">Signature Details</h2>
 
               <div className="pr-grid-two">
                 <div className="pr-field">
-                  <label className="car-reference-value">Requested by:</label>
-                  <input type="text" name="requested_by" className="car-input" value={userData.name || ""} required readOnly/>
+                  <label className="pr-label">Requested by:</label>
+                  <input type="text" name="requested_by" className="pr-input" value={userData.name || ""} required readOnly/>
                 </div>
 
                 <div className="pr-field receive-signature">
-                  <label className="car-reference-value">Signature</label>
-                  <input type="text" name="requested_signature" className="car-input received-signature" value={userData.signature || ""} readOnly />
+                  <label className="pr-label">Signature</label>
+                  <input type="text" name="requested_signature" className="pr-input received-signature" value={userData.signature || ""} readOnly />
                   {userData.signature ? (
                     <img
                       src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}

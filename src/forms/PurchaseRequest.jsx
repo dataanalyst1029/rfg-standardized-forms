@@ -537,7 +537,7 @@ function PurchaseRequest({ onLogout }) {
                             name="purchase_item"
                             value={item.purchase_item}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="car-input"
+                            className="pr-input"
                             placeholder="Item description"
                             required
                           />
@@ -549,7 +549,7 @@ function PurchaseRequest({ onLogout }) {
                             name="quantity"
                             value={item.quantity}
                             onChange={(event) => handleItemChange(index, event)}
-                            className="car-input"
+                            className="pr-input"
                             placeholder="0"
                             required
                           />

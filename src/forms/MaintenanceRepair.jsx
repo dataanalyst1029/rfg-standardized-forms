@@ -225,13 +225,13 @@ function MaintenanceRepair({ onLogout }) {
             </p>
           </div>
 
-          <div className="car-reference-card">
-            <span className="car-reference-label">Reference code</span>
-            <span className="car-reference-value">
+          <div className="pr-reference-card">
+            <span className="pr-reference-label">Reference code</span>
+            <span className="pr-reference-value">
               {formData.mrr_request_code || "—"}
             </span>
-            <span className="car-reference-label">Request date</span>
-            <span className="car-reference-value">
+            <span className="pr-reference-label">Request date</span>
+            <span className="pr-reference-value">
               {new Date(formData.request_date).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
@@ -242,11 +242,11 @@ function MaintenanceRepair({ onLogout }) {
         </header>
 
         <form onSubmit={handleSubmit} className="cash-receipt-form">
-            <section className="car-form-section" id="details">
+            <section className="pr-form-section" id="details">
               <h2 className="pr-items-title">Requestor Details</h2>
               <div className="pr-grid-two">
                   <div className="pr-field">
-                      <label className="car-reference-label">Employee ID</label>
+                      <label className="pr-label">Employee ID</label>
                       <input
                         type="text"
                         id="employeeId"
@@ -269,7 +269,7 @@ function MaintenanceRepair({ onLogout }) {
                       />
                   </div>
                   <div className="pr-field">
-                      <label className="car-reference-label">Name</label>
+                      <label className="pr-label">Name</label>
                       <input
                         type="text"
                         id="name"
@@ -285,7 +285,7 @@ function MaintenanceRepair({ onLogout }) {
               </div>
               <div className="pr-grid-two">
                 <div className="pr-field">
-                    <label className="car-reference-label">Branch</label>
+                    <label className="pr-label">Branch</label>
                     <input
                       type="text"
                       id="branch"
@@ -299,7 +299,7 @@ function MaintenanceRepair({ onLogout }) {
                     />
                 </div>
                 <div className="pr-field">
-                    <label className="car-reference-label">Department</label>
+                    <label className="pr-label">Department</label>
                     <input
                       type="text"
                       id="department"
@@ -315,7 +315,7 @@ function MaintenanceRepair({ onLogout }) {
               </div>
               <div className="pr-grid-two">
                 <div className="pr-field">
-                    <label className="car-reference-label">Date Needed</label>
+                    <label className="pr-label">Date Needed</label>
                     <input
                       type="date"
                       id="branch"
@@ -332,16 +332,16 @@ function MaintenanceRepair({ onLogout }) {
               </div>
             </section>
 
-            <section className="car-form-section" id="details">
+            <section className="pr-form-section" id="details">
               <div className="pr-grid-two">
                 <div className="pr-field">
-                  <label className="car-reference-label">Description of Work Required</label>
+                  <label className="pr-label">Description of Work Required</label>
                   <textarea
                     id="workDescription"
                     name="work_description"
                     value={formData.work_description}
                     onChange={handleChange}
-                    className="car-textarea"
+                    className="pr-textarea"
                     placeholder="Work Description"
                     rows={4}
                     required
@@ -350,7 +350,7 @@ function MaintenanceRepair({ onLogout }) {
               </div>
               <div className="pr-grid-two">
                 <div className="pr-field">
-                    <label className="car-reference-label">Asset Tag/Code (if applicable)</label>
+                    <label className="pr-label">Asset Tag/Code (if applicable)</label>
                     <input
                       type="text"
                       id="assetTag"
@@ -367,16 +367,16 @@ function MaintenanceRepair({ onLogout }) {
             </section>
 
 
-            <section className="car-form-section" id="signature">
+            <section className="pr-form-section" id="signature">
               <div className="pr-grid-two">
                 <div className="pr-field">
-                  <label className="car-reference-value">Request by:</label>
-                  <input type="text" name="requested_by" className="car-input" value={userData.name || ""} required readOnly/>
+                  <label className="pr-label">Request by:</label>
+                  <input type="text" name="requested_by" className="pr-input" value={userData.name || ""} required readOnly/>
                 </div>
 
                 <div className="pr-field receive-signature">
-                  <label className="car-reference-value">Signature</label>
-                  <input type="text" name="request_signature" className="car-input received-signature" value={userData.signature || ""} readOnly />
+                  <label className="pr-label">Signature</label>
+                  <input type="text" name="request_signature" className="pr-input received-signature" value={userData.signature || ""} readOnly />
                   {userData.signature ? (
                     <img
                       src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
