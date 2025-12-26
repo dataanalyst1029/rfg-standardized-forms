@@ -3794,7 +3794,7 @@ app.put("/api/dispatch_interbranch_transfer_request", uploadForm.none(), async (
     const values = [status];
     let paramIndex = 2;
 
-    if (status === "Approved") {
+    if (status === "Dispatched") {
       query += `,
         dispatched_date = NOW(),
         dispatched_by = $${paramIndex++},
