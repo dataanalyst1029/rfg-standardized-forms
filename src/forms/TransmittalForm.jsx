@@ -330,7 +330,7 @@ function TransmittalForm({ onLogout }) {
             <div className="pr-grid-two">
               <div className="pr-field">
                 <label className="pr-label" htmlFor="transmittal_date">
-                  Date prepared
+                  Date Prepared
                 </label>
                 <input
                   className="pr-input"
