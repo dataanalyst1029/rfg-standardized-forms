@@ -478,21 +478,33 @@ const handleNavigate = (sectionId) => {
                   Cash Advance No.
                   </label>
                   <select
-                    name="cash_advance_no"
-                    id="cash-advance-no"
-                    className="pr-input"
-                    value={formData.cash_advance_no || ""}
-                    onChange={handleChange}
-                    required
-                >
+                      name="cash_advance_no"
+                      id="cash-advance-no"
+                      className="pr-input"
+                      value={formData.cash_advance_no || ""}
+                      onChange={handleChange}
+                      required
+                  >
                     <option value="" disabled>Select Cash Advance No.</option>
-                    {cashAdvanceRequests
+                    {/* {cashAdvanceRequests
                         .filter((req) => req.status === "Completed")
                         .map((req, index) => (
                             <option key={index} value={req.ca_request_code}>
                                 {req.ca_request_code}
                             </option>
-                        ))}
+                        ))} */}
+
+                    {cashAdvanceRequests
+                    .filter(
+                      (req) =>
+                        req.status === "Completed" &&
+                        String(req.user_id) === String(formData.user_id)
+                    )
+                    .map((req, index) => (
+                      <option key={index} value={req.ca_request_code}>
+                        {req.ca_request_code}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div className="pr-field">

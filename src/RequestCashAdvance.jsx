@@ -91,15 +91,16 @@ function CashAdvanceRequest() {
         setPage(1);
     }, [search, rowsPerPage]);
 
-    const filteredRequests = useMemo(() => {
+    // ✅ Pending-only list (with search)
+    const pendingRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
 
-    let pendingRequests = requests.filter(
-        (req) => req.status?.toLowerCase() === "pending"
-    );
+    let list = requests.filter(
+        (req) => (req.status || "").trim().toLowerCase() === "pending"
+        );
 
     if (term) {
-        pendingRequests = pendingRequests.filter((req) =>
+        list = list.filter((req) =>
         [
             "ca_request_code",
             "request_date",
@@ -113,31 +114,41 @@ function CashAdvanceRequest() {
         );
     }
 
-    return pendingRequests;
+    return list;
     }, [requests, search]);
 
+    // ✅ Pagination for pending only
+    const totalPages = Math.max(1, Math.ceil(pendingRequests.length / rowsPerPage));
 
-    const totalPages = Math.max(
-        1,
-        Math.ceil(filteredRequests.length / rowsPerPage) || 1
+    const visiblePendingRequests = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    return pendingRequests.slice(start, start + rowsPerPage);
+    }, [pendingRequests, page, rowsPerPage]);
+
+    const receivedRequests = useMemo(() => {
+    const term = search.trim().toLowerCase();
+
+    let list = requests.filter(
+        (req) => (req.status || "").trim().toLowerCase() === "received"
     );
 
-    // Separate list for accounting — show only approved requests
-    const receivedRequests = useMemo(() => {
-        return requests.filter(
-            (req) => req.status?.toLowerCase() === "received"
+    if (term) {
+        list = list.filter((req) =>
+        [
+            "ca_request_code",
+            "request_date",
+            "employee_id",
+            "name",
+            "branch",
+            "department",
+            "nature_activity",
+            "status",
+        ].some((key) => req[key]?.toString().toLowerCase().includes(term))
         );
-    }, [requests]);
+    }
 
-    const visibleRequests = useMemo(() => {
-        const start = (page - 1) * rowsPerPage;
-
-        const pendingRequests = filteredRequests.filter(
-        (req) => req.status?.toLowerCase() === "pending"
-        );
-
-        return pendingRequests.slice(start, start + rowsPerPage);
-    }, [filteredRequests, page, rowsPerPage]);
+    return list;
+    }, [requests, search]);
 
     const openModal = (request) => {
         setModalRequest(request);
@@ -213,7 +224,7 @@ function CashAdvanceRequest() {
                 </div>
             )}
 
-            {userRole.toLowerCase() === "approve" && (
+            {userRole?.toLowerCase() === "approve" && userAccess?.includes("Cash Advance Request") && (
                 <div className="admin-table-wrapper">
                     <table className="admin-table purchase-table">
                     <thead>
@@ -232,24 +243,20 @@ function CashAdvanceRequest() {
                     <tbody>
                         {loading ? (
                         <tr>
-                            <td colSpan={8} className="admin-empty-state">
+                            <td colSpan={9} className="admin-empty-state">
                             Loading cash advance budget requests...
                             </td>
                         </tr>
-                        ) : visibleRequests.length === 0 ? (
+                        ) : visiblePendingRequests.length === 0 ? (
                         <tr>
-                            <td colSpan={8} className="admin-empty-state">
-                            {search
-                                ? "No requests match your search."
-                                : "No cash advance budget requests found."}
+                            <td colSpan={9} className="admin-empty-state">
+                            {search ? "No requests match your search." : "No pending cash advance budget requests found."}
                             </td>
                         </tr>
                         ) : (
-                        visibleRequests.map((req) => (
+                        visiblePendingRequests.map((req) => (
                             <tr key={req.id}>
-                            <td style={{ textAlign: "center" }}>
-                                {req.ca_request_code}
-                            </td>
+                            <td style={{ textAlign: "center" }}>{req.ca_request_code}</td>
                             <td style={{ textAlign: "center" }}>
                                 {new Date(req.request_date).toLocaleDateString()}
                             </td>
@@ -258,9 +265,7 @@ function CashAdvanceRequest() {
                             <td style={{ textAlign: "left" }}>{req.branch}</td>
                             <td style={{ textAlign: "left" }}>{req.department}</td>
                             <td style={{ textAlign: "left" }}>{req.nature_activity}</td>
-                            <td style={{ textAlign: "center" }}>
-                                {req.status.toUpperCase()}
-                            </td>
+                            <td style={{ textAlign: "center" }}>{req.status.toUpperCase()}</td>
                             <td style={{ textAlign: "center" }}>
                                 <button
                                 className="admin-primary-btn"
@@ -273,11 +278,12 @@ function CashAdvanceRequest() {
                             </tr>
                         ))
                         )}
+
                     </tbody>
                     </table>
                 </div>
             )}
-            {userRole.toLowerCase() === "accounting" && (
+            {userRole?.toLowerCase() === "accounting" && userAccess?.includes("Cash Advance Request") && (
                 <div className="admin-table-wrapper">
                     <table className="admin-table purchase-table">
                     <thead>
@@ -344,7 +350,7 @@ function CashAdvanceRequest() {
 
             <div className="admin-pagination">
                 <span className="admin-pagination-info">
-                Showing {visibleRequests.length} of {filteredRequests.length} requests
+                Showing {visiblePendingRequests.length} of {pendingRequests.length} requests
                 </span>
 
                 <div className="admin-pagination-controls">

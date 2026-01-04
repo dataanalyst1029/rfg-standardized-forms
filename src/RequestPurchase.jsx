@@ -20,7 +20,7 @@ function RequestPurchase() {
     const [isDeclining, setIsDeclining] = useState(false);
     const [declineReason, setDeclineReason] = useState("");
 
-        const fetchRequests = async () => {
+    const fetchRequests = async () => {
         setLoading(true);
         try {
             const response = await fetch(`${API_BASE_URL}/api/purchase_request`);
@@ -137,7 +137,7 @@ function RequestPurchase() {
         return pendingRequests.slice(start, start + rowsPerPage);
     }, [filteredRequests, page, rowsPerPage]);
 
-     const openModal = (request) => {
+    const openModal = (request) => {
         setModalRequest(request);
         setModalType("pr");
         setModalOpen(true);
@@ -218,7 +218,7 @@ function RequestPurchase() {
                         </tr>
                     </thead>
                     <tbody>
-                         {loading ? (
+                        {loading ? (
                         <tr>
                             <td colSpan={8} className="admin-empty-state">
                             Loading purchase requests...
