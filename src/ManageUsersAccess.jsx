@@ -21,6 +21,11 @@ function ManageUsersAccess() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isDeleteClosing, setIsDeleteClosing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [form, setForm] = useState(initialForm);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create");
@@ -132,9 +137,15 @@ function ManageUsersAccess() {
   };
 
   const closeModal = () => {
-    setModalOpen(false);
-    setForm(initialForm);
+    setIsClosing(true);
+
+    setTimeout(() => {
+      setModalOpen(false);
+      setIsClosing(false);
+      setForm(initialForm);
+    }, 200);
   };
+
 
   const handleFormChange = (event) => {
     const { name, value } = event.target;
@@ -158,6 +169,7 @@ function ManageUsersAccess() {
       role: form.role,
     };
 
+    setIsSubmitting(true);
     try {
       if (modalMode === "create") {
         const res = await fetch(`${API_BASE_URL}/api/user_access`, {
@@ -167,26 +179,19 @@ function ManageUsersAccess() {
         });
 
         const result = await res.json();
-        if (!res.ok) {
-          throw new Error(result.message || "Failed to assign access");
-        }
+        if (!res.ok) throw new Error(result.message || "Failed to assign access");
 
         setRecords((prev) => [...prev, result]);
         setStatus({ type: "success", message: "Access assignment created." });
       } else {
-        const res = await fetch(
-          `${API_BASE_URL}/api/user_access/${form.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          },
-        );
+        const res = await fetch(`${API_BASE_URL}/api/user_access/${form.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
         const result = await res.json();
-        if (!res.ok) {
-          throw new Error(result.message || "Failed to update access");
-        }
+        if (!res.ok) throw new Error(result.message || "Failed to update access");
 
         setRecords((prev) =>
           prev.map((record) => (record.id === result.id ? result : record)),
@@ -201,26 +206,38 @@ function ManageUsersAccess() {
         type: "error",
         message: error.message || "Unable to save access assignment.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
 
   const confirmDelete = (record) => {
     setDeleteTarget(record);
   };
 
-  const cancelDelete = () => setDeleteTarget(null);
+  const cancelDelete = () => {
+    setIsDeleteClosing(true);
+
+    setTimeout(() => {
+      setDeleteTarget(null);
+      setIsDeleteClosing(false);
+      setIsDeleting(false);
+    }, 200);
+  };
+
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isDeleting) return;
+
+    setIsDeleting(true);
     try {
       const res = await fetch(
         `${API_BASE_URL}/api/user_access/${deleteTarget.id}`,
         { method: "DELETE" },
       );
 
-      if (!res.ok) {
-        throw new Error("Failed to delete record");
-      }
+      if (!res.ok) throw new Error("Failed to delete record");
 
       setRecords((prev) => prev.filter((record) => record.id !== deleteTarget.id));
       setStatus({ type: "success", message: "Access assignment removed." });
@@ -228,9 +245,11 @@ function ManageUsersAccess() {
       console.error("Error deleting access record", error);
       setStatus({ type: "error", message: "Unable to delete access record." });
     } finally {
-      cancelDelete();
+      setIsDeleting(false);
+      cancelDelete(); // fades out
     }
   };
+
 
   return (
     <div className="admin-view">
@@ -401,10 +420,11 @@ function ManageUsersAccess() {
       </div>
 
       {modalOpen && (
-        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-          <div className="admin-modal-panel">
+        <div className={`admin-modal-backdrop ${isClosing ? "is-closing" : ""}`} role="dialog" aria-modal="true" >
+          <div className={`admin-modal-panel-users ${isClosing ? "is-closing" : ""}`}>
             <div>
               <h2>{modalMode === "create" ? "Assign access" : "Update access"}</h2>
+              <br></br>
               <p className="admin-modal-subtext">
                 {modalMode === "create"
                   ? "Grant form permissions to a staff member."
@@ -448,7 +468,7 @@ function ManageUsersAccess() {
                   <option value="HR Leave Application">HR Leave Application</option>
                   <option value="Interbranch Transfer Slip">Interbranch Transfer Slip</option>
                   <option value="Transmittal Form">Transmittal Form</option>
-                  <option value="Credit Card Acknowledgement Receipt">Credit Card Acknowledgement Receipt</option>
+                  {/* <option value="Credit Card Acknowledgement Receipt">Credit Card Acknowledgement Receipt</option> */}
                 </select>
               {/* <textarea
                 name="access_forms"
@@ -475,8 +495,14 @@ function ManageUsersAccess() {
                 <button type="button" className="admin-ghost-btn" onClick={closeModal}>
                   Cancel
                 </button>
-                <button type="submit" className="admin-primary-btn">
-                  {modalMode === "create" ? "Assign access" : "Save changes"}
+                <button
+                  type="submit"
+                  className="admin-primary-btn"
+                  disabled={isSubmitting}
+                >
+                  {modalMode === "create"
+                    ? isSubmitting ? "Assigning" : "Assign access"
+                    : isSubmitting ? "Saving" : "Save changes"}
                 </button>
               </div>
             </form>
@@ -485,8 +511,12 @@ function ManageUsersAccess() {
       )}
 
       {deleteTarget && (
-        <div className="admin-modal-backdrop" role="alertdialog" aria-modal="true">
-          <div className="admin-modal-panel">
+        <div
+          className={`admin-modal-backdrop ${isDeleteClosing ? "is-closing" : ""}`}
+          role="alertdialog"
+          aria-modal="true"
+        >
+          <div className={`admin-modal-panel-users ${isDeleteClosing ? "is-closing" : ""}`}>
             <h2>Remove access</h2>
             <p className="admin-modal-subtext">
               You&apos;re about to revoke permissions for{" "}
@@ -494,11 +524,21 @@ function ManageUsersAccess() {
               undone.
             </p>
             <div className="admin-modal-footer">
-              <button type="button" className="admin-ghost-btn" onClick={cancelDelete}>
+              <button
+                type="button"
+                className="admin-ghost-btn"
+                onClick={cancelDelete}
+                disabled={isDeleteClosing || isDeleting}
+              >
                 Cancel
               </button>
-              <button type="button" className="admin-danger-btn" onClick={handleDelete}>
-                Delete assignment
+              <button
+                type="button"
+                className="admin-danger-btn"
+                onClick={handleDelete}
+                disabled={isDeleteClosing || isDeleting}
+              >
+                {isDeleting ? "Deleting" : "Delete assignment"}
               </button>
             </div>
           </div>

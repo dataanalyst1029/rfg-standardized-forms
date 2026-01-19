@@ -450,7 +450,7 @@
   margin-top: 1rem;
 }
 
-.request-modals,
+/* .request-modals,
 .admin-modal-panel {
   max-width: 900px;
   position: relative;
@@ -460,10 +460,10 @@
   overflow-y: auto;
   transform: translateY(0);
   transition: all 0.3s ease;
-  background-color: var(--modal-bg, #fff);
+  background: var(--color-surface);
   color: var(--text-color);
   box-shadow: 0 3px 12px var(--shadow-color);
-}
+} */
 
 .revolving-signature {
   position: relative;

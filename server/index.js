@@ -602,6 +602,12 @@ app.get("/api/dashboard/summary", async (req, res) => {
       { key: "purchase", label: "Purchase Requests", table: "purchase_request" },
       { key: "revolving", label: "Revolving Fund", table: "revolving_fund_request" },
       { key: "cashAdvance", label: "Cash Advance Requests", table: "cash_advance_request" },
+      { key: "cashAdvanceLiquidation", label: "Cash Advance Liquidation", table: "cash_advance_liquidation" },
+      { key: "paymentRequest", label: "Payment Request", table: "payment_request" },
+      { key: "maintenanceRepair", label: "Maintenance / Repair", table: "maintenance_repair_request" },
+      { key: "overtimeRequest", label: "Overtime Request", table: "overtime_approval_request" },
+      { key: "leaveApplication", label: "Leave Application", table: "leave_application" },
+      { key: "transmittalForm", label: "Transmittal Form", table: "transmittal_requests" },
     ];
 
     const workload = [];
@@ -676,6 +682,78 @@ app.get("/api/dashboard/summary", async (req, res) => {
           COALESCE(status, 'Pending') AS status,
           COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
         FROM cash_advance_request
+        WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+
+        UNION ALL
+
+        SELECT 
+          'Cash Advance Liquidation' AS form_label,
+          'cash_advance_liquidation' AS form_key,
+          cal_request_code AS code,
+          prepared_by AS requester,
+          COALESCE(status, 'Pending') AS status,
+          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+        FROM cash_advance_liquidation
+        WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+
+        UNION ALL
+
+        SELECT 
+          'Payment Request' AS form_label,
+          'payment_request' AS form_key,
+          prf_request_code AS code,
+          requested_by AS requester,
+          COALESCE(status, 'Pending') AS status,
+          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+        FROM payment_request
+        WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+
+        UNION ALL
+
+        SELECT 
+          'Maintenance / Repair Request' AS form_label,
+          'maintenance_repair_request' AS form_key,
+          mrr_request_code AS code,
+          requested_by AS requester,
+          COALESCE(status, 'Pending') AS status,
+          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+        FROM maintenance_repair_request
+        WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+
+        UNION ALL
+
+        SELECT 
+          'Overtime Approval' AS form_label,
+          'overtime_approval_request' AS form_key,
+          overtime_request_code AS code,
+          requested_by AS requester,
+          COALESCE(status, 'Pending') AS status,
+          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+        FROM overtime_approval_request
+        WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+
+        UNION ALL
+
+        SELECT 
+          'Leave Application' AS form_label,
+          'leave_application' AS form_key,
+          laf_request_code AS code,
+          requested_by AS requester,
+          COALESCE(status, 'Pending') AS status,
+          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+        FROM leave_application
+        WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+
+        UNION ALL
+
+        SELECT 
+          'Transmittal Form' AS form_label,
+          'transmittal_requests' AS form_key,
+          form_code AS code,
+          sender_name AS requester,
+          COALESCE(status, 'Pending') AS status,
+          COALESCE(created_at, transmittal_date, NOW()) AS activity_ts
+        FROM transmittal_requests
         WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
       )
       SELECT 

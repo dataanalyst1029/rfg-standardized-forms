@@ -19,6 +19,13 @@ function ManageBranches() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const [isDeleteClosing, setIsDeleteClosing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+
   const [form, setForm] = useState(emptyBranch);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create");
@@ -90,9 +97,15 @@ function ManageBranches() {
   };
 
   const closeModal = () => {
-    setModalOpen(false);
-    setForm(emptyBranch);
+    setIsClosing(true);
+
+    setTimeout(() => {
+      setModalOpen(false);
+      setIsClosing(false);
+      setForm(emptyBranch);
+    }, 200);
   };
+
 
   const handleFormChange = (event) => {
     const { name, value } = event.target;
@@ -103,10 +116,7 @@ function ManageBranches() {
     event.preventDefault();
 
     if (!form.branch_name.trim() || !form.branch_code.trim()) {
-      setStatus({
-        type: "error",
-        message: "Branch name and code are required.",
-      });
+      setStatus({ type: "error", message: "Branch name and code are required." });
       return;
     }
 
@@ -116,6 +126,7 @@ function ManageBranches() {
       location: form.location.trim() || null,
     };
 
+    setIsSubmitting(true);
     try {
       if (modalMode === "create") {
         const response = await fetch(`${API_BASE_URL}/api/branches`, {
@@ -125,64 +136,65 @@ function ManageBranches() {
         });
 
         const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.message || "Failed to create branch");
-        }
+        if (!response.ok) throw new Error(result.message || "Failed to create branch");
 
         setBranches((prev) => [...prev, result]);
         setStatus({ type: "success", message: "Branch added successfully." });
       } else {
-        const response = await fetch(
-          `${API_BASE_URL}/api/branches/${form.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          },
-        );
+        const response = await fetch(`${API_BASE_URL}/api/branches/${form.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
         const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.message || "Failed to update branch");
-        }
+        if (!response.ok) throw new Error(result.message || "Failed to update branch");
 
-        setBranches((prev) =>
-          prev.map((branch) => (branch.id === result.id ? result : branch)),
-        );
+        setBranches((prev) => prev.map((b) => (b.id === result.id ? result : b)));
         setStatus({ type: "success", message: "Branch details updated." });
       }
 
       closeModal();
     } catch (error) {
       console.error("Error saving branch", error);
-      setStatus({
-        type: "error",
-        message: error.message || "Unable to save branch information.",
-      });
+      setStatus({ type: "error", message: error.message || "Unable to save branch information." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+
   const confirmDelete = (branch) => setDeleteTarget(branch);
-  const cancelDelete = () => setDeleteTarget(null);
+  const cancelDelete = () => {
+    setIsDeleteClosing(true);
+
+    setTimeout(() => {
+      setDeleteTarget(null);
+      setIsDeleteClosing(false);
+      setIsDeleting(false);
+    }, 200);
+  };
+
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isDeleting) return;
+
+    setIsDeleting(true);
     try {
       const response = await fetch(
         `${API_BASE_URL}/api/branches/${deleteTarget.id}`,
         { method: "DELETE" },
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to delete branch");
-      }
+      if (!response.ok) throw new Error("Failed to delete branch");
 
-      setBranches((prev) => prev.filter((branch) => branch.id !== deleteTarget.id));
+      setBranches((prev) => prev.filter((b) => b.id !== deleteTarget.id));
       setStatus({ type: "success", message: "Branch removed from directory." });
     } catch (error) {
       console.error("Error deleting branch", error);
       setStatus({ type: "error", message: "Unable to delete branch." });
     } finally {
+      setIsDeleting(false);
       cancelDelete();
     }
   };
@@ -332,10 +344,11 @@ function ManageBranches() {
       </div>
 
       {modalOpen && (
-        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-          <div className="admin-modal-panel">
+        <div className={`admin-modal-backdrop ${isClosing ? "is-closing" : ""}`} role="dialog" aria-modal="true">
+          <div className={`admin-modal-panel-users ${isClosing ? "is-closing" : ""}`}>
             <div>
               <h2>{modalMode === "create" ? "Add branch" : "Edit branch"}</h2>
+              <br></br>
               <p className="admin-modal-subtext">
                 Capture the branch name, code, and where the team is located.
               </p>
@@ -364,11 +377,23 @@ function ManageBranches() {
               />
 
               <div className="admin-modal-footer">
-                <button type="button" className="admin-ghost-btn" onClick={closeModal}>
+                <button
+                  type="button"
+                  className="admin-ghost-btn"
+                  onClick={closeModal}
+                  disabled={isSubmitting}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="admin-primary-btn">
-                  {modalMode === "create" ? "Add branch" : "Save changes"}
+
+                <button
+                  type="submit"
+                  className="admin-primary-btn"
+                  disabled={isSubmitting}
+                >
+                  {modalMode === "create"
+                    ? (isSubmitting ? "Adding" : "Add branch")
+                    : (isSubmitting ? "Saving" : "Save changes")}
                 </button>
               </div>
             </form>
@@ -377,20 +402,33 @@ function ManageBranches() {
       )}
 
       {deleteTarget && (
-        <div className="admin-modal-backdrop" role="alertdialog" aria-modal="true">
-          <div className="admin-modal-panel">
+        <div
+          className={`admin-modal-backdrop ${isDeleteClosing ? "is-closing" : ""}`}
+          role="alertdialog"
+          aria-modal="true"
+        >
+          <div className={`admin-modal-panel-users ${isDeleteClosing ? "is-closing" : ""}`}>
             <h2>Remove branch</h2>
             <p className="admin-modal-subtext">
-              This will delete{" "}
-              <strong>{deleteTarget.branch_name || "this branch"}</strong> from your directory.
+              This will delete <strong>{deleteTarget.branch_name || "this branch"}</strong> from your directory.
               Any departments tied to it must be reassigned manually.
             </p>
             <div className="admin-modal-footer">
-              <button type="button" className="admin-ghost-btn" onClick={cancelDelete}>
+              <button
+                type="button"
+                className="admin-ghost-btn"
+                onClick={cancelDelete}
+                disabled={isDeleteClosing || isDeleting}
+              >
                 Cancel
               </button>
-              <button type="button" className="admin-danger-btn" onClick={handleDelete}>
-                Delete branch
+              <button
+                type="button"
+                className="admin-danger-btn"
+                onClick={handleDelete}
+                disabled={isDeleteClosing || isDeleting}
+              >
+                {isDeleting ? "Deleting" : "Delete branch"}
               </button>
             </div>
           </div>

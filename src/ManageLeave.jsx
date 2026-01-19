@@ -21,6 +21,13 @@ function ManageLeave() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const [isDeleteClosing, setIsDeleteClosing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+
   const [form, setForm] = useState(emptyLeave);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create");
@@ -123,8 +130,13 @@ function ManageLeave() {
   };
 
   const closeModal = () => {
-    setForm(emptyLeave);
-    setModalOpen(false);
+    setIsClosing(true);
+
+    setTimeout(() => {
+      setForm(emptyLeave);
+      setModalOpen(false);
+      setIsClosing(false);
+    }, 200);
   };
 
   const handleSubmit = async (e) => {
@@ -141,43 +153,55 @@ function ManageLeave() {
       leave_days: Number(form.leave_days),
     };
 
+    setIsSubmitting(true);
     try {
-      let response;
-
-      if (modalMode === "create") {
-        response = await fetch(`${API_BASE_URL}/api/user_leaves`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        response = await fetch(`${API_BASE_URL}/api/user_leaves/${form.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
+      const response =
+        modalMode === "create"
+          ? await fetch(`${API_BASE_URL}/api/user_leaves`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            })
+          : await fetch(`${API_BASE_URL}/api/user_leaves/${form.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
 
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message);
+      if (!response.ok) throw new Error(result.message || "Save failed");
 
       if (modalMode === "create") {
         setUsersLeave((prev) => [...prev, result]);
         setStatus({ type: "success", message: "Leave added successfully." });
       } else {
-        setUsersLeave((prev) =>
-          prev.map((i) => (i.id === result.id ? result : i))
-        );
+        setUsersLeave((prev) => prev.map((i) => (i.id === result.id ? result : i)));
         setStatus({ type: "success", message: "Leave updated successfully." });
       }
 
       closeModal();
     } catch (err) {
-      setStatus({ type: "error", message: err.message });
+      setStatus({ type: "error", message: err.message || "Unable to save leave." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  const cancelDelete = () => {
+    setIsDeleteClosing(true);
+
+    setTimeout(() => {
+      setDeleteTarget(null);
+      setIsDeleteClosing(false);
+      setIsDeleting(false);
+    }, 200);
+  };
+
+
   const handleDelete = async () => {
+    if (!deleteTarget || isDeleting) return;
+
+    setIsDeleting(true);
     try {
       const response = await fetch(
         `${API_BASE_URL}/api/user_leaves/${deleteTarget.id}`,
@@ -186,12 +210,13 @@ function ManageLeave() {
 
       if (!response.ok) throw new Error("Delete failed");
 
-      setUsersLeave((prev) =>
-        prev.filter((i) => i.id !== deleteTarget.id)
-      );
+      setUsersLeave((prev) => prev.filter((i) => i.id !== deleteTarget.id));
       setStatus({ type: "success", message: "Leave deleted." });
+    } catch (err) {
+      setStatus({ type: "error", message: err.message || "Unable to delete leave." });
     } finally {
-      setDeleteTarget(null);
+      setIsDeleting(false);
+      cancelDelete();
     }
   };
 
@@ -306,10 +331,9 @@ function ManageLeave() {
         </label>
       </div>
 
-      {/* ---------------------- MODAL ---------------------- */}
       {modalOpen && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal-panel">
+        <div className={`admin-modal-backdrop ${isClosing ? "is-closing" : ""}`}>
+          <div className={`admin-modal-panel-users ${isClosing ? "is-closing" : ""}`}>
 
             <h2>{modalMode === "create" ? "Add User Leave" : "Edit User Leave"}</h2>
 
@@ -373,20 +397,23 @@ function ManageLeave() {
               />
 
               <div className="admin-modal-footer">
-                <button type="button" onClick={closeModal}>Cancel</button>
-                <button type="submit">
-                  {modalMode === "create" ? "Add Leave" : "Save Changes"}
+                <button type="button" className="admin-ghost-btn" onClick={closeModal} disabled={isSubmitting}>
+                  Cancel
+                </button>
+                <button type="submit" className="admin-primary-btn" disabled={isSubmitting}>
+                  {modalMode === "create"
+                    ? isSubmitting ? "Adding" : "Add Leave"
+                    : isSubmitting ? "Saving" : "Save Changes"}
                 </button>
               </div>
-
             </form>
           </div>
         </div>
       )}
 
       {deleteTarget && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal-panel">
+        <div className={`admin-modal-backdrop ${isDeleteClosing ? "is-closing" : ""}`}>
+          <div className={`admin-modal-panel-users ${isDeleteClosing ? "is-closing" : ""}`}>
             <h2>Delete Leave?</h2>
             <p>
               Remove <strong>{deleteTarget.leave_type}</strong> for{" "}
@@ -394,15 +421,20 @@ function ManageLeave() {
             </p>
 
             <div className="admin-modal-footer">
-              <button onClick={() => setDeleteTarget(null)}>Cancel</button>
-              <button className="admin-danger-btn" onClick={handleDelete}>
-                Delete
+              <button onClick={cancelDelete} disabled={isDeleteClosing || isDeleting}>
+                Cancel
+              </button>
+              <button
+                className="admin-danger-btn"
+                onClick={handleDelete}
+                disabled={isDeleteClosing || isDeleting}
+              >
+                {isDeleting ? "Deleting" : "Delete"}
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

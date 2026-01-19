@@ -18,6 +18,12 @@ function LeaveTypes() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const [isDeleteClosing, setIsDeleteClosing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [form, setForm] = useState(emptyLeaveType);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create");
@@ -86,8 +92,13 @@ function LeaveTypes() {
   };
 
   const closeModal = () => {
-    setModalOpen(false);
-    setForm(emptyLeaveType);
+    setIsClosing(true);
+
+    setTimeout(() => {
+      setModalOpen(false);
+      setIsClosing(false);
+      setForm(emptyLeaveType);
+    }, 200);
   };
 
   const handleFormChange = (e) => {
@@ -98,7 +109,7 @@ function LeaveTypes() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.leave_type.trim() || !form.leave_days.trim()) {
+    if (!form.leave_type.trim() || !String(form.leave_days).trim()) {
       setStatus({ type: "error", message: "Leave type and leave days are required." });
       return;
     }
@@ -108,33 +119,29 @@ function LeaveTypes() {
       leave_days: Number(form.leave_days),
     };
 
+    setIsSubmitting(true);
     try {
-      let response;
-
-      if (modalMode === "create") {
-        response = await fetch(`${API_BASE_URL}/api/leave_types`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        response = await fetch(`${API_BASE_URL}/api/leave_types/${form.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
+      const response =
+        modalMode === "create"
+          ? await fetch(`${API_BASE_URL}/api/leave_types`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            })
+          : await fetch(`${API_BASE_URL}/api/leave_types/${form.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
 
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message);
+      if (!response.ok) throw new Error(result.message || "Unable to save leave type.");
 
       if (modalMode === "create") {
         setLeaveType((prev) => [...prev, result]);
         setStatus({ type: "success", message: "Leave type added successfully." });
       } else {
-        setLeaveType((prev) =>
-          prev.map((item) => (item.id === result.id ? result : item))
-        );
+        setLeaveType((prev) => prev.map((item) => (item.id === result.id ? result : item)));
         setStatus({ type: "success", message: "Leave type updated successfully." });
       }
 
@@ -142,15 +149,27 @@ function LeaveTypes() {
     } catch (err) {
       console.error("Save error:", err);
       setStatus({ type: "error", message: err.message || "Unable to save leave type." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const confirmDelete = (item) => setDeleteTarget(item);
-  const cancelDelete = () => setDeleteTarget(null);
+  const cancelDelete = () => {
+    setIsDeleteClosing(true);
+
+    setTimeout(() => {
+      setDeleteTarget(null);
+      setIsDeleteClosing(false);
+      setIsDeleting(false);
+    }, 200);
+  };
+
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isDeleting) return;
 
+    setIsDeleting(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/leave_types/${deleteTarget.id}`, {
         method: "DELETE",
@@ -162,11 +181,13 @@ function LeaveTypes() {
       setStatus({ type: "success", message: "Leave type removed successfully." });
     } catch (err) {
       console.error(err);
-      setStatus({ type: "error", message: "Unable to delete leave type." });
+      setStatus({ type: "error", message: err.message || "Unable to delete leave type." });
     } finally {
+      setIsDeleting(false);
       cancelDelete();
     }
   };
+
 
   return (
     <div className="admin-view">
@@ -280,8 +301,8 @@ function LeaveTypes() {
 
       {/* ADD / EDIT MODAL */}
       {modalOpen && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal-panel">
+        <div className={`admin-modal-backdrop ${isClosing ? "is-closing" : ""}`}>
+          <div className={`admin-modal-panel-users ${isClosing ? "is-closing" : ""}`}>
             <h2>{modalMode === "create" ? "Add Leave Type" : "Edit Leave Type"}</h2>
             <p className="admin-modal-subtext">
               Capture the leave type name and the number of days allowed.
@@ -306,11 +327,23 @@ function LeaveTypes() {
               />
 
               <div className="admin-modal-footer">
-                <button type="button" className="admin-ghost-btn" onClick={closeModal}>
+                <button
+                  type="button"
+                  className="admin-ghost-btn"
+                  onClick={closeModal}
+                  disabled={isSubmitting}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="admin-primary-btn">
-                  {modalMode === "create" ? "Add Leave Type" : "Save Changes"}
+
+                <button
+                  type="submit"
+                  className="admin-primary-btn"
+                  disabled={isSubmitting}
+                >
+                  {modalMode === "create"
+                    ? (isSubmitting ? "Adding" : "Add Leave Type")
+                    : (isSubmitting ? "Saving" : "Save Changes")}
                 </button>
               </div>
             </form>
@@ -320,8 +353,8 @@ function LeaveTypes() {
 
       {/* DELETE CONFIRM MODAL */}
       {deleteTarget && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal-panel">
+        <div className={`admin-modal-backdrop ${isDeleteClosing ? "is-closing" : ""}`}>
+           <div className={`admin-modal-panel-users ${isDeleteClosing ? "is-closing" : ""}`}>
             <h2>Remove Leave Type</h2>
             <p className="admin-modal-subtext">
               This will remove <strong>{deleteTarget.leave_type}</strong> from your list.
@@ -329,9 +362,20 @@ function LeaveTypes() {
             </p>
 
             <div className="admin-modal-footer">
-              <button className="admin-ghost-btn" onClick={cancelDelete}>Cancel</button>
-              <button className="admin-danger-btn" onClick={handleDelete}>
-                Delete Leave Type
+              <button
+                className="admin-ghost-btn"
+                onClick={cancelDelete}
+                disabled={isDeleteClosing || isDeleting}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="admin-danger-btn"
+                onClick={handleDelete}
+                disabled={isDeleteClosing || isDeleting}
+              >
+                {isDeleting ? "Deleting" : "Delete Leave Type"}
               </button>
             </div>
           </div>

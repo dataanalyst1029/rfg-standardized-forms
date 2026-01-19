@@ -19,6 +19,13 @@ function ManageDepartments() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const [isDeleteClosing, setIsDeleteClosing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+
   const [form, setForm] = useState(emptyDepartment);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create");
@@ -104,8 +111,13 @@ function ManageDepartments() {
   };
 
   const closeModal = () => {
-    setModalOpen(false);
-    setForm(emptyDepartment);
+    setIsClosing(true);
+
+    setTimeout(() => {
+      setModalOpen(false);
+      setIsClosing(false);
+      setForm(emptyDepartment);
+    }, 200);
   };
 
   const handleFormChange = (event) => {
@@ -117,10 +129,7 @@ function ManageDepartments() {
     event.preventDefault();
 
     if (!form.department_name.trim() || !form.branch_id) {
-      setStatus({
-        type: "error",
-        message: "Department name and branch are required.",
-      });
+      setStatus({ type: "error", message: "Department name and branch are required." });
       return;
     }
 
@@ -129,6 +138,7 @@ function ManageDepartments() {
       branch_id: Number(form.branch_id),
     };
 
+    setIsSubmitting(true);
     try {
       if (modalMode === "create") {
         const response = await fetch(`${API_BASE_URL}/api/departments`, {
@@ -138,64 +148,63 @@ function ManageDepartments() {
         });
 
         const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.message || "Failed to add department");
-        }
+        if (!response.ok) throw new Error(result.message || "Failed to add department");
 
         setDepartments((prev) => [...prev, result]);
         setStatus({ type: "success", message: "Department added successfully." });
       } else {
-        const response = await fetch(
-          `${API_BASE_URL}/api/departments/${form.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          },
-        );
+        const response = await fetch(`${API_BASE_URL}/api/departments/${form.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
         const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.message || "Failed to update department");
-        }
+        if (!response.ok) throw new Error(result.message || "Failed to update department");
 
-        setDepartments((prev) =>
-          prev.map((dept) => (dept.id === result.id ? result : dept)),
-        );
+        setDepartments((prev) => prev.map((d) => (d.id === result.id ? result : d)));
         setStatus({ type: "success", message: "Department details updated." });
       }
 
       closeModal();
     } catch (error) {
       console.error("Error saving department", error);
-      setStatus({
-        type: "error",
-        message: error.message || "Unable to save department.",
-      });
+      setStatus({ type: "error", message: error.message || "Unable to save department." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const confirmDelete = (department) => setDeleteTarget(department);
-  const cancelDelete = () => setDeleteTarget(null);
+  const cancelDelete = () => {
+    setIsDeleteClosing(true);
+
+    setTimeout(() => {
+      setDeleteTarget(null);
+      setIsDeleteClosing(false);
+      setIsDeleting(false);
+    }, 200);
+  };
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isDeleting) return;
+
+    setIsDeleting(true);
     try {
       const response = await fetch(
         `${API_BASE_URL}/api/departments/${deleteTarget.id}`,
         { method: "DELETE" },
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to delete department");
-      }
+      if (!response.ok) throw new Error("Failed to delete department");
 
-      setDepartments((prev) => prev.filter((dept) => dept.id !== deleteTarget.id));
+      setDepartments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
       setStatus({ type: "success", message: "Department removed." });
     } catch (error) {
       console.error("Error deleting department", error);
       setStatus({ type: "error", message: "Unable to delete department." });
     } finally {
+      setIsDeleting(false);
       cancelDelete();
     }
   };
@@ -242,7 +251,7 @@ function ManageDepartments() {
             <tr>
               <th>Department</th>
               <th>Branch</th>
-              <th>Actions</th>
+              <th className="text-center">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -261,36 +270,43 @@ function ManageDepartments() {
                 </td>
               </tr>
             ) : (
-              visibleDepartments.map((department) => (
-                <tr key={department.id}>
-                  <td data-label="Department">{department.department_name}</td>
-                  <td data-label="Branch">
-                    {department.branch_id ? (
-                      <span className="admin-badge">{department.branch_name}</span>
-                    ) : (
-                      <span className="admin-pagination-info">No branch assigned</span>
-                    )}
-                  </td>
-                  <td data-label="Actions">
-                    <div className="admin-row-actions">
-                      <button
-                        type="button"
-                        className="admin-row-btn"
-                        onClick={() => openEditModal(department)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-row-btn admin-row-btn--danger"
-                        onClick={() => confirmDelete(department)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              visibleDepartments.map((department) => {
+                const branchLabel =
+                  department.branch_name ||
+                  branches.find((b) => String(b.id) === String(department.branch_id))?.branch_name ||
+                  "—";
+
+                return (
+                  <tr key={department.id}>
+                    <td data-label="Department">{department.department_name}</td>
+                    <td data-label="Branch">
+                      {department.branch_id ? (
+                        <span className="admin-badge">{branchLabel}</span>
+                      ) : (
+                        <span className="admin-pagination-info">No branch assigned</span>
+                      )}
+                    </td>
+                    <td data-label="Actions">
+                      <div className="admin-row-actions">
+                        <button
+                          type="button"
+                          className="admin-row-btn"
+                          onClick={() => openEditModal(department)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-row-btn admin-row-btn--danger"
+                          onClick={() => confirmDelete(department)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -341,8 +357,8 @@ function ManageDepartments() {
       </div>
 
       {modalOpen && (
-        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-          <div className="admin-modal-panel">
+        <div className={`admin-modal-backdrop ${isClosing ? "is-closing" : ""}`} role="dialog" aria-modal="true">
+          <div className={`admin-modal-panel-users ${isClosing ? "is-closing" : ""}`}>
             <div>
               <h2>{modalMode === "create" ? "Add department" : "Edit department"}</h2>
               <p className="admin-modal-subtext">
@@ -373,11 +389,23 @@ function ManageDepartments() {
               </select>
 
               <div className="admin-modal-footer">
-                <button type="button" className="admin-ghost-btn" onClick={closeModal}>
+                <button
+                  type="button"
+                  className="admin-ghost-btn"
+                  onClick={closeModal}
+                  disabled={isSubmitting}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="admin-primary-btn">
-                  {modalMode === "create" ? "Add department" : "Save changes"}
+
+                <button
+                  type="submit"
+                  className="admin-primary-btn"
+                  disabled={isSubmitting}
+                >
+                  {modalMode === "create"
+                    ? (isSubmitting ? "Adding" : "Add department")
+                    : (isSubmitting ? "Saving" : "Save changes")}
                 </button>
               </div>
             </form>
@@ -386,8 +414,8 @@ function ManageDepartments() {
       )}
 
       {deleteTarget && (
-        <div className="admin-modal-backdrop" role="alertdialog" aria-modal="true">
-          <div className="admin-modal-panel">
+        <div className={`admin-modal-backdrop ${isDeleteClosing ? "is-closing" : ""}`} role="alertdialog" aria-modal="true" >
+          <div className={`admin-modal-panel-users ${isDeleteClosing ? "is-closing" : ""}`}>
             <h2>Delete department</h2>
             <p className="admin-modal-subtext">
               You&apos;re about to remove{" "}
@@ -395,11 +423,21 @@ function ManageDepartments() {
               are reassigned before proceeding.
             </p>
             <div className="admin-modal-footer">
-              <button type="button" className="admin-ghost-btn" onClick={cancelDelete}>
+              <button
+                type="button"
+                className="admin-ghost-btn"
+                onClick={cancelDelete}
+                disabled={isDeleteClosing || isDeleting}
+              >
                 Cancel
               </button>
-              <button type="button" className="admin-danger-btn" onClick={handleDelete}>
-                Delete department
+              <button
+                type="button"
+                className="admin-danger-btn"
+                onClick={handleDelete}
+                disabled={isDeleteClosing || isDeleting}
+              >
+                {isDeleting ? "Deleting" : "Delete department"}
               </button>
             </div>
           </div>

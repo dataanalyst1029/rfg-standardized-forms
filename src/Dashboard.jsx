@@ -47,23 +47,23 @@ const NAVIGATION = [
         id: "overview",
         label: "Overview",
         icon: "📊",
-        headline: "Workspace overview",
-        description: "Snapshots across standardized forms for quick insights.",
+        // headline: "Workspace overview",
+        // description: "Snapshots across standardized forms for quick insights.",
       },
       {
         id: "requests",
         label: "Requests",
         icon: "🗂️",
-        headline: "Request pipeline",
-        description:
-          "Monitor form submissions, approvals, and pending assignments.",
+        // headline: "Request pipeline",
+        // description:
+        //   "Monitor form submissions, approvals, and pending assignments.",
       },
       {
         id: "reports",
         label: "Reports",
         icon: "📑",
-        headline: "Reports Center",
-        description: "View and export reports for tracking and analytics.",
+        // headline: "Reports Center",
+        // description: "View and export reports for tracking and analytics.",
       },
     ],
   },
@@ -75,8 +75,8 @@ const NAVIGATION = [
         id: "forms-menu",
         label: "Forms",
         icon: "🧾",
-        headline: "Forms Library",
-        description: "Access and manage all form templates.",
+        // headline: "Forms Library",
+        // description: "Access and manage all form templates.",
       },
     ],
   },
@@ -88,38 +88,38 @@ const NAVIGATION = [
         id: "manage-users",
         label: "Users",
         icon: "👤",
-        headline: "Manage organization users",
-        description: "Invite, update, and govern account access.",
+        // headline: "Manage organization users",
+        // description: "Invite, update, and govern account access.",
       },
       {
         id: "manage-access",
         label: "User Access",
         icon: "🔐",
-        headline: "Configure form access",
-        description: "Define which forms each role can work on.",
+        // headline: "Configure form access",
+        // description: "Define which forms each role can work on.",
       },
       {
         id: "branches",
         label: "Branches",
         icon: "🗺️",
-        headline: "Branch directory",
-        description: "Keep branch profiles aligned with the latest changes.",
+        // headline: "Branch directory",
+        // description: "Keep branch profiles aligned with the latest changes.",
       },
       {
         id: "departments",
         label: "Departments",
         icon: "🏢",
-        headline: "Department registry",
-        description:
-          "Maintain department hierarchy for routing and approvals.",
+        // headline: "Department registry",
+        // description:
+        //   "Maintain department hierarchy for routing and approvals.",
       },
       {
         id: "leave-information",
         label: "Leave Information",
         icon: "🏷️",
-        headline: "Manage Leave Types",
-        description:
-          "Create and update available leave types.",
+        // headline: "Manage Leave Types",
+        // description:
+        //   "Create and update available leave types.",
       },
     ],
   },
@@ -360,9 +360,9 @@ function OverviewPanel({ summary, loading, error } = {}) {
             <h2>Workload snapshot</h2>
             <p>Live requests by lifecycle stage.</p>
           </div>
-          <span className="panel-meta">
+          {/* <span className="panel-meta">
             {loading ? "Refreshing…" : refreshedLabel ? `Updated ${refreshedLabel}` : ""}
-          </span>
+          </span> */}
         </div>
         {error && <div className="panel-error">{error}</div>}
         {workloadContent}
@@ -704,8 +704,20 @@ function Dashboard({ role, name, onLogout }) {
 
   const handleMenuClick = (menuId) => {
     setActiveView(menuId);
+
+    setReportsOpen(menuId.startsWith("reports"));
+
+    setRequestsOpen(
+      ["requests", "purchase-request", "revolving-fund-request", "cash-advance-budget-request", "cash-advance-liquidation", "reimbursement", "payment-request", "maintenance-repair", "overtime-approval-request", "leave-application-request", "interbranch-transfer-request", "transmittal-list"].includes(menuId)
+    );
+
+    setLeaveOpen(
+      ["leave-information", "leave-types", "manage-user-leaves"].includes(menuId)
+    );
+
     navigate(`/${menuId}`);
   };
+
 
 
   useEffect(() => {

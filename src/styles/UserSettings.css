@@ -212,24 +212,26 @@
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-surface);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   animation: modalFadeIn 0.3s ease forwards;
+  /* background: red; */
 }
 
 .modal-overlay.fade-out {
   animation: modalFadeOut 0.3s ease forwards;
 }
 
-.modal-content {
+.modal-content-profile {
   background: var(--color-surface);
   color: var(--text-color);
-  padding: 20px;
+  padding: 2rem;
   border-radius: 12px;
-  width: 400px;
+  width: 500px;
   max-width: 30%;
   box-shadow: 0 3px 12px var(--shadow-color);
   transform: translateY(0);
@@ -237,7 +239,7 @@
 }
 
 .modal-content input{
-  color: #000000;
+  color: var(--text-color);
 }
 
 .modal-buttons {

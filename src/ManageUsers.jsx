@@ -26,11 +26,16 @@ function ManageUsers() {
   const [branches, setBranches] = useState([]);
   const [departments, setDepartments] = useState([]);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isDeleteClosing, setIsDeleteClosing] = useState(false);
+
   const [form, setForm] = useState(emptyForm);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create"); 
 
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [showLocationSelect, setShowLocationSelect] = useState(false);
 
@@ -124,9 +129,16 @@ function ManageUsers() {
 
 
   const closeModal = () => {
-    setModalOpen(false);
-    setForm(emptyForm);
+    setIsClosing(true);
+
+    setTimeout(() => {
+      setModalOpen(false);
+      setIsClosing(false);
+      setForm(emptyForm);
+      setShowLocationSelect(false);
+    }, 200);
   };
+
 
   const handleFormChange = (event) => {
     const { name, value } = event.target;
@@ -148,6 +160,7 @@ function ManageUsers() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (modalMode === "create") {
         const response = await fetch(`${API_BASE_URL}/api/users`, {
@@ -157,45 +170,33 @@ function ManageUsers() {
         });
 
         const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.message || "Failed to add user");
-        }
+        if (!response.ok) throw new Error(payload.message || "Failed to add user");
 
         setUsers((prev) => [...prev, payload]);
         setStatus({ type: "success", message: "User created successfully." });
       } else {
         const payload = { ...form };
-        if (!payload.password) {
-          delete payload.password;
-        }
+        if (!payload.password) delete payload.password;
 
-        const response = await fetch(
-          `${API_BASE_URL}/api/users/${form.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          },
-        );
+        const response = await fetch(`${API_BASE_URL}/api/users/${form.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
         const updated = await response.json();
-        if (!response.ok) {
-          throw new Error(updated.message || "Failed to update user");
-        }
+        if (!response.ok) throw new Error(updated.message || "Failed to update user");
 
-        setUsers((prev) =>
-          prev.map((user) => (user.id === updated.id ? updated : user)),
-        );
+        setUsers((prev) => prev.map((user) => (user.id === updated.id ? updated : user)));
         setStatus({ type: "success", message: "User updated successfully." });
       }
 
       closeModal();
     } catch (error) {
       console.error("Error saving user", error);
-      setStatus({
-        type: "error",
-        message: error.message || "Unable to save user.",
-      });
+      setStatus({ type: "error", message: error.message || "Unable to save user." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -204,32 +205,38 @@ function ManageUsers() {
   };
 
   const cancelDelete = () => {
-    setDeleteTarget(null);
+    setIsDeleteClosing(true);
+
+    setTimeout(() => {
+      setDeleteTarget(null);
+      setIsDeleteClosing(false);
+    }, 200);
   };
 
+
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isDeleting) return;
+
+    setIsDeleting(true);
     try {
       const response = await fetch(
         `${API_BASE_URL}/api/users/${deleteTarget.id}`,
         { method: "DELETE" },
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to delete user");
-      }
+      if (!response.ok) throw new Error("Failed to delete user");
 
-      setUsers((prev) =>
-        prev.filter((user) => user.id !== deleteTarget.id),
-      );
+      setUsers((prev) => prev.filter((user) => user.id !== deleteTarget.id));
       setStatus({ type: "success", message: "User deleted successfully." });
     } catch (error) {
       console.error("Error deleting user", error);
       setStatus({ type: "error", message: "Failed to delete user." });
     } finally {
-      cancelDelete();
+      setIsDeleting(false);
+      cancelDelete(); // keep your fade-out close
     }
   };
+
 
   return (
     <div className="admin-view">
@@ -378,10 +385,11 @@ function ManageUsers() {
       </div>
 
       {modalOpen && (
-        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-          <div className="admin-modal-panel">
+        <div className={`admin-modal-backdrop ${isClosing ? "is-closing" : ""}`} role="dialog" aria-modal="true" >
+          <div className={`admin-modal-panel-users ${isClosing ? "is-closing" : ""}`}>
             <div>
               <h2>{modalMode === "create" ? "Invite user" : "Edit user"}</h2>
+              <br></br>
               <p className="admin-modal-subtext">
                 {modalMode === "create"
                   ? "New teammates receive access immediately. You can update their role anytime."
@@ -418,7 +426,7 @@ function ManageUsers() {
                 onChange={(e) => setForm({ ...form, branch: e.target.value, department: "" })}
                 required
               >
-                <option value="" disabled>Select Branch</option>
+                <option value="">Select Branch</option>
 
                 {branches.map((b) => (
                   <option key={b.id} value={b.branch_name}>
@@ -502,11 +510,22 @@ function ManageUsers() {
               )}
 
               <div className="admin-modal-footer">
-                <button type="button" className="admin-ghost-btn" onClick={closeModal}>
+                <button
+                  type="button"
+                  className="admin-ghost-btn"
+                  onClick={closeModal}
+                  disabled={isSubmitting}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="admin-primary-btn">
-                  {modalMode === "create" ? "Invite user" : "Save changes"}
+                <button
+                  type="submit"
+                  className="admin-primary-btn"
+                  disabled={isSubmitting}
+                >
+                  {modalMode === "create"
+                    ? isSubmitting ? "Inviting" : "Invite user"
+                    : isSubmitting ? "Saving" : "Save changes"}
                 </button>
               </div>
             </form>
@@ -515,20 +534,33 @@ function ManageUsers() {
       )}
 
       {deleteTarget && (
-        <div className="admin-modal-backdrop" role="alertdialog" aria-modal="true">
-          <div className="admin-modal-panel">
+        <div
+          className={`admin-modal-backdrop ${isDeleteClosing ? "is-closing" : ""}`}
+          role="alertdialog"
+          aria-modal="true"
+        >
+          <div className={`admin-modal-panel-users ${isDeleteClosing ? "is-closing" : ""}`}>
             <h2>Remove user</h2>
             <p className="admin-modal-subtext">
-              You&apos;re about to remove{" "}
-              <strong>{deleteTarget.name}</strong> from the workspace. This
-              action cannot be undone.
+              You&apos;re about to remove <strong>{deleteTarget.name}</strong> from the workspace.
+              This action cannot be undone.
             </p>
             <div className="admin-modal-footer">
-              <button type="button" className="admin-ghost-btn" onClick={cancelDelete}>
+              <button
+                type="button"
+                className="admin-ghost-btn"
+                onClick={cancelDelete}
+                disabled={isDeleteClosing}
+              >
                 Cancel
               </button>
-              <button type="button" className="admin-danger-btn" onClick={handleDelete}>
-                Delete user
+              <button
+                type="button"
+                className="admin-danger-btn"
+                onClick={handleDelete}
+                disabled={isDeleteClosing || isDeleting}
+              >
+                {isDeleting ? "Deleting" : "Delete user"}
               </button>
             </div>
           </div>

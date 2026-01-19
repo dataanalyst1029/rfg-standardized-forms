@@ -268,7 +268,7 @@ function UserSettings() {
 
       {showEditModal && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
-          <div className="modal-content">
+          <div className="modal-content-profile">
             <h2>Edit User Information</h2>
 
             <div className="form-group">

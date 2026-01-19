@@ -91,7 +91,6 @@ function CashAdvanceRequest() {
         setPage(1);
     }, [search, rowsPerPage]);
 
-    // ✅ Pending-only list (with search)
     const pendingRequests = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -117,7 +116,6 @@ function CashAdvanceRequest() {
     return list;
     }, [requests, search]);
 
-    // ✅ Pagination for pending only
     const totalPages = Math.max(1, Math.ceil(pendingRequests.length / rowsPerPage));
 
     const visiblePendingRequests = useMemo(() => {

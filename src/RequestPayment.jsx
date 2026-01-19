@@ -17,6 +17,7 @@ function PaymentRequest() {
     const [isCompleting, setIsCompleting] = useState(false);
     const [isDeclining, setIsDeclining] = useState(false);
     const [declineReason, setDeclineReason] = useState("");
+    const [modalType, setModalType] = useState(null);
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -140,22 +141,23 @@ function PaymentRequest() {
 
     const openModal = (request) => {
         setModalRequest(request);
+        setModalType("pen");
         setModalOpen(true);
     };
 
     const openModalReceived = (request) => {
         setModalRequest(request);
+        setModalType("app"); 
         setModalOpen(true);
     };
 
     const handleCloseModal = () => {
         setIsClosing(true);
         setTimeout(() => {
-        setIsClosing(false);
-        setModalOpen(false);
-        setModalRequest(null);
-        setShowLoadingModal(false);
-        setShowConfirmDecline(false);
+            setIsClosing(false);
+            setModalOpen(false);
+            setModalRequest(null);
+            setModalType(null);
         }, 300);
     };
 
@@ -212,7 +214,7 @@ function PaymentRequest() {
                 </div>
             )}
 
-            {userRole.toLowerCase() === "approve" && (
+            {userRole?.toLowerCase() === "approve" && userAccess?.includes("Payment Request Form") && (
                 <div className="admin-table-wrapper">
                     <table className="admin-table purchase-table">
                     <thead>
@@ -278,7 +280,7 @@ function PaymentRequest() {
             )}
 
             {/* Accounting Department Only */}
-            {userRole.toLowerCase() === "accounting" && (
+            {userRole?.toLowerCase() === "accounting" && userAccess?.includes("Payment Request Form") && (
                 <div className="admin-table-wrapper">
                     <table className="admin-table purchase-table">
                     <thead>
@@ -391,9 +393,9 @@ function PaymentRequest() {
                 </label>
             </div>
 
-            {modalOpen && modalRequest && (
+            {modalOpen && modalRequest && modalType === "pen" && (
                 <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
-                    <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+                    <div className="admin-modal-backdrops" role="dialog" aria-modal="true">
                         <div className="admin-modal-panel request-modals">
                             <button
                                 className="admin-close-btn"
@@ -557,232 +559,265 @@ function PaymentRequest() {
                                 )}
                             </section>
 
-                            <div className="submit-content">
-                              <div className="submit-by-content">
-                                <div>
-                                  <span>{modalRequest.requested_by}</span>
-                                  <p>Requested by</p>
+                            <section className="pr-form-section">
+                                <div className="pr-grid-two">
+                                    <div className="pr-field">
+                                        <label className="pr-label">Requested by</label>
+                                        <input type="text" name="requested_by" className="pr-input" value={modalRequest.requested_by} required readOnly/>
+                                    </div>
+                                    <div className="pr-field receive-signature">
+                                        <label className="pr-label">Signature</label>
+                                        <input type="text" name="requested_signature" className="pr-input received-signature" value={modalRequest.requested_signature}  readOnly />
+                                        {modalRequest.requested_signature ? (
+                                            <img
+                                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.requested_signature}`}
+                                            alt="Signature"
+                                            className="img-sign"/>
+                                            ) : (
+                                            <p>No signature available</p>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <div className="signature-content">
-                                  <input className="submit-sign" type="text" value={modalRequest.requested_signature} readOnly />
-                                  {modalRequest.requested_signature ? (
-                                    <>
-                                      <img
-                                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.requested_signature}`}
-                                        alt="Signature"
-                                        className="ca-signature-image"
-                                      />
-                                    </>
-                                  ) : (
-                                    <div className="img-sign empty-sign"></div>
-                                  )}
-                                  <p>Signature</p>
-                                </div>
-                              </div>
-                            </div>
-
-                            <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
-                              <div className="submit-content">
-                                <div className="submit-by-content">
-                                    <div>
-                                        <label>
-                                            <span>
-                                              <input
+                                {/* <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label className="pr-label">Approve by</label>
+                                            <input
                                                 type="text"
                                                 name="approved_by"
                                                 value={userData.name || ""}
-                                                className="approver"
+                                                className="pr-input"
                                                 readOnly
-                                              />
-                                            </span>
-                                            <p>Approved by</p>
-                                        </label>
+                                            />
+                                        </div>
+                                        <div className="pr-field">
+                                            <label className="pr-label">Signature</label>
+                                            <input
+                                                type="text"
+                                                name="approved_signature"
+                                                value={userData.signature || ""}
+                                                className="pr-input approver"
+                                                required
+                                                readOnly
+                                            />
+                                        </div>
+                                    </div>
+                                </form> */}
+                                {/* <div className="submit-by-content">
+                                    <div>
+                                    <span>{modalRequest.requested_by}</span>
+                                    <p>Requested by</p>
                                     </div>
 
-                                    <div className="approver-signature">
-                                        <label>
-                                            <span>
-                                                <input
-                                                    type="text"
-                                                    name="approved_signature"
-                                                    value={userData.signature || ""}
-                                                    className="submit-sign approver"
+                                    <div className="signature-content">
+                                    <input className="submit-sign" type="text" value={modalRequest.requested_signature} readOnly />
+                                    {modalRequest.requested_signature ? (
+                                        <>
+                                        <img
+                                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.requested_signature}`}
+                                            alt="Signature"
+                                            className="ca-signature-image"
+                                        />
+                                        </>
+                                    ) : (
+                                        <div className="img-sign empty-sign"></div>
+                                    )}
+                                    <p>Signature</p>
+                                    </div>
+                                </div> */}
+
+                                <form className="request-footer-form" onSubmit={(e) => e.preventDefault()}>
+                                    <div className="pr-grid-two">
+                                        <div className="pr-field">
+                                            <label className="pr-label">Approve by</label>
+                                            <input
+                                                type="text"
+                                                name="approved_by"
+                                                value={userData.name || ""}
+                                                className="pr-input"
+                                                readOnly
+                                            />
+                                        </div>
+                                        <div className="pr-field receive-signature">
+                                            <label className="pr-label">Signature</label>
+                                            <input
+                                                type="text"
+                                                name="approved_signature"
+                                                value={userData.signature || ""}
+                                                className="pr-input received-signature"
+                                                required
+                                                readOnly
+                                            />
+                                                {userData.signature ? (
+                                                <img
+                                                src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
+                                                alt="Signature"
+                                                className="img-sign"/>
+                                                ) : (
+                                                <p>No signature available</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="footer-modal">
+                                        <button
+                                            type="button"
+                                            className="admin-success-btn"
+                                            disabled={isApproving}
+                                            onClick={async () => {
+                                            setIsApproving(true);
+                                            const form = document.querySelector(".request-footer-form");
+                                            const formData = new FormData(form);
+
+                                            formData.append("prf_request_code", modalRequest.prf_request_code);
+                                            formData.append("status", "Approved");
+
+                                            setShowLoadingModal(true);
+
+                                            try {
+                                                const response = await fetch(`${API_BASE_URL}/api/update_payment_request`, {
+                                                method: "PUT",
+                                                body: formData,
+                                                });
+
+                                                if (!response.ok) throw new Error("Failed to approve request");
+
+                                                setStatus({
+                                                type: "info",
+                                                message: "Payment request approved successfully.",
+                                                });
+                                                handleCloseModal();
+                                                fetchRequests();
+                                            } catch (err) {
+                                                console.error(err);
+                                                setStatus({ type: "error", message: err.message });
+                                            } finally {
+                                                setIsApproving(false);
+                                                setShowLoadingModal(false);
+                                            }
+                                            }}
+                                        >
+                                            {isApproving ? "Approving..." : "✅ Approve"}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="admin-reject-btn"
+                                            onClick={() => setShowConfirmDecline(true)}
+                                        >
+                                            ❌ Decline
+                                        </button>
+                                    </div>
+
+                                    {showConfirmDecline && (
+                                        <div className={`confirm-modal-overlay-prf ${isClosing ? "fade-out" : ""}`}>
+                                            <div className="admin-modal-backdrops">
+                                                <div
+                                                    className="admin-modal-panel"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <h3>Confirm Decline</h3>
+                                                    <p>Please provide a reason for declining this purchase request:</p>
+
+                                                    <textarea
+                                                    className="decline-reason-textarea"
+                                                    placeholder="Enter reason for decline..."
+                                                    name="declined_reason"
+                                                    value={declineReason}
+                                                    onChange={(e) => setDeclineReason(e.target.value)}
                                                     required
-                                                    readOnly
-                                                />
-                                            </span>
-                                          {userData.signature ? (
-                                          <img
-                                          src={`${API_BASE_URL}/uploads/signatures/${userData.signature}`}
-                                          alt="Signature"
-                                          className="signature-img"/>
-                                          ) : (
-                                              <div className="img-sign empty-sign"></div>
-                                          )}
-                                          <p>Signature</p>
-                                        </label>
-                                    </div>
-                                </div>
-                              </div>
-                              <div className="footer-modal">
-                                  <button
-                                      type="button"
-                                      className="admin-success-btn"
-                                      disabled={isApproving}
-                                      onClick={async () => {
-                                      setIsApproving(true);
-                                      const form = document.querySelector(".request-footer-form");
-                                      const formData = new FormData(form);
+                                                    style={{
+                                                        width: "100%",
+                                                        minHeight: "80px",
+                                                        borderRadius: "6px",
+                                                        padding: "8px",
+                                                        marginTop: "8px",
+                                                        marginBottom: "16px",
+                                                        border: "1px solid #ccc",
+                                                        resize: "vertical",
+                                                    }}
+                                                    />
 
-                                      formData.append("prf_request_code", modalRequest.prf_request_code);
-                                      formData.append("status", "Approved");
+                                                    <div
+                                                    style={{
+                                                        display: "flex",
+                                                        gap: "12px",
+                                                        justifyContent: "center",
+                                                    }}
+                                                    >
+                                                        <button
+                                                            className="admin-reject-btn"
+                                                            disabled={!declineReason.trim() || isDeclining} 
+                                                            onClick={async () => {
+                                                                setIsDeclining(true);
+                                                                const formData = new FormData();
+                                                                formData.append(
+                                                                "prf_request_code",
+                                                                modalRequest.prf_request_code
+                                                                );
+                                                                formData.append("status", "Declined");
+                                                                formData.append("declined_reason", declineReason.trim());
 
-                                      setShowLoadingModal(true);
+                                                                setShowLoadingModal(true);
 
-                                      try {
-                                          const response = await fetch(`${API_BASE_URL}/api/update_payment_request`, {
-                                          method: "PUT",
-                                          body: formData,
-                                          });
+                                                                try {
+                                                                const response = await fetch(
+                                                                    `${API_BASE_URL}/api/update_payment_request`,
+                                                                    {
+                                                                    method: "PUT",
+                                                                    body: formData,
+                                                                    }
+                                                                );
 
-                                          if (!response.ok) throw new Error("Failed to approve request");
+                                                                if (!response.ok)
+                                                                    throw new Error("Failed to decline request");
 
-                                          setStatus({
-                                          type: "info",
-                                          message: "Payment request approved successfully.",
-                                          });
-                                          handleCloseModal();
-                                          fetchRequests();
-                                      } catch (err) {
-                                          console.error(err);
-                                          setStatus({ type: "error", message: err.message });
-                                      } finally {
-                                          setIsApproving(false);
-                                          setShowLoadingModal(false);
-                                      }
-                                      }}
-                                  >
-                                      {isApproving ? "Approving..." : "✅ Approve"}
-                                  </button>
-
-                                  <button
-                                      type="button"
-                                      className="admin-reject-btn"
-                                      onClick={() => setShowConfirmDecline(true)}
-                                  >
-                                      ❌ Decline
-                                  </button>
-                              </div>
-
-                              {showConfirmDecline && (
-                                  <div className={`confirm-modal-overlay-prf ${isClosing ? "fade-out" : ""}`}>
-                                      <div className="admin-modal-backdrop">
-                                          <div
-                                              className="admin-modal-panel"
-                                              onClick={(e) => e.stopPropagation()}
-                                          >
-                                              <h3>Confirm Decline</h3>
-                                              <p>Please provide a reason for declining this purchase request:</p>
-
-                                              <textarea
-                                              className="decline-reason-textarea"
-                                              placeholder="Enter reason for decline..."
-                                              name="declined_reason"
-                                              value={declineReason}
-                                              onChange={(e) => setDeclineReason(e.target.value)}
-                                              required
-                                              style={{
-                                                  width: "100%",
-                                                  minHeight: "80px",
-                                                  borderRadius: "6px",
-                                                  padding: "8px",
-                                                  marginTop: "8px",
-                                                  marginBottom: "16px",
-                                                  border: "1px solid #ccc",
-                                                  resize: "vertical",
-                                              }}
-                                              />
-
-                                              <div
-                                              style={{
-                                                  display: "flex",
-                                                  gap: "12px",
-                                                  justifyContent: "center",
-                                              }}
-                                              >
-                                                  <button
-                                                      className="admin-reject-btn"
-                                                      disabled={!declineReason.trim() || isDeclining} 
-                                                      onClick={async () => {
-                                                          setIsDeclining(true);
-                                                          const formData = new FormData();
-                                                          formData.append(
-                                                          "prf_request_code",
-                                                          modalRequest.prf_request_code
-                                                          );
-                                                          formData.append("status", "Declined");
-                                                          formData.append("declined_reason", declineReason.trim());
-
-                                                          setShowLoadingModal(true);
-
-                                                          try {
-                                                          const response = await fetch(
-                                                              `${API_BASE_URL}/api/update_payment_request`,
-                                                              {
-                                                              method: "PUT",
-                                                              body: formData,
-                                                              }
-                                                          );
-
-                                                          if (!response.ok)
-                                                              throw new Error("Failed to decline request");
-
-                                                          setStatus({
-                                                              type: "info",
-                                                              message: "Payment request declined successfully.",
-                                                          });
-                                                          handleCloseModal();
-                                                          fetchRequests();
-                                                          } catch (err) {
-                                                          console.error(err);
-                                                          setStatus({ type: "error", message: err.message });
-                                                          } finally {
-                                                          setIsDeclining(false);
-                                                          setShowConfirmDecline(false);
-                                                          setShowLoadingModal(false);
-                                                          setDeclineReason("");
-                                                          }
-                                                      }}
-                                                      >
-                                                      {isDeclining ? "Declining..." : "Decline"}
-                                                      </button>
+                                                                setStatus({
+                                                                    type: "info",
+                                                                    message: "Payment request declined successfully.",
+                                                                });
+                                                                handleCloseModal();
+                                                                fetchRequests();
+                                                                } catch (err) {
+                                                                console.error(err);
+                                                                setStatus({ type: "error", message: err.message });
+                                                                } finally {
+                                                                setIsDeclining(false);
+                                                                setShowConfirmDecline(false);
+                                                                setShowLoadingModal(false);
+                                                                setDeclineReason("");
+                                                                }
+                                                            }}
+                                                            >
+                                                            {isDeclining ? "Declining..." : "Decline"}
+                                                            </button>
 
 
-                                                  <button
-                                                      className="admin-cancel-btn"
-                                                      onClick={() => {
-                                                      setShowConfirmDecline(false);
-                                                      setDeclineReason("");
-                                                      }}
-                                                  >
-                                                      Cancel
-                                                  </button>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  </div>
-                                )}
-                            </form>
+                                                        <button
+                                                            className="admin-cancel-btn"
+                                                            onClick={() => {
+                                                            setShowConfirmDecline(false);
+                                                            setDeclineReason("");
+                                                            }}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </form>
+                            </section>
                         </div>
                     </div>
                 </div>
             )}
 
             {/* Accounting Dept */}
-            {modalOpen && modalRequest && (
+            {modalOpen && modalRequest && modalType === "app" && (
                 <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
-                    <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+                    <div className="admin-modal-backdrops" role="dialog" aria-modal="true">
                         <div className="admin-modal-panel request-modals">
                             <button
                                 className="admin-close-btn"
@@ -948,13 +983,13 @@ function PaymentRequest() {
                             <section className="pr-form-section" id="details">
                                 <div className="pr-grid-two">
                                     <div className="pr-field">
-                                        <label className="car-reference-value">Requested by:</label>
-                                        <input type="text" name="requested_by" className="car-input" value={modalRequest.requested_by} required readOnly/>
+                                        <label className="pr-label">Requested by:</label>
+                                        <input type="text" name="requested_by" className="pr-input" value={modalRequest.requested_by} required readOnly/>
                                     </div>
 
                                     <div className="pr-field receive-signature">
-                                        <label className="car-reference-value">Signature</label>
-                                        <input type="text" name="requested_signature" className="car-input received-signature" value={modalRequest.requested_signature}  readOnly />
+                                        <label className="pr-label">Signature</label>
+                                        <input type="text" name="requested_signature" className="pr-input received-signature" value={modalRequest.requested_signature}  readOnly />
                                         {modalRequest.requested_signature ? (
                                             <img
                                             src={`${API_BASE_URL}/uploads/signatures/${modalRequest.requested_signature}`}
@@ -967,32 +1002,32 @@ function PaymentRequest() {
                                 </div>
                                 <div className="pr-grid-two">
                                     <div className="pr-field">
-                                    <label className="car-reference-value">Approved by:</label>
-                                    <input type="text" name="approved_by" className="car-input" value={modalRequest.approved_by} required readOnly/>
+                                    <label className="pr-label">Approved by:</label>
+                                    <input type="text" name="approved_by" className="pr-input" value={modalRequest.approved_by} required readOnly/>
                                     </div>
 
                                     <div className="pr-field receive-signature">
-                                    <label className="car-reference-value">Signature</label>
-                                    <input type="text" name="approved_signature" className="car-input received-signature" value={modalRequest.approved_signature}  readOnly />
-                                    {modalRequest.approved_signature ? (
-                                        <img
-                                        src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
-                                        alt="Signature"
-                                        className="img-sign"/>
-                                        ) : (
-                                            <p>No signature available</p>
+                                        <label className="pr-label">Signature</label>
+                                        <input type="text" name="approved_signature" className="pr-input received-signature" value={modalRequest.approved_signature}  readOnly />
+                                        {modalRequest.approved_signature ? (
+                                            <img
+                                            src={`${API_BASE_URL}/uploads/signatures/${modalRequest.approved_signature}`}
+                                            alt="Signature"
+                                            className="img-sign"/>
+                                            ) : (
+                                                <p>No signature available</p>
                                         )}
                                     </div>
                                 </div>
                                 <div className="pr-grid-two">
                                     <div className="pr-field">
-                                        <label className="car-reference-value">Received by:</label>
-                                        <input type="text" name="received_by" className="car-input" value={modalRequest.received_by} required readOnly/>
+                                        <label className="pr-label">Received by:</label>
+                                        <input type="text" name="received_by" className="pr-input" value={modalRequest.received_by} required readOnly/>
                                     </div>
 
                                     <div className="pr-field receive-signature">
-                                        <label className="car-reference-value">Signature</label>
-                                        <input type="text" name="received_signature" className="car-input received-signature" value={modalRequest.received_signature}  readOnly />
+                                        <label className="pr-label">Signature</label>
+                                        <input type="text" name="received_signature" className="pr-input received-signature" value={modalRequest.received_signature}  readOnly />
                                         {modalRequest.received_signature ? (
                                             <img
                                             src={`${API_BASE_URL}/uploads/signatures/${modalRequest.received_signature}`}
@@ -1071,11 +1106,9 @@ function PaymentRequest() {
                                         const inputs = form.querySelectorAll("input[required]");
                                         let valid = true;
 
-                                        // Reset all previous errors
                                         form.querySelectorAll(".error-message").forEach(el => (el.textContent = ""));
                                         inputs.forEach(input => input.classList.remove("input-error"));
 
-                                        // Validate each required input
                                         inputs.forEach(input => {
                                         if (!input.value.trim()) {
                                             valid = false;
@@ -1086,10 +1119,9 @@ function PaymentRequest() {
 
                                         if (!valid) {
                                         setIsCompleting(false);
-                                        return; // stop submission
+                                        return;
                                         }
 
-                                        // Continue if valid
                                         const formData = new FormData(form);
                                         formData.append("prf_request_code", modalRequest.prf_request_code);
                                         formData.append("status", "Completed");
