@@ -6,6 +6,7 @@ import ManageUsers from "./ManageUsers.jsx";
 import ManageUsersAccess from "./ManageUsersAccess.jsx";
 import ManageBranches from "./ManageBranches.jsx";
 import ManageDepartments from "./ManageDepartments.jsx";
+import ExpenseCategories from "./ExpenseCategories.jsx";
 import LeaveTypes from "./LeaveTypes.jsx";
 import ManageLeave from "./ManageLeave.jsx";
 import RequestPurchase from "./RequestPurchase.jsx";
@@ -114,6 +115,11 @@ const NAVIGATION = [
         //   "Maintain department hierarchy for routing and approvals.",
       },
       {
+        id: "expense-categories",
+        label: "Expense Categories",
+        icon: "🧾",
+      },
+      {
         id: "leave-information",
         label: "Leave Information",
         icon: "🏷️",
@@ -192,6 +198,7 @@ const getInitialView = () => {
       "reports-leave-application",
       "reports-interbranch-transfer-slip",
       "approved-requests",
+      "expense-categories",
       "leave-information",
       "leave-types",
       "manage-user-leaves",
@@ -245,6 +252,8 @@ function OverviewPanel({ summary, loading, error } = {}) {
     // if (normalized.includes("declin") || normalized.includes("reject")) return "danger";
     if (normalized.includes("decline") || normalized.includes("reject")) return "danger";
     if (normalized.includes("approve")) return "success";
+    if (normalized.includes("received")) return "primary";
+    if (normalized.includes("complete")) return "secondary";
     return "pending";
   };
 
@@ -278,6 +287,12 @@ function OverviewPanel({ summary, loading, error } = {}) {
                 </span>
                 <span className="status-pill status-pill--danger">
                   {formatMetric(card.declined)} declined
+                </span>
+                <span className="status-pill status-pill--primary">
+                  {formatMetric(card.received)} received
+                </span>
+                <span className="status-pill status-pill--secondary">
+                  {formatMetric(card.completed)} completed
                 </span>
               </div>
             </article>
@@ -648,6 +663,14 @@ function renderActiveView(view, extraProps = {}) {
           <ManageDepartments />
         </div>
       );
+
+    case "expense-categories":
+      return (
+        <div className="dashboard-content dashboard-content--flush">
+          <ExpenseCategories />
+        </div>
+      );
+
     case "leave-information":
       return (
         <PlaceholderPanel
@@ -984,6 +1007,20 @@ function Dashboard({ role, name, onLogout }) {
                     );
                   } 
 
+                  if (item.id === "expense-categories") {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`sidebar-item${activeView === "expense-categories" ? " sidebar-item-active" : ""}`}
+                        onClick={() => handleMenuClick("expense-categories")}
+                      >
+                        <span className="sidebar-item-icon">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  } 
+
                   if (item.id === "leave-information") {
                     return (
                       <div key={item.id} className="sidebar-dropdown">
@@ -1064,7 +1101,7 @@ function Dashboard({ role, name, onLogout }) {
                           }`}
                           onClick={() => setRequestsOpen((prev) => !prev)}
                         >
-                          <span className="sidebar-item-icon">{item.icon}</span>
+     ;                     <span className="sidebar-item-icon">{item.icon}</span>
                           <span>{item.label}</span>
                           <span className="sidebar-dropdown-arrow">{requestsOpen ? "▲" : "▼"}</span>
                         </button> */}

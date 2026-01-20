@@ -574,7 +574,7 @@ function PaymentRequest() {
                                             alt="Signature"
                                             className="img-sign"/>
                                             ) : (
-                                            <p>No signature available</p>
+                                            <p style={{display: 'none'}}>No signature available</p>
                                         )}
                                     </div>
                                 </div>
@@ -655,7 +655,7 @@ function PaymentRequest() {
                                                 alt="Signature"
                                                 className="img-sign"/>
                                                 ) : (
-                                                <p>No signature available</p>
+                                                <p style={{display: 'none'}}>No signature available</p>
                                             )}
                                         </div>
                                     </div>
@@ -996,7 +996,7 @@ function PaymentRequest() {
                                             alt="Signature"
                                             className="img-sign"/>
                                             ) : (
-                                            <p>No signature available</p>
+                                            <p style={{display: 'none'}}>No signature available</p>
                                         )}
                                     </div>
                                 </div>
@@ -1015,7 +1015,7 @@ function PaymentRequest() {
                                             alt="Signature"
                                             className="img-sign"/>
                                             ) : (
-                                                <p>No signature available</p>
+                                                <p style={{display: 'none'}}>No signature available</p>
                                         )}
                                     </div>
                                 </div>
@@ -1034,7 +1034,7 @@ function PaymentRequest() {
                                             alt="Signature"
                                             className="img-sign"/>
                                         ) : (
-                                            <p>No signature available</p>
+                                            <p style={{display: 'none'}}>No signature available</p>
                                         )}
                                     </div>
                                 </div>

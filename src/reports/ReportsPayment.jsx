@@ -533,7 +533,7 @@ function ReportsPayment() {
                                             <td className="text-center">{item.quantity}</td>
                                             <td className="text-center">{Number(item.unit_price).toLocaleString("en-PH", { style: "currency", currency: "PHP", })}</td>
                                             <td className="text-center">{Number(item.amount).toLocaleString("en-PH", { style: "currency", currency: "PHP", })}</td>
-                                            <td className="text-center">{Number(item.expense_charges).toLocaleString("en-PH", { style: "currency", currency: "PHP", })}</td>
+                                            <td className="text-center">{item.expense_charges}</td>
                                             <td className="text-center">{item.location}</td>
                                         </tr>
         
@@ -582,7 +582,7 @@ function ReportsPayment() {
                                         alt="Signature"
                                         className="img-sign"/>
                                         ) : (
-                                            <p></p>
+                                            <p style={{display: 'none'}}></p>
                                         )}
                                     </div>
                                 </div>
@@ -612,7 +612,7 @@ function ReportsPayment() {
                                         alt="Signature"
                                         className="img-sign"/>
                                         ) : (
-                                            <p></p>
+                                            <p style={{display: 'none'}}></p>
                                         )}
                                     </div>
                                 </div>
@@ -642,7 +642,7 @@ function ReportsPayment() {
                                         alt="Signature"
                                         className="img-sign"/>
                                         ) : (
-                                            <p></p>
+                                            <p style={{display: 'none'}}></p>
                                         )}
                                     </div>
                                 </div>

@@ -52,6 +52,41 @@ function PaymentRequest({ onLogout }) {
   const [message, setMessage] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [expenseCategories, setExpenseCategories] = useState([]);
+  const [branches, setBranches] = useState([]);
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/branches`);
+        if (!res.ok) throw new Error("Failed to fetch branches");
+        const data = await res.json();
+        setBranches(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error fetching branches:", err);
+        setBranches([]);
+      }
+    };
+
+    fetchBranches();
+  }, []);
+
+  useEffect(() => {
+    const fetchExpenseCategories = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/expense_category`);
+        if (!res.ok) throw new Error("Failed to fetch expense categories");
+        const data = await res.json();
+        setExpenseCategories(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error fetching expense categories:", err);
+        setExpenseCategories([]);
+      }
+    };
+
+    fetchExpenseCategories();
+  }, []);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -623,22 +658,43 @@ function PaymentRequest({ onLogout }) {
                           <input
                             type="text"
                             name="expense_charges"
-                            value={item.expense_charges}
+                            list={`expense-charges-options-${index}`}
+                            value={item.expense_charges ?? ""}
                             onChange={(event) => handleItemChange(index, event)}
                             className="pr-input"
+                            placeholder="Select or type"
                             required
                           />
+
+                          <datalist id={`expense-charges-options-${index}`}>
+                            {expenseCategories.map((cat) => (
+                              <option
+                                key={cat.id}
+                                value={cat.name}
+                              />
+                            ))}
+                          </datalist>
                         </td>
+
                         <td>
                           <input
                             type="text"
                             name="location"
-                            value={item.location}
+                            list={`branch-options-${index}`}
+                            value={item.location ?? ""}
                             onChange={(event) => handleItemChange(index, event)}
                             className="pr-input"
+                            placeholder="Select or type branch"
                             required
                           />
+
+                          <datalist id={`branch-options-${index}`}>
+                            {branches.map((b) => (
+                              <option key={b.id} value={b.branch_name} />
+                            ))}
+                          </datalist>
                         </td>
+
                         <td>
                           <button
                             type="button"
@@ -684,7 +740,7 @@ function PaymentRequest({ onLogout }) {
                       alt="Signature"
                       className="img-sign"/>
                       ) : (
-                          <p>No signature available</p>
+                          <p style={{display: 'none'}}>No signature available</p>
                     )}
                 </div>
               </div>

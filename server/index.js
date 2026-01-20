@@ -644,6 +644,8 @@ app.get("/api/dashboard/summary", async (req, res) => {
         pending: pendingTotal,
         approved: breakdown.Approved || 0,
         declined: declinedTotal,
+        received: breakdown.Received || 0,
+        completed: breakdown.Completed || 0,
         breakdown,
       });
     }
@@ -776,6 +778,24 @@ app.get("/api/dashboard/summary", async (req, res) => {
         UNION ALL
         SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
         FROM cash_advance_request
+        UNION ALL
+        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        FROM cash_advance_liquidation
+        UNION ALL
+        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        FROM payment_request
+        UNION ALL
+        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        FROM maintenance_repair_request
+        UNION ALL
+        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        FROM overtime_approval_request
+        UNION ALL
+        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        FROM leave_application
+        UNION ALL
+        SELECT user_id, COALESCE(created_at, transmittal_date) AS activity_ts
+        FROM transmittal_requests
       ),
       recent AS (
         SELECT *
@@ -4120,6 +4140,78 @@ app.delete("/api/departments/:id", async (req, res) => {
 
 
 /* ------------------------
+   EXPENSE CATEGORY CRUD API
+------------------------ */
+app.get("/api/expense_category", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM expense_category ORDER BY id ASC");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching expense category:", err);
+    res.status(500).json({ message: "Server error fetching expense category" });
+  }
+});
+
+app.post("/api/expense_category", async (req, res) => {
+  const { name, description, expense_account} = req.body;
+
+  if (!name?.trim() || !expense_account?.trim()) {
+    return res.status(400).json({
+      message: "Name and expense account are required",
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO expense_category (name, description, expense_account)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [name, description, expense_account]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error adding expense category:", err);
+    res.status(500).json({ message: "Server error adding expense category" });
+  }
+});
+
+app.put("/api/expense_category/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, description, expense_account} = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE expense_category 
+       SET name = $1, description = $2, expense_account = $3, updated_at = NOW()
+       WHERE id = $4
+       RETURNING *`,
+      [name, description, expense_account, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Expense category not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error updating expense category:", err);
+    res.status(500).json({ message: "Server error updating expense category" });
+  }
+});
+
+app.delete("/api/expense_category/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM expense_category WHERE id = $1", [id]);
+    res.json({ message: "Expense category deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting expense category:", err);
+    res.status(500).json({ message: "Server error deleting expense category" });
+  }
+});
+
+/* ------------------------
    LEAVE TYPE CRUD API
 ------------------------ */
 app.get("/api/leave_types", async (req, res) => {
@@ -5034,44 +5126,44 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
 
-//ENDPOINT FOR AUDIT REPORTS
-app.get("/api/reports_audit", async (req, res) => {
-  try {
-    const tablesResult = await pool.query(`
-      SELECT table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'public'
-        AND table_type = 'BASE TABLE'
-        AND (table_name LIKE '%request' OR table_name LIKE '%requests');
-    `);
+// //ENDPOINT FOR AUDIT REPORTS
+// app.get("/api/reports_audit", async (req, res) => {
+//   try {
+//     const tablesResult = await pool.query(`
+//       SELECT table_name
+//       FROM information_schema.tables
+//       WHERE table_schema = 'public'
+//         AND table_type = 'BASE TABLE'
+//         AND (table_name LIKE '%request' OR table_name LIKE '%requests');
+//     `);
 
-    const allData = {};
-    const errors = [];
+//     const allData = {};
+//     const errors = [];
 
-    for (const row of tablesResult.rows) {
-      const tableName = row.table_name;
-      try {
-        const result = await pool.query(`SELECT * FROM "${tableName}" LIMIT 50`);
-        allData[tableName] = result.rows;
-      } catch (err) {
-        console.warn(`⚠️ Skipping table ${tableName}: ${err.message}`);
-        errors.push({ table: tableName, error: err.message });
-        allData[tableName] = [];
-      }
-    }
+//     for (const row of tablesResult.rows) {
+//       const tableName = row.table_name;
+//       try {
+//         const result = await pool.query(`SELECT * FROM "${tableName}" LIMIT 50`);
+//         allData[tableName] = result.rows;
+//       } catch (err) {
+//         console.warn(`⚠️ Skipping table ${tableName}: ${err.message}`);
+//         errors.push({ table: tableName, error: err.message });
+//         allData[tableName] = [];
+//       }
+//     }
 
-    res.status(200).json({
-      success: true,
-      message: "Database tables fetched successfully",
-      tables: allData,
-      skippedTables: errors,
-    });
-  } catch (error) {
-    console.error("❌ Error fetching all database data:", error);
-    res.status(200).json({
-      success: false,
-      message: "Error retrieving data",
-      error: error.message,
-    });
-  }
-});
+//     res.status(200).json({
+//       success: true,
+//       message: "Database tables fetched successfully",
+//       tables: allData,
+//       skippedTables: errors,
+//     });
+//   } catch (error) {
+//     console.error("❌ Error fetching all database data:", error);
+//     res.status(200).json({
+//       success: false,
+//       message: "Error retrieving data",
+//       error: error.message,
+//     });
+//   }
+// });

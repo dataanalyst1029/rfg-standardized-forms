@@ -325,7 +325,7 @@ function FormsList({ onLogout }) {
 
       {showSettingsModal && (
         <div className={`modal-overlay ${isClosing ? "fade-out" : ""}`}>
-          <div className="modal-content user-modal">
+          <div className="modal-content-user user-modal">
             <div className="user-modal-header">
               <div className="user-avatar-container">
                 <img
