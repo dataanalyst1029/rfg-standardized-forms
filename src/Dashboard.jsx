@@ -39,6 +39,11 @@ import ReportsLeaveApplication from "./reports/ReportsLeaveApplication.jsx";
 import ReportsTransmittal from "./reports/ReportsTransmittal.jsx";
 const STORAGE_KEY = "rfg-dashboard-active-view";
 
+const yyyyMmDd = (d) => {
+  const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
 const NAVIGATION = [
   {
     id: "workspace",
@@ -212,7 +217,7 @@ const getInitialView = () => {
 };
 
 
-function OverviewPanel({ summary, loading, error } = {}) {
+function OverviewPanel({summary, loading, error,   dateFrom, dateTo, onDateFromChange, onDateToChange, } = {}) {
   const workloadCards = summary?.workload ?? [];
   const outstandingItems = summary?.outstanding ?? [];
   const engagement = summary?.engagement;
@@ -262,9 +267,10 @@ function OverviewPanel({ summary, loading, error } = {}) {
   const [workloadPage, setWorkloadPage] = useState(1);
   const pageSize = 6;
   const totalWorkloadPages = Math.max(1, Math.ceil(workloadCards.length / pageSize));
-  useEffect(() => {99
+  useEffect(() => {
     setWorkloadPage(1);
   }, [workloadCards.length]);
+
 
   const pagedWorkload = workloadCards.slice((workloadPage - 1) * pageSize, workloadPage * pageSize);
 
@@ -369,19 +375,56 @@ function OverviewPanel({ summary, loading, error } = {}) {
         ))}
       </section>
 
-      <section className="dashboard-panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Workload snapshot</h2>
-            <p>Live requests by lifecycle stage.</p>
-          </div>
-          {/* <span className="panel-meta">
-            {loading ? "Refreshing…" : refreshedLabel ? `Updated ${refreshedLabel}` : ""}
-          </span> */}
-        </div>
-        {error && <div className="panel-error">{error}</div>}
-        {workloadContent}
-      </section>
+            <section className="dashboard-panel">
+              <div className="panel-heading">
+                <div>
+                  <h2>Workload snapshot</h2>
+                  <p>Live requests by lifecycle stage.</p>
+                </div>
+
+                <div className="panel-filters">
+                  <div>
+                    <label className="panel-filter">
+                      <span className="pr-label">From</span>
+                      <input
+                        type="date"
+                        className="pr-input"
+                        value={dateFrom || ""}
+                        max={dateTo || undefined}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          onDateFromChange?.(val);
+
+                          // if from > to, auto-fix to = from
+                          if (dateTo && val && dateTo < val) onDateToChange?.(val);
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <div>
+                    <label className="panel-filter">
+                      <span className="pr-label">To</span>
+                      <input
+                        type="date"
+                        className="pr-input"
+                        value={dateTo || ""}
+                        min={dateFrom || undefined}
+                        max={yyyyMmDd(new Date())} // prevent future dates
+                        onChange={(e) => onDateToChange?.(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+
+                {/* <span className="panel-meta">
+                  {loading ? "Refreshing…" : refreshedLabel ? `Updated ${refreshedLabel}` : ""}
+                </span> */}
+              </div>
+              {error && <div className="panel-error">{error}</div>}
+              {workloadContent}
+            </section>
+
 
       <div className="dashboard-grid">
         <section className="dashboard-panel">
@@ -715,6 +758,16 @@ function Dashboard({ role, name, onLogout }) {
   const [userAccess, setUserAccess] = useState([]);
   const [userRole, setUserRole] = useState([]);
   const { view } = useParams();
+
+  const today = useMemo(() => new Date(), []);
+  const startOfThisMonth = useMemo(
+    () => new Date(today.getFullYear(), today.getMonth(), 1),
+    [today]
+  );
+
+  const [dateFrom, setDateFrom] = useState(() => yyyyMmDd(startOfThisMonth));
+  const [dateTo, setDateTo] = useState(() => yyyyMmDd(today));
+
   const navigate = useNavigate();
 
   // const [activeView, setActiveView] = useState(view || "overview");
@@ -751,7 +804,13 @@ function Dashboard({ role, name, onLogout }) {
         setSummaryLoading(true);
       }
       try {
-        const response = await fetch(`${API_BASE_URL}/api/dashboard/summary`);
+        const params = new URLSearchParams();
+          if (dateFrom) params.set("date_from", dateFrom);
+          if (dateTo) params.set("date_to", dateTo);
+
+          const url = `${API_BASE_URL}/api/dashboard/summary${params.toString() ? `?${params.toString()}` : ""}`;
+        const response = await fetch(url);
+
         if (!response.ok) {
           throw new Error("Unable to load dashboard overview");
         }
@@ -779,7 +838,7 @@ function Dashboard({ role, name, onLogout }) {
       ignore = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     const fetchAccess = async () => {
@@ -1570,6 +1629,10 @@ function Dashboard({ role, name, onLogout }) {
             summary: dashboardSummary,
             loading: summaryLoading,
             error: summaryError,
+            dateFrom,
+            dateTo,
+            onDateFromChange: setDateFrom,
+            onDateToChange: setDateTo,
           },
         })}
       </section>

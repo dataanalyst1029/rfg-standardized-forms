@@ -11,9 +11,18 @@ import path from "path";
 dotenv.config();
 const { Pool } = pkg;
 
+// const pool = new Pool({
+//   connectionString: process.env.DATABASE_URL,
+//   ssl: { rejectUnauthorized: false },
+// });
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  host: process.env.PGHOST,
+  port: Number(process.env.PGPORT || 5432),
+  database: process.env.PGDATABASE,
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  ssl: false,
 });
 
 const app = express();
@@ -202,8 +211,8 @@ const uploadFiles = multer({
 // };
 
 
-pool.connect()
-  .then(() => console.log("✅ Connected to PostgreSQL: request_system"))
+pool.query("SELECT 1")
+  .then(() => console.log("✅ Connected to PostgreSQL"))
   .catch(err => console.error("❌ Database connection error:", err));
 
 /* ------------------------
@@ -598,16 +607,32 @@ app.get("/user-access/:id", async (req, res) => {
 
 app.get("/api/dashboard/summary", async (req, res) => {
   try {
+    const { date_from, date_to } = req.query;
+
+    // If client doesn't send dates, fallback to "this month -> today"
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const yyyyMmDd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const from = date_from || yyyyMmDd(startOfMonth);
+    const to = date_to || yyyyMmDd(now);
+
+    // We'll use: activity_ts >= from AND activity_ts < to + 1 day
+    // (end is exclusive)
+    const params = [from, to];
+
     const workloadSources = [
-      { key: "purchase", label: "Purchase Requests", table: "purchase_request" },
-      { key: "revolving", label: "Revolving Fund", table: "revolving_fund_request" },
-      { key: "cashAdvance", label: "Cash Advance Requests", table: "cash_advance_request" },
-      { key: "cashAdvanceLiquidation", label: "Cash Advance Liquidation", table: "cash_advance_liquidation" },
-      { key: "paymentRequest", label: "Payment Request", table: "payment_request" },
-      { key: "maintenanceRepair", label: "Maintenance / Repair", table: "maintenance_repair_request" },
-      { key: "overtimeRequest", label: "Overtime Request", table: "overtime_approval_request" },
-      { key: "leaveApplication", label: "Leave Application", table: "leave_application" },
-      { key: "transmittalForm", label: "Transmittal Form", table: "transmittal_requests" },
+      { key: "purchase", label: "Purchase Requests", table: "purchase_request", ts: "COALESCE(created_at, request_date)" },
+      { key: "revolving", label: "Revolving Fund", table: "revolving_fund_request", ts: "COALESCE(created_at, date_request)" },
+      { key: "cashAdvance", label: "Cash Advance Requests", table: "cash_advance_request", ts: "COALESCE(created_at, request_date)" },
+      { key: "cashAdvanceLiquidation", label: "Cash Advance Liquidation", table: "cash_advance_liquidation", ts: "COALESCE(created_at, request_date)" },
+      { key: "paymentRequest", label: "Payment Request", table: "payment_request", ts: "COALESCE(created_at, request_date)" },
+      { key: "maintenanceRepair", label: "Maintenance / Repair", table: "maintenance_repair_request", ts: "COALESCE(created_at, request_date)" },
+      { key: "overtimeRequest", label: "Overtime Request", table: "overtime_approval_request", ts: "COALESCE(created_at, request_date)" },
+      { key: "leaveApplication", label: "Leave Application", table: "leave_application", ts: "COALESCE(created_at, request_date)" },
+      { key: "transmittalForm", label: "Transmittal Form", table: "transmittal_requests", ts: "COALESCE(created_at, transmittal_date)" },
     ];
 
     const workload = [];
@@ -617,8 +642,12 @@ app.get("/api/dashboard/summary", async (req, res) => {
         `
           SELECT COALESCE(status, 'Pending') AS status, COUNT(*)::int AS count
           FROM ${source.table}
+          WHERE ${source.ts} IS NOT NULL
+            AND ${source.ts} >= $1::date
+            AND ${source.ts} < ($2::date + INTERVAL '1 day')
           GROUP BY status
         `,
+        params
       );
 
       const breakdown = {};
@@ -650,7 +679,8 @@ app.get("/api/dashboard/summary", async (req, res) => {
       });
     }
 
-    const { rows: outstandingRows } = await pool.query(`
+    const { rows: outstandingRows } = await pool.query(
+      `
       WITH pending AS (
         SELECT 
           'Purchase Request' AS form_label,
@@ -658,9 +688,12 @@ app.get("/api/dashboard/summary", async (req, res) => {
           purchase_request_code AS code,
           request_by AS requester,
           COALESCE(status, 'Pending') AS status,
-          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+          COALESCE(created_at, request_date, NOW()) AS activity_ts
         FROM purchase_request
         WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+          AND COALESCE(created_at, request_date) IS NOT NULL
+          AND COALESCE(created_at, request_date) >= $1::date
+          AND COALESCE(created_at, request_date) < ($2::date + INTERVAL '1 day')
 
         UNION ALL
 
@@ -670,9 +703,12 @@ app.get("/api/dashboard/summary", async (req, res) => {
           revolving_request_code AS code,
           submitted_by AS requester,
           COALESCE(status, 'Pending') AS status,
-          COALESCE(updated_at, created_at, date_request, NOW()) AS activity_ts
+          COALESCE(created_at, date_request, NOW()) AS activity_ts
         FROM revolving_fund_request
         WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+          AND COALESCE(created_at, date_request) IS NOT NULL
+          AND COALESCE(created_at, date_request) >= $1::date
+          AND COALESCE(created_at, date_request) < ($2::date + INTERVAL '1 day')
 
         UNION ALL
 
@@ -682,9 +718,12 @@ app.get("/api/dashboard/summary", async (req, res) => {
           ca_request_code AS code,
           requested_by AS requester,
           COALESCE(status, 'Pending') AS status,
-          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+          COALESCE(created_at, request_date, NOW()) AS activity_ts
         FROM cash_advance_request
         WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+          AND COALESCE(created_at, request_date) IS NOT NULL
+          AND COALESCE(created_at, request_date) >= $1::date
+          AND COALESCE(created_at, request_date) < ($2::date + INTERVAL '1 day')
 
         UNION ALL
 
@@ -694,9 +733,12 @@ app.get("/api/dashboard/summary", async (req, res) => {
           cal_request_code AS code,
           prepared_by AS requester,
           COALESCE(status, 'Pending') AS status,
-          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+          COALESCE(created_at, request_date, NOW()) AS activity_ts
         FROM cash_advance_liquidation
         WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+          AND COALESCE(created_at, request_date) IS NOT NULL
+          AND COALESCE(created_at, request_date) >= $1::date
+          AND COALESCE(created_at, request_date) < ($2::date + INTERVAL '1 day')
 
         UNION ALL
 
@@ -706,9 +748,12 @@ app.get("/api/dashboard/summary", async (req, res) => {
           prf_request_code AS code,
           requested_by AS requester,
           COALESCE(status, 'Pending') AS status,
-          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+          COALESCE(created_at, request_date, NOW()) AS activity_ts
         FROM payment_request
         WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+          AND COALESCE(created_at, request_date) IS NOT NULL
+          AND COALESCE(created_at, request_date) >= $1::date
+          AND COALESCE(created_at, request_date) < ($2::date + INTERVAL '1 day')
 
         UNION ALL
 
@@ -718,9 +763,12 @@ app.get("/api/dashboard/summary", async (req, res) => {
           mrr_request_code AS code,
           requested_by AS requester,
           COALESCE(status, 'Pending') AS status,
-          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+          COALESCE(created_at, request_date, NOW()) AS activity_ts
         FROM maintenance_repair_request
         WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+          AND COALESCE(created_at, request_date) IS NOT NULL
+          AND COALESCE(created_at, request_date) >= $1::date
+          AND COALESCE(created_at, request_date) < ($2::date + INTERVAL '1 day')
 
         UNION ALL
 
@@ -730,9 +778,12 @@ app.get("/api/dashboard/summary", async (req, res) => {
           overtime_request_code AS code,
           requested_by AS requester,
           COALESCE(status, 'Pending') AS status,
-          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+          COALESCE(created_at, request_date, NOW()) AS activity_ts
         FROM overtime_approval_request
         WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+          AND COALESCE(created_at, request_date) IS NOT NULL
+          AND COALESCE(created_at, request_date) >= $1::date
+          AND COALESCE(created_at, request_date) < ($2::date + INTERVAL '1 day')
 
         UNION ALL
 
@@ -742,9 +793,12 @@ app.get("/api/dashboard/summary", async (req, res) => {
           laf_request_code AS code,
           requested_by AS requester,
           COALESCE(status, 'Pending') AS status,
-          COALESCE(updated_at, created_at, request_date, NOW()) AS activity_ts
+          COALESCE(created_at, request_date, NOW()) AS activity_ts
         FROM leave_application
         WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+          AND COALESCE(created_at, request_date) IS NOT NULL
+          AND COALESCE(created_at, request_date) >= $1::date
+          AND COALESCE(created_at, request_date) < ($2::date + INTERVAL '1 day')
 
         UNION ALL
 
@@ -757,6 +811,9 @@ app.get("/api/dashboard/summary", async (req, res) => {
           COALESCE(created_at, transmittal_date, NOW()) AS activity_ts
         FROM transmittal_requests
         WHERE COALESCE(status, 'Pending') IN ('Pending', 'For Review', 'For Approval')
+          AND COALESCE(created_at, transmittal_date) IS NOT NULL
+          AND COALESCE(created_at, transmittal_date) >= $1::date
+          AND COALESCE(created_at, transmittal_date) < ($2::date + INTERVAL '1 day')
       )
       SELECT 
         *,
@@ -764,50 +821,57 @@ app.get("/api/dashboard/summary", async (req, res) => {
       FROM pending
       ORDER BY activity_ts DESC NULLS LAST
       LIMIT 6;
-    `);
+      `,
+      params
+    );
 
     const alerts = outstandingRows.filter((row) => Number(row.age_seconds || 0) > 172800).length;
 
-    const { rows: engagementRows } = await pool.query(`
+    // Engagement: change "last 7 days" -> filtered range
+    const { rows: engagementRows } = await pool.query(
+      `
       WITH submissions AS (
-        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        SELECT user_id, COALESCE(created_at, request_date) AS activity_ts
         FROM purchase_request
         UNION ALL
-        SELECT user_id, COALESCE(updated_at, created_at, date_request) AS activity_ts
+        SELECT user_id, COALESCE(created_at, date_request) AS activity_ts
         FROM revolving_fund_request
         UNION ALL
-        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        SELECT user_id, COALESCE(created_at, request_date) AS activity_ts
         FROM cash_advance_request
         UNION ALL
-        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        SELECT user_id, COALESCE(created_at, request_date) AS activity_ts
         FROM cash_advance_liquidation
         UNION ALL
-        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        SELECT user_id, COALESCE(created_at, request_date) AS activity_ts
         FROM payment_request
         UNION ALL
-        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        SELECT user_id, COALESCE(created_at, request_date) AS activity_ts
         FROM maintenance_repair_request
         UNION ALL
-        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        SELECT user_id, COALESCE(created_at, request_date) AS activity_ts
         FROM overtime_approval_request
         UNION ALL
-        SELECT user_id, COALESCE(updated_at, created_at, request_date) AS activity_ts
+        SELECT user_id, COALESCE(created_at, request_date) AS activity_ts
         FROM leave_application
         UNION ALL
         SELECT user_id, COALESCE(created_at, transmittal_date) AS activity_ts
         FROM transmittal_requests
       ),
-      recent AS (
+      filtered AS (
         SELECT *
         FROM submissions
         WHERE activity_ts IS NOT NULL
-          AND activity_ts >= NOW() - INTERVAL '7 days'
+          AND activity_ts >= $1::date
+          AND activity_ts < ($2::date + INTERVAL '1 day')
       )
       SELECT
         COALESCE((SELECT COUNT(*) FROM users), 0) AS total_users,
-        COALESCE((SELECT COUNT(DISTINCT user_id) FROM recent WHERE user_id IS NOT NULL), 0) AS active_users_7d,
-        COALESCE((SELECT COUNT(*) FROM recent), 0) AS submissions_7d
-    `);
+        COALESCE((SELECT COUNT(DISTINCT user_id) FROM filtered WHERE user_id IS NOT NULL), 0) AS active_users_7d,
+        COALESCE((SELECT COUNT(*) FROM filtered), 0) AS submissions_7d;
+      `,
+      params
+    );
 
     res.json({
       workload,
@@ -828,6 +892,7 @@ app.get("/api/dashboard/summary", async (req, res) => {
     res.status(500).json({ message: "Server error generating dashboard summary" });
   }
 });
+
 
 /* ------------------------
    PURCHASE REQUESTS

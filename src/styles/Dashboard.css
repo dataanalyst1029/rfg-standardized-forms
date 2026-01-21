@@ -634,6 +634,18 @@
   font-weight: 600;
 }
 
+.panel-filters {
+  display: flex;
+  background: var(--color-app-bg);
+  padding: 1rem;
+  gap: 2rem;
+  border-radius: 5px;
+}
+
+.panel-filters input {
+  width: 100%;
+  padding: 5px;
+}
 
 @media (max-width: 1200px) {
   .dashboard-topbar,
