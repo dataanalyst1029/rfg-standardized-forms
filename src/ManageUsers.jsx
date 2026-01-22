@@ -283,8 +283,8 @@ function ManageUsers() {
               <th>Email</th>
               <th>Branch</th>
               <th>Department</th>
-              <th>Role</th>
-              <th>Actions</th>
+              <th className="text-center">Role</th>
+              <th className="text-center">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -310,7 +310,7 @@ function ManageUsers() {
                   <td data-label="Email">{user.email}</td>
                   <td data-label="Branch">{user.branch}</td>
                   <td data-label="Department">{user.department}</td>
-                  <td data-label="Role">
+                  <td data-label="Role" className="text-center">
                     <span className="admin-badge user-role-badge">
                       {user.role ? user.role.toUpperCase() : "N/A"}
                     </span>

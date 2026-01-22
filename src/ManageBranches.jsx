@@ -9,6 +9,7 @@ const emptyBranch = {
   branch_name: "",
   branch_code: "",
   location: "",
+  address: "",
 };
 
 function ManageBranches() {
@@ -66,7 +67,7 @@ function ManageBranches() {
     const term = search.trim().toLowerCase();
     if (!term) return branches;
     return branches.filter((branch) =>
-      [branch.branch_name, branch.branch_code, branch.location]
+      [branch.branch_name, branch.branch_code, branch.location, branch.address]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(term)),
     );
@@ -91,6 +92,7 @@ function ManageBranches() {
       branch_name: branch.branch_name || "",
       branch_code: branch.branch_code || "",
       location: branch.location || "",
+      address: branch.address || "",
     });
     setModalMode("edit");
     setModalOpen(true);
@@ -124,6 +126,7 @@ function ManageBranches() {
       branch_name: form.branch_name.trim(),
       branch_code: form.branch_code.trim(),
       location: form.location.trim() || null,
+      address: form.address.trim() || null,
     };
 
     setIsSubmitting(true);
@@ -242,7 +245,8 @@ function ManageBranches() {
               <th>Branch name</th>
               <th>Code</th>
               <th>Location</th>
-              <th>Actions</th>
+              <th>Address</th>
+              <th className="text-center">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -272,6 +276,13 @@ function ManageBranches() {
                       <span>{branch.location}</span>
                     ) : (
                       <span className="admin-pagination-info">No location on file</span>
+                    )}
+                  </td>
+                  <td data-label="Address">
+                    {branch.address ? (
+                      <span>{branch.address}</span>
+                    ) : (
+                      <span className="admin-pagination-info">No address</span>
                     )}
                   </td>
                   <td data-label="Actions">
@@ -371,8 +382,15 @@ function ManageBranches() {
               />
               <input
                 name="location"
-                placeholder="Location (optional)"
+                placeholder="Location"
                 value={form.location}
+                onChange={handleFormChange}
+              />
+
+              <input
+                name="address"
+                placeholder="Address"
+                value={form.address}
                 onChange={handleFormChange}
               />
 
