@@ -233,10 +233,9 @@ function ManageUsers() {
       setStatus({ type: "error", message: "Failed to delete user." });
     } finally {
       setIsDeleting(false);
-      cancelDelete(); // keep your fade-out close
+      cancelDelete();
     }
   };
-
 
   return (
     <div className="admin-view">

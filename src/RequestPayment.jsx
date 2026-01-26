@@ -172,6 +172,8 @@ function PaymentRequest() {
         }, 300);
     };
 
+    const hasSignature = Boolean(userData.signature && userData.signature.trim());
+
     return (
         <div className="admin-view">
             <div className="admin-toolbar">
@@ -645,7 +647,7 @@ function PaymentRequest() {
                                                 type="text"
                                                 name="approved_signature"
                                                 value={userData.signature || ""}
-                                                className="pr-input received-signature"
+                                                className={`pr-input received-signature ${!hasSignature ? "input-error" : ""}`}
                                                 required
                                                 readOnly
                                             />
@@ -663,8 +665,13 @@ function PaymentRequest() {
                                         <button
                                             type="button"
                                             className="admin-success-btn"
-                                            disabled={isApproving}
+                                            disabled={isApproving || !hasSignature}
                                             onClick={async () => {
+                                            if (!hasSignature) {
+                                            setStatus({ type: "error", message: "Cannot approve: signature is required." });
+                                            return;
+                                            }
+
                                             setIsApproving(true);
                                             const form = document.querySelector(".request-footer-form");
                                             const formData = new FormData(form);
@@ -696,6 +703,7 @@ function PaymentRequest() {
                                                 setShowLoadingModal(false);
                                             }
                                             }}
+                                            title={!hasSignature ? "Upload your signature first" : "Approve request"}
                                         >
                                             {isApproving ? "Approving..." : "✅ Approve"}
                                         </button>

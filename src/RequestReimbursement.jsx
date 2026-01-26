@@ -125,6 +125,7 @@ function ReimbursementRequest() {
         }, 300);
     };
 
+    const hasSignature = Boolean(userData.signature && userData.signature.trim());
 
     return (
         <div className="admin-view">

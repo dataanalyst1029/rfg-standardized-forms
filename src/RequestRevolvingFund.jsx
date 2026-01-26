@@ -128,6 +128,7 @@ function RevolvingFundRequest() {
         }, 300);
     };
 
+    const hasSignature = Boolean(userData.signature && userData.signature.trim());
 
     return (
         <div className="admin-view">
@@ -513,7 +514,7 @@ function RevolvingFundRequest() {
                                                 type="text"
                                                 name="submitted_by"
                                                 value={modalRequest.submitted_by || ""}
-                                                className="car-input"
+                                                className="pr-input"
                                                 readOnly
                                             />
                                         </div>
@@ -524,7 +525,7 @@ function RevolvingFundRequest() {
                                                 type="text"
                                                 name="approved_signature"
                                                 value={modalRequest.submitter_signature || ""}
-                                                className="car-input received-signature"
+                                                className="pr-input received-signature"
                                                 required
                                                 readOnly
                                             />
@@ -534,7 +535,7 @@ function RevolvingFundRequest() {
                                                 alt="Signature"
                                                 className="img-sign"/>
                                                 ) : (
-                                                <p>No signature available</p>
+                                                <p style={{display: 'none'}}></p>
                                             )}
                                         </div>
                                     </div>
@@ -545,7 +546,7 @@ function RevolvingFundRequest() {
                                                 type="text"
                                                 name="approved_by"
                                                 value={userData.name || ""}
-                                                className="car-input"
+                                                className="pr-input"
                                                 readOnly
                                             />
                                         </div>
@@ -556,7 +557,7 @@ function RevolvingFundRequest() {
                                                 type="text"
                                                 name="approver_signature"
                                                 value={userData.signature || ""}
-                                                className="car-input received-signature"
+                                                className={`pr-input received-signature ${!hasSignature ? "input-error" : ""}`}
                                                 required
                                                 readOnly
                                             />
@@ -566,7 +567,7 @@ function RevolvingFundRequest() {
                                                 alt="Signature"
                                                 className="img-sign"/>
                                                 ) : (
-                                                <p>No signature available</p>
+                                                <p style={{display: 'none'}}></p>
                                             )}
                                         </div>
                                     </div>
@@ -614,7 +615,7 @@ function RevolvingFundRequest() {
                                   <button
                                       type="button"
                                       className="admin-success-btn"
-                                      disabled={isApproving}
+                                      disabled={isApproving || !hasSignature}
                                       onClick={async () => {
                                       setIsApproving(true);
                                       const form = document.querySelector(".request-footer-form");

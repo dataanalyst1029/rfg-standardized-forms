@@ -496,7 +496,7 @@ function CashAdvanceRequest({ onLogout }) {
 
           <section className="pr-form-section" id="activity">
             <h2 className="pr-section-title">Nature Activity</h2>
-            <div>
+            <div className="pr-grid-two">
               <div className="pr-field">
                 <label className="pr-label" htmlFor="cutoff_date">Cut-off Date</label>
                 <DatePicker
@@ -509,7 +509,6 @@ function CashAdvanceRequest({ onLogout }) {
                   required
                 />
               </div>
-
               <div className="pr-field" style={{marginTop: '1rem'}}>
                 <label className="pr-label" htmlFor="nature-activity">Nature of Activity</label>
                 <input
@@ -521,7 +520,9 @@ function CashAdvanceRequest({ onLogout }) {
                   required
                 />
               </div>
+            </div>
 
+            <div className="pr-grid-two">
               <div className="pr-field" style={{marginTop: "1rem"}}>
                 <label className="pr-label" htmlFor="inclusive-date">Inclusive date(s)</label>
                 <div className="inclusive-date-group">

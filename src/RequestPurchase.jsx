@@ -169,6 +169,8 @@ function RequestPurchase() {
         }, 300);
     };
 
+    const hasSignature = Boolean(userData.signature && userData.signature.trim());
+
     return (
         <div className="admin-view">
             <div className="admin-toolbar">
@@ -500,7 +502,7 @@ function RequestPurchase() {
                                                 type="text"
                                                 name="approved_signature"
                                                 value={userData.signature || ""}
-                                                className="pr-input received-signature"
+                                                className={`pr-input received-signature ${!hasSignature ? "input-error" : ""}`}
                                                 required
                                                 readOnly
                                             />
@@ -510,7 +512,7 @@ function RequestPurchase() {
                                                 alt="Signature"
                                                 className="img-sign"/>
                                                 ) : (
-                                                <p>No signature available</p>
+                                                <p style={{display: 'none'}}>No signature available</p>
                                             )}
                                         </div>
                                     </div>
@@ -550,39 +552,45 @@ function RequestPurchase() {
                                     <button
                                         type="button"
                                         className="admin-success-btn"
-                                        disabled={isApproving}
+                                        disabled={isApproving || !hasSignature}
                                         onClick={async () => {
-                                        setIsApproving(true);
-                                        const form = document.querySelector(".request-footer-form");
-                                        const formData = new FormData(form);
+                                            if (!hasSignature) {
+                                            setStatus({ type: "error", message: "Cannot approve: signature is required." });
+                                            return;
+                                            }
 
-                                        formData.append("purchase_request_code", modalRequest.purchase_request_code);
-                                        formData.append("status", "Approved");
+                                            setIsApproving(true);
+                                            const form = document.querySelector(".request-footer-form");
+                                            const formData = new FormData(form);
 
-                                        setShowLoadingModal(true);
+                                            formData.append("purchase_request_code", modalRequest.purchase_request_code);
+                                            formData.append("status", "Approved");
 
-                                        try {
+                                            setShowLoadingModal(true);
+
+                                            try {
                                             const response = await fetch(`${API_BASE_URL}/api/update_purchase_request`, {
-                                            method: "PUT",
-                                            body: formData,
+                                                method: "PUT",
+                                                body: formData,
                                             });
 
                                             if (!response.ok) throw new Error("Failed to approve request");
 
                                             setStatus({
-                                            type: "info",
-                                            message: "Purchase request approved successfully.",
+                                                type: "info",
+                                                message: "Purchase request approved successfully.",
                                             });
                                             handleCloseModal();
                                             fetchRequests();
-                                        } catch (err) {
+                                            } catch (err) {
                                             console.error(err);
                                             setStatus({ type: "error", message: err.message });
-                                        } finally {
+                                            } finally {
                                             setIsApproving(false);
                                             setShowLoadingModal(false);
-                                        }
+                                            }
                                         }}
+                                        title={!hasSignature ? "Upload your signature first" : "Approve request"}
                                     >
                                         {isApproving ? "Approving..." : "✅ Approve"}
                                     </button>

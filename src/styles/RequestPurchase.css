@@ -64,6 +64,11 @@ body.dark-mode .request-modal {
   --modal-text: #141414;
 }
 
+.input-error {
+  border: 2px solid red !important;
+  outline: none;
+}
+
 .request-modal h2 {
   margin-bottom: 16px;
 }
